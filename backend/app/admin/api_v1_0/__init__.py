@@ -1,0 +1,1 @@
+from .resources import admin_v1_0_bp
