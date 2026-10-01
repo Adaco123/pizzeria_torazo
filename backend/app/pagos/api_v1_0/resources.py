@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.db import db
@@ -23,6 +24,23 @@ metodos_schema     = MetodoPagoSchema(many=True)
 METODOS_PAGO_POR_DEFECTO = ["Efectivo", "Qr"]
 
 
+def _primer_mensaje(errores):
+    """Baja por la estructura de errores de marshmallow hasta el primer texto."""
+    if isinstance(errores, dict):
+        errores = list(errores.values())
+    if isinstance(errores, list):
+        return _primer_mensaje(errores[0]) if errores else ''
+    return str(errores)
+
+
+def _cargar(schema, data):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data or {}), None
+    except ValidationError as err:
+        return None, ({'success': False, 'error': _primer_mensaje(err.messages)}, 400)
+
+
 def _asegurar_metodos_pago_por_defecto():
     hay_nuevos = False
     for nombre in METODOS_PAGO_POR_DEFECTO:
@@ -43,14 +61,11 @@ class MetodoPagoListResource(Resource):
 
     @jwt_required()
     def post(self):
-        data = request.get_json() or {}
-        if not data.get('nombre', '').strip():
-            return {'success': False, 'error': 'nombre es requerido'}, 400
+        data, error = _cargar(metodo_schema, request.get_json())
+        if error:
+            return error
 
-        if MetodoPago.query.filter_by(nombre=data['nombre'].strip()).first():
-            return {'success': False, 'error': f"Método '{data['nombre']}' ya existe"}, 409
-
-        metodo = MetodoPago(nombre=data['nombre'].strip())
+        metodo = MetodoPago(nombre=data['nombre'])
         try:
             db.session.add(metodo)
             db.session.commit()
@@ -75,16 +90,11 @@ class MetodoPagoResource(Resource):
         if not metodo:
             return {'success': False, 'error': 'Método de pago no encontrado'}, 404
 
-        data = request.get_json() or {}
-        nombre = data.get('nombre', '').strip()
-        if not nombre:
-            return {'success': False, 'error': 'nombre es requerido'}, 400
+        data, error = _cargar(MetodoPagoSchema(excluir_id=metodo_id), request.get_json())
+        if error:
+            return error
 
-        existente = MetodoPago.query.filter_by(nombre=nombre).first()
-        if existente and existente.id != metodo_id:
-            return {'success': False, 'error': f"Ya existe un método con nombre '{nombre}'"}, 409
-
-        metodo.nombre = nombre
+        metodo.nombre = data['nombre']
         try:
             db.session.commit()
             return {'success': True, 'data': metodo_schema.dump(metodo)}, 200
@@ -123,11 +133,9 @@ class PagoListResource(Resource):
     @jwt_required()
     def post(self):
         _asegurar_metodos_pago_por_defecto()
-        data = request.get_json() or {}
-
-        for campo in ['factura_id', 'metodo_id', 'monto', 'usuario_id']:
-            if data.get(campo) is None:
-                return {'success': False, 'error': f'{campo} es requerido'}, 400
+        data, error = _cargar(pago_schema, request.get_json())
+        if error:
+            return error
 
         factura = Factura.query.get(data['factura_id'])
         if not factura:
@@ -144,20 +152,12 @@ class PagoListResource(Resource):
         if not usuario:
             return {'success': False, 'error': 'Usuario no encontrado'}, 404
 
-        # ── Validar monto_recibido solo para efectivo ─────────────────────
-        monto_recibido = data.get('monto_recibido')
-        if metodo.nombre.lower() == 'efectivo':
-            if monto_recibido is None:
-                return {'success': False, 'error': 'monto_recibido es requerido para efectivo'}, 400
-            if float(monto_recibido) < float(data['monto']):
-                return {'success': False, 'error': 'monto_recibido no puede ser menor al monto'}, 400
-
         pago = Pago(
             factura_id     = data['factura_id'],
             metodo_id      = data['metodo_id'],
-            monto          = float(data['monto']),
+            monto          = data['monto'],
             usuario_id     = data['usuario_id'],
-            monto_recibido = float(monto_recibido) if monto_recibido is not None else None,
+            monto_recibido = data['monto_recibido'],
         )
 
         try:

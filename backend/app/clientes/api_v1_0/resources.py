@@ -1,15 +1,37 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 
+from app.db import db
 from ..models import Cliente
-from .schemas import ClienteSchema
+from .schemas import ClienteSchema, ClienteUpdateSchema
 
 clientes_v1_0_bp = Blueprint('clientes_v1_0_bp', __name__)
 api = Api(clientes_v1_0_bp)
 
 cliente_schema = ClienteSchema()
 clientes_schema = ClienteSchema(many=True)
+cliente_update_schema = ClienteUpdateSchema()
+
+
+def _primer_mensaje(errores):
+    """Baja por la estructura de errores de marshmallow hasta el primer texto."""
+    if isinstance(errores, dict):
+        errores = list(errores.values())
+    if isinstance(errores, list):
+        return _primer_mensaje(errores[0]) if errores else ''
+    return str(errores)
+
+
+def _cargar(schema, data, partial=False):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    if not isinstance(data, dict):
+        return None, ({'error': 'El cuerpo de la petición debe ser un objeto JSON'}, 400)
+    try:
+        return schema.load(data, partial=partial), None
+    except ValidationError as err:
+        return None, ({'error': _primer_mensaje(err.messages), 'errors': err.messages}, 400)
 
 class ClientesListResource(Resource):
     @jwt_required()
@@ -22,18 +44,12 @@ class ClientesListResource(Resource):
     def post(self):
         """Create a new client."""
         try:
-            data = request.get_json()
-            campos_requeridos = ['nombre', 'telefono', 'direccion','nit']
-            if not data or not all(k in data for k in campos_requeridos):
-                return {'error': 'Faltan datos requeridos'}, 400
+            data, error = _cargar(cliente_schema, request.get_json())
+            if error:
+                return error
 
-            nombre = data['nombre'].strip()
-            telefono = data['telefono'].strip()
-            direccion = data['direccion'].strip()
-            nit=data['nit'].strip()
-            correo = data.get('correo')
-
-            cliente = Cliente(nombre, telefono, direccion, correo=correo, nit=nit)
+            cliente = Cliente(data['nombre'], data['telefono'], data['direccion'],
+                              correo=data.get('correo'), nit=data['nit'])
             cliente.save()
             return {'message': 'Cliente creado correctamente', 'cliente': cliente_schema.dump(cliente)}, 201
         except Exception as e:
@@ -55,17 +71,14 @@ class ClienteResource(Resource):
             if not cliente:
                 return {'error': 'Cliente no encontrado'}, 404
 
-            data = request.get_json()
-            if 'nombre' in data:
-                cliente.nombre = data['nombre'].strip()
-            if 'telefono' in data:
-                cliente.telefono = data['telefono'].strip()
-            if 'direccion' in data:
-                cliente.direccion = data['direccion'].strip()
-            if 'correo' in data:
-                cliente.correo = data['correo']
+            data, error = _cargar(cliente_update_schema, request.get_json(), partial=True)
+            if error:
+                return error
 
-            cliente.session.commit()
+            for campo, valor in data.items():
+                setattr(cliente, campo, valor)
+
+            db.session.commit()
             return {'message': 'Cliente actualizado', 'cliente': cliente_schema.dump(cliente)}, 200
         except Exception as e:
             return {'error': f'Error interno del servidor: {str(e)}'}, 500

@@ -7,8 +7,6 @@ from marshmallow import ValidationError
 from app.db import db
 from app.factura.models import Factura
 from app.pedidos.models import Pedido
-from app.clientes.models import Cliente
-from app.users.models import Usuario
 
 from .schemas import FacturaSchema
 
@@ -17,6 +15,28 @@ api = Api(facturas_v1_0_bp)
 
 factura_schema  = FacturaSchema()
 facturas_schema = FacturaSchema(many=True)
+
+
+def _cargar(schema, data, partial=False):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data or {}, partial=partial), None
+    except ValidationError as err:
+        return None, ({'success': False, 'errors': err.messages}, 400)
+
+
+def _numero_en_uso(numero, excluir_id=None):
+    query = Factura.query.filter_by(numero_factura=numero)
+    if excluir_id:
+        query = query.filter(Factura.id != excluir_id)
+    return query.first() is not None
+
+
+def _respuesta_numero_duplicado(numero):
+    return {
+        'success': False,
+        'error': f"El número de factura '{numero}' ya existe"
+    }, 409
 
 
 class FacturaListResource(Resource):
@@ -28,42 +48,17 @@ class FacturaListResource(Resource):
 
     @jwt_required()
     def post(self):
-        data = request.get_json() or {}
+        data, error = _cargar(factura_schema, request.get_json())
+        if error:
+            return error
 
-
-        try:
-            errors = factura_schema.validate(data)
-            if errors:
-                return {'success': False, 'errors': errors}, 400
-        except ValidationError as ve:
-            return {'success': False, 'errors': ve.messages}, 400
-
-        pedido = Pedido.query.get(data['pedido_id'])
-        if not pedido:
-            return {'success': False, 'error': f"Pedido {data['pedido_id']} no existe"}, 404
-
-        cliente = Cliente.query.get(data['cliente_id'])
-        if not cliente:
-            return {'success': False, 'error': f"Cliente {data['cliente_id']} no existe"}, 404
-
-        usuario = Usuario.query.get(data['usuario_id'])
-        if not usuario:
-            return {'success': False, 'error': f"Usuario {data['usuario_id']} no existe"}, 404
+        numero = data['numero_factura']
+        if _numero_en_uso(numero):
+            return _respuesta_numero_duplicado(numero)
 
         subtotal = data.get('subtotal')
         if subtotal is None:
-            subtotal = pedido.calcular_total()
-
-        numero = data.get('numero_factura', '').strip()
-        if not numero:
-            return {'success': False, 'error': 'numero_factura es requerido'}, 400
-
-        if Factura.query.filter_by(numero_factura=numero).first():
-            return {
-                'success': False,
-                'error': f"El número de factura '{numero}' ya existe"
-            }, 409   
-
+            subtotal = Pedido.query.get(data['pedido_id']).calcular_total()
 
         factura = Factura(
             numero_factura=numero,
@@ -71,8 +66,8 @@ class FacturaListResource(Resource):
             cliente_id=data['cliente_id'],
             usuario_id=data['usuario_id'],
             subtotal=subtotal,
-            descuento=data.get('descuento', 0),
-            impuesto=data.get('impuesto', 0),
+            descuento=data['descuento'],
+            impuesto=data['impuesto'],
         )
 
         try:
@@ -111,14 +106,12 @@ class FacturaResource(Resource):
         if not factura:
             return {'success': False, 'error': 'Factura no encontrada'}, 404
 
-        data = request.get_json() or {}
+        data, error = _cargar(factura_schema, request.get_json(), partial=True)
+        if error:
+            return error
 
-        try:
-            errors = factura_schema.validate(data, partial=True)
-            if errors:
-                return {'success': False, 'errors': errors}, 400
-        except ValidationError as ve:
-            return {'success': False, 'errors': ve.messages}, 400
+        if 'numero_factura' in data and _numero_en_uso(data['numero_factura'], excluir_id=factura_id):
+            return _respuesta_numero_duplicado(data['numero_factura'])
 
         if 'numero_factura' in data:
             factura.numero_factura = data['numero_factura']

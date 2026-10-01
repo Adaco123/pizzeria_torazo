@@ -2,14 +2,27 @@ from flask import request
 from flask_restful import Resource, Api
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import Blueprint
+from marshmallow import ValidationError
 from app.db import db
 from app.movimientos.models import MovimientoStock
 from app.productos.models import Producto
 from app.turnos.models import Turno
-from app.movimientos.api_v1_0.schemas import movimiento_stock_schema, movimientos_stock_schema
+from app.movimientos.api_v1_0.schemas import (
+    movimiento_stock_schema, movimientos_stock_schema,
+    list_query_schema, producto_query_schema,
+)
 
 movimientos_v1_0_bp = Blueprint('movimientos_v1_0_bp', __name__)
 api = Api(movimientos_v1_0_bp)
+
+
+def _cargar(schema, data):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data or {}), None
+    except ValidationError as err:
+        return None, ({'errors': err.messages}, 400)
+
 
 class MovimientoStockListResource(Resource):
 
@@ -20,11 +33,9 @@ class MovimientoStockListResource(Resource):
         Body: { "producto_id": int, "cantidad": int }
         """
         usuario_id = get_jwt_identity()
-        data = request.get_json()
-
-        errors = movimiento_stock_schema.validate(data)
-        if errors:
-            return {'errors': errors}, 400
+        data, error = _cargar(movimiento_stock_schema, request.get_json())
+        if error:
+            return error
         producto_id = data['producto_id']
         cantidad    = data['cantidad']
 
@@ -67,8 +78,11 @@ class MovimientoStockListResource(Resource):
         Lista todos los movimientos de stock (para admin/reporte).
         Query params opcionales: ?producto_id=X&limit=20
         """
-        producto_id = request.args.get('producto_id', type=int)
-        limit       = request.args.get('limit', default=50, type=int)
+        params, error = _cargar(list_query_schema, request.args.to_dict())
+        if error:
+            return error
+        producto_id = params.get('producto_id')
+        limit       = params['limit']
 
         query = MovimientoStock.query.order_by(MovimientoStock.fecha.desc())
 
@@ -87,7 +101,10 @@ class MovimientoStockProductoResource(Resource):
         Devuelve los últimos movimientos de stock de un producto específico.
         Query param opcional: ?limit=10
         """
-        limit = request.args.get('limit', default=10, type=int)
+        params, error = _cargar(producto_query_schema, request.args.to_dict())
+        if error:
+            return error
+        limit = params['limit']
 
         producto = Producto.query.get(producto_id)
         if not producto:

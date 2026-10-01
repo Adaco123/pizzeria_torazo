@@ -1,9 +1,13 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 
 from ..models import Combo, ComboProducto
-from .schemas import ComboSchema, ComboProductoSchema
+from .schemas import (
+    ComboSchema, ComboUpdateSchema,
+    ComboProductoSchema, ComboProductoUpdateSchema,
+)
 
 combos_v1_0_bp = Blueprint('combos_v1_0_bp', __name__)
 api = Api(combos_v1_0_bp)
@@ -12,6 +16,16 @@ combo_schema = ComboSchema()
 combos_schema = ComboSchema(many=True)
 combo_producto_schema = ComboProductoSchema()
 combos_producto_schema = ComboProductoSchema(many=True)
+combo_update_schema = ComboUpdateSchema()
+combo_producto_update_schema = ComboProductoUpdateSchema()
+
+
+def _cargar(schema, data):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data), None
+    except ValidationError as err:
+        return None, (err.messages, 400)
 
 
 class CombosListResource(Resource):
@@ -24,11 +38,10 @@ class CombosListResource(Resource):
     @jwt_required()
     def post(self):
         """Create a new combo"""
-        data = request.get_json()
-        errors = combo_schema.validate(data)
-        if errors:
-            return errors, 400
-        
+        data, error = _cargar(combo_schema, request.get_json())
+        if error:
+            return error
+
         combo = Combo(**data)
         combo.save()
         return combo_schema.dump(combo), 201
@@ -45,15 +58,12 @@ class ComboResource(Resource):
     def put(self, combo_id):
         """Update a combo (price)"""
         combo = Combo.query.get_or_404(combo_id)
-        data = request.get_json()
-        # Only allow updating precio and activo
-        allowed_fields = {'precio', 'activo'}
-        filtered_data = {k: v for k, v in data.items() if k in allowed_fields}
-        errors = combo_schema.validate(filtered_data, partial=True)
-        if errors:
-            return errors, 400
-        
-        for key, value in filtered_data.items():
+        # Only allow updating precio and activo (ComboUpdateSchema ignores the rest)
+        data, error = _cargar(combo_update_schema, request.get_json())
+        if error:
+            return error
+
+        for key, value in data.items():
             setattr(combo, key, value)
         combo.save()
         return combo_schema.dump(combo), 200
@@ -87,11 +97,12 @@ class ComboProductosResource(Resource):
     def post(self, combo_id):
         """Add a product to a combo with quantity"""
         data = request.get_json()
-        data['combo_id'] = combo_id
-        errors = combo_producto_schema.validate(data)
-        if errors:
-            return errors, 400
-        
+        if isinstance(data, dict):
+            data = {**data, 'combo_id': combo_id}  # el id de la URL manda
+        data, error = _cargar(combo_producto_schema, data)
+        if error:
+            return error
+
         combo_producto = ComboProducto(**data)
         combo_producto.save()
         return combo_producto_schema.dump(combo_producto), 201
@@ -102,7 +113,10 @@ class ComboProductoResource(Resource):
     def put(self, combo_id, producto_id):
         """Update quantity of a product in combo"""
         combo_producto = ComboProducto.query.get_or_404((combo_id, producto_id))
-        data = request.get_json()
+        data, error = _cargar(combo_producto_update_schema, request.get_json())
+        if error:
+            return error
+
         if 'cantidad' in data:
             combo_producto.cantidad = data['cantidad']
             combo_producto.save()

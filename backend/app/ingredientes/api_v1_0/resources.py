@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
 
 from ..models import Ingrediente, IngredienteTamano, ProductoIngrediente
 from app.tamanos.models import Tamano
@@ -17,6 +18,14 @@ ingrediente_tamano_schema = IngredienteTamanoSchema()
 ingredientes_tamanos_schema = IngredienteTamanoSchema(many=True)
 
 
+def _cargar(schema, data, partial=False):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data, partial=partial), None
+    except ValidationError as err:
+        return None, (err.messages, 400)
+
+
 class IngredientesListResource(Resource):
     @jwt_required()
     def get(self):
@@ -27,11 +36,10 @@ class IngredientesListResource(Resource):
     @jwt_required()
     def post(self):
         """Create a new ingredient"""
-        data = request.get_json()
-        errors = ingrediente_schema.validate(data)
-        if errors:
-            return errors, 400
-        
+        data, error = _cargar(ingrediente_schema, request.get_json())
+        if error:
+            return error
+
         ingrediente = Ingrediente(**data)
         ingrediente.save()
         return ingrediente_schema.dump(ingrediente), 201
@@ -48,11 +56,10 @@ class IngredienteResource(Resource):
     def put(self, ingrediente_id):
         """Update an ingredient"""
         ingrediente = Ingrediente.query.get_or_404(ingrediente_id)
-        data = request.get_json()
-        errors = ingrediente_schema.validate(data, partial=True)
-        if errors:
-            return errors, 400
-        
+        data, error = _cargar(ingrediente_schema, request.get_json(), partial=True)
+        if error:
+            return error
+
         for key, value in data.items():
             setattr(ingrediente, key, value)
         ingrediente.save()
@@ -77,11 +84,12 @@ class ProductoIngredientesResource(Resource):
     def post(self, producto_id):
         """Assign an ingredient to a product"""
         data = request.get_json()
-        data['producto_id'] = producto_id
-        errors = producto_ingrediente_schema.validate(data)
-        if errors:
-            return errors, 400
-        
+        if isinstance(data, dict):
+            data = {**data, 'producto_id': producto_id}  # el id de la URL manda
+        data, error = _cargar(producto_ingrediente_schema, data)
+        if error:
+            return error
+
         producto_ingrediente = ProductoIngrediente(**data)
         producto_ingrediente.save()
         return producto_ingrediente_schema.dump(producto_ingrediente), 201
@@ -104,10 +112,9 @@ class IngredienteTamanoListResource(Resource):
 
     @jwt_required()
     def post(self):
-        data = request.get_json()
-        errors = ingrediente_tamano_schema.validate(data)
-        if errors:
-            return errors, 400
+        data, error = _cargar(ingrediente_tamano_schema, request.get_json())
+        if error:
+            return error
 
         ingrediente = Ingrediente.query.get(data['ingrediente_id'])
         if not ingrediente:
@@ -138,10 +145,9 @@ class IngredienteTamanoResource(Resource):
     @jwt_required()
     def put(self, ingrediente_id, tamano_id):
         registro = IngredienteTamano.query.get_or_404((ingrediente_id, tamano_id))
-        data = request.get_json()
-        errors = ingrediente_tamano_schema.validate(data, partial=True)
-        if errors:
-            return errors, 400
+        data, error = _cargar(ingrediente_tamano_schema, request.get_json(), partial=True)
+        if error:
+            return error
 
         if 'precio_extra' in data:
             registro.precio_extra = data['precio_extra']
