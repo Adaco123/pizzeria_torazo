@@ -17,15 +17,17 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <InicioRedirect /> },
-          // Una ruta por cada acceso, protegida con los roles que declara.
-          ...ACCESOS.map(({ path, roles, Page }) => ({
-            path,
-            element: (
-              <ProtectedRoute roles={roles}>
-                <Page />
-              </ProtectedRoute>
-            ),
-          })),
+          // Una ruta por cada acceso (y sus pantallas internas), protegida con los roles que declara.
+          ...ACCESOS.flatMap(({ roles, path, Page, hijas = [] }) =>
+            [{ path, Page }, ...hijas].map((ruta) => ({
+              path: ruta.path,
+              element: (
+                <ProtectedRoute roles={roles}>
+                  <ruta.Page />
+                </ProtectedRoute>
+              ),
+            })),
+          ),
           { path: '/no-autorizado', element: <NoAutorizadoPage /> },
           { path: '*', element: <NoEncontradoPage /> },
         ],

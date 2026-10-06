@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { RolNombre } from '../api.ts'
 import { AdminPage } from '../pages/AdminPage.tsx'
 import { CocinaPage } from '../pages/CocinaPage.tsx'
+import { PedidoDetallePage } from '../pages/PedidoDetallePage.tsx'
 import { PedidosPage } from '../pages/PedidosPage.tsx'
 import { TurnosPage } from '../pages/TurnosPage.tsx'
 
@@ -11,10 +12,18 @@ export interface Acceso {
   /** Roles que pueden entrar. Es la única fuente de verdad: menú y rutas salen de aquí. */
   roles: RolNombre[]
   Page: ComponentType
+  /** Pantallas internas que heredan los roles (por ejemplo, el detalle de un pedido). */
+  hijas?: { path: string; Page: ComponentType }[]
 }
 
 export const ACCESOS: Acceso[] = [
-  { path: '/pedidos', label: 'Pedidos', roles: ['Administrador', 'Cajero'], Page: PedidosPage },
+  {
+    path: '/pedidos',
+    label: 'Pedidos',
+    roles: ['Administrador', 'Cajero'],
+    Page: PedidosPage,
+    hijas: [{ path: '/pedidos/:id', Page: PedidoDetallePage }],
+  },
   { path: '/turnos', label: 'Turnos', roles: ['Administrador', 'Cajero'], Page: TurnosPage },
   { path: '/cocina', label: 'Cocina', roles: ['Administrador', 'Pizzero'], Page: CocinaPage },
   { path: '/admin', label: 'Administración', roles: ['Administrador'], Page: AdminPage },

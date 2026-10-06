@@ -1,3 +1,5 @@
+from werkzeug.exceptions import HTTPException
+
 import os
 from flask import Flask, jsonify
 from flask_restful import Api
@@ -84,6 +86,13 @@ def create_app(settings_module):
     return app
 
 
+def register_error_handlers(app):
+    @app.errorhandler(Exception)
+    def handle_exception_error(e):
+        if isinstance(e, HTTPException):
+            return e
+        app.logger.exception("Error no controlado")
+        return jsonify({'msg': 'Internal server error'}), 500
 def register_error_handlers(app):
     @app.errorhandler(Exception)
     def handle_exception_error(e):
