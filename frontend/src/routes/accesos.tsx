@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { RolNombre } from '../api.ts'
 import { AdminPage } from '../pages/AdminPage.tsx'
+import { CatalogoPage } from '../pages/CatalogoPage.tsx'
 import { CocinaPage } from '../pages/CocinaPage.tsx'
 import { PedidoDetallePage } from '../pages/PedidoDetallePage.tsx'
 import { PedidosPage } from '../pages/PedidosPage.tsx'
@@ -26,7 +27,13 @@ export const ACCESOS: Acceso[] = [
   },
   { path: '/turnos', label: 'Turnos', roles: ['Administrador', 'Cajero'], Page: TurnosPage },
   { path: '/cocina', label: 'Cocina', roles: ['Administrador', 'Pizzero'], Page: CocinaPage },
-  { path: '/admin', label: 'Administración', roles: ['Administrador'], Page: AdminPage },
+  {
+    path: '/admin',
+    label: 'Administración',
+    roles: ['Administrador'],
+    Page: AdminPage,
+    hijas: [{ path: '/admin/catalogo', Page: CatalogoPage }],
+  },
 ]
 
 const INICIO: Record<RolNombre, string> = {
