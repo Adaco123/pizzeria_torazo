@@ -44,5 +44,6 @@ const INICIO: Record<RolNombre, string> = {
 
 /** Pantalla a la que entra cada rol después de iniciar sesión. */
 export function rutaInicial(rol: RolNombre | null): string {
-  return rol ? INICIO[rol] : '/no-autorizado'
+  // Si el rol no está en la tabla, nunca se devuelve `undefined` (rompería <Navigate>).
+  return (rol && Object.hasOwn(INICIO, rol) ? INICIO[rol] : null) ?? '/no-autorizado'
 }

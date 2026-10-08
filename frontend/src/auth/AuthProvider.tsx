@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ApiError, authApi, setUnauthorizedHandler, tokenStorage } from '../api.ts'
 import type { RolNombre } from '../api.ts'
 import { AuthContext, type AuthStatus, type Sesion } from './auth-context.ts'
+import { normalizarRol } from './roles.ts'
 
 const SESSION_KEY = 'torazo_session'
 
@@ -11,7 +12,7 @@ function leerSesion(): Sesion | null {
     if (!raw) return null
     const data = JSON.parse(raw) as Partial<Sesion>
     if (typeof data.id !== 'number' || typeof data.nombre !== 'string') return null
-    return { id: data.id, nombre: data.nombre, rol: data.rol ?? null }
+    return { id: data.id, nombre: data.nombre, rol: normalizarRol(data.rol) }
   } catch {
     return null
   }
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(correo: string, contra: string): Promise<Sesion> {
     const respuesta = await authApi.login({ correo, contra })
-    const nueva: Sesion = { id: respuesta.id, nombre: respuesta.nombre, rol: respuesta.rol }
+    const nueva: Sesion = { id: respuesta.id, nombre: respuesta.nombre, rol: normalizarRol(respuesta.rol) }
     guardarSesion(nueva)
     setSesion(nueva)
     return nueva
