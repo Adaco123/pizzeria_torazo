@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 # Nombre exacto del rol con privilegios de administrador (lo comparan admin_required y users)
 ROL_ADMINISTRADOR = "Administrador"
+ROL_CAJERO = "Cajero"
+ROL_PIZZERO = "Pizzero"
 
 class Usuario(db.Model, BaseModelMixin):
     __tablename__ = "usuarios"

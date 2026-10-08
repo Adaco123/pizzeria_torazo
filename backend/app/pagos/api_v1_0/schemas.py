@@ -47,6 +47,7 @@ class PagoSchema(ma.Schema):
         unknown = EXCLUDE
 
     id             = fields.Int(dump_only=True)
+    pedido_id      = fields.Int(dump_only=True)
     factura_id     = fields.Int(required=True, error_messages=_mensajes('factura_id'))
     metodo_id      = fields.Int(required=True, error_messages=_mensajes('metodo_id'))
     monto          = fields.Float(required=True, error_messages=_mensajes('monto'))

@@ -50,6 +50,7 @@ class Pedido(db.Model, BaseModelMixin):
     turno_id          = db.Column(db.Integer, db.ForeignKey("turnos.id"),   nullable=False)
     updated_at        = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
                                   onupdate=datetime.utcnow)
+    motivo_cancelacion = db.Column(db.Text, nullable=True)
 
     cliente      = db.relationship("Cliente",      back_populates="pedidos")
     usuario      = db.relationship("Usuario",      back_populates="pedidos")
@@ -61,6 +62,7 @@ class Pedido(db.Model, BaseModelMixin):
     historial    = db.relationship("PedidoHistorialEstado", back_populates="pedido",
                                    cascade="all, delete-orphan")
     facturas     = db.relationship("Factura", back_populates="pedido")
+    pagos        = db.relationship("Pago",    back_populates="pedido")
 
     def __init__(self, tipo_entrega_id, usuario_id, turno_id,
                  cliente_id=1, direccion_entrega=None, estado_id=1):
@@ -71,12 +73,15 @@ class Pedido(db.Model, BaseModelMixin):
         self.direccion_entrega = direccion_entrega
         self.estado_id         = estado_id
         self.total             = 0
-        ultimo = (
-        db.session.query(db.func.max(Pedido.numero_turno))
-        .filter(Pedido.turno_id == turno_id)
-        .scalar()
-        )
-        self.numero_turno = (ultimo or 0) + 1
+        # El numero de ficha (numero_turno) se asigna al cobrar, no al crear: asi los
+        # borradores abandonados no dejan huecos en las fichitas.
+        self.numero_turno      = None
+
+    @property
+    def pagado(self):
+        """Dinero neto cobrado: pagos menos devoluciones (montos negativos)."""
+        return round(sum(p.monto for p in self.pagos), 2)
+
     def calcular_total(self):
         self.total = sum(d.subtotal for d in self.detalles)
         return self.total

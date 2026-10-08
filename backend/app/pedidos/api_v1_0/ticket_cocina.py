@@ -1,6 +1,5 @@
-
-
 from flask import Blueprint, make_response
+from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import SQLAlchemyError
 from io import BytesIO
 from datetime import datetime
@@ -199,6 +198,7 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     "/api/v1.0/pedidos/<int:pedido_id>/ticket-cocina",
     methods=["GET"]
 )
+@jwt_required()
 def ticket_cocina(pedido_id: int):
     try:
         pedido = Pedido.query.get(pedido_id)

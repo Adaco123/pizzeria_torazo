@@ -10,7 +10,7 @@ from .schemas import TurnoSchema
 from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
-from app.factura.models import Factura
+from app.pedidos.servicio import pedidos_vendidos, totales_de_ventas
 from app.movimientos.models import MovimientoStock
 turnos_v1_0_bp = Blueprint('turnos_v1_0_bp', __name__)
 api = Api(turnos_v1_0_bp)
@@ -205,18 +205,13 @@ class TurnoResumenResource(Resource):
             return {'success': False, 'error': 'Turno no encontrado'}, 404
 
         
-        pedidos = Pedido.query.filter_by(turno_id=turno_id).all()
-        pedidos_activos = [p for p in pedidos if p.estado.nombre != 'cancelado']
+        # Ventas = pedidos cobrados y no cancelados; el dinero sale de los pagos, no de las facturas.
+        pedidos_activos = pedidos_vendidos(turno_id)
+        totales = totales_de_ventas(pedidos_activos)
 
-        
-        facturas = Factura.query.filter(
-            Factura.pedido_id.in_([p.id for p in pedidos_activos]),
-            Factura.anulada == False
-        ).all()
-
-        total_vendido  = sum(f.total    for f in facturas)
-        total_subtotal = sum(f.subtotal for f in facturas)
-        total_impuesto = sum(f.impuesto for f in facturas)
+        total_vendido  = totales['total_vendido']
+        total_subtotal = totales['total_subtotal']
+        total_impuesto = totales['total_impuesto']
 
         
         ventas_productos = {}
@@ -386,10 +381,11 @@ class TurnoResumenResource(Resource):
                 'monto_cierre': turno.monto_cierre,
 
                 'total_pedidos':  len(pedidos_activos),
-                'total_facturas': len(facturas),
+                'total_facturas': totales['total_facturas'],
                 'total_subtotal': round(total_subtotal, 2),
                 'total_impuesto': round(total_impuesto, 2),
                 'total_vendido':  round(total_vendido,  2),
+                'pagos_por_metodo': totales['pagos_por_metodo'],
 
                 'pizzas':  pizzas,
                 'bebidas': bebidas,

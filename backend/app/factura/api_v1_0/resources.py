@@ -56,9 +56,30 @@ class FacturaListResource(Resource):
         if _numero_en_uso(numero):
             return _respuesta_numero_duplicado(numero)
 
+        pedido = Pedido.query.get(data['pedido_id'])
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+
+        # La factura se emite cuando el cliente la pide, sobre un pedido ya cobrado.
+        estado = pedido.estado.nombre if pedido.estado else None
+        if estado == 'cancelado':
+            return {'success': False, 'error': 'Un pedido cancelado no se puede facturar'}, 409
+        if estado == 'pendiente' or pedido.pagado <= 0:
+            return {'success': False, 'error': 'Cobra el pedido antes de emitir la factura'}, 409
+        if Factura.query.filter_by(pedido_id=pedido.id, anulada=False).first():
+            return {'success': False, 'error': 'Este pedido ya tiene una factura activa'}, 409
+
         subtotal = data.get('subtotal')
         if subtotal is None:
-            subtotal = Pedido.query.get(data['pedido_id']).calcular_total()
+            subtotal = pedido.calcular_total()
+
+        total_factura = (subtotal - data['descuento']) + data['impuesto']
+        if abs(total_factura - pedido.pagado) > 0.005:
+            return {
+                'success': False,
+                'error': f'La factura (Bs {total_factura:.2f}) debe coincidir con lo cobrado '
+                         f'(Bs {pedido.pagado:.2f})'
+            }, 400
 
         factura = Factura(
             numero_factura=numero,

@@ -16,7 +16,7 @@ from reportlab.lib.styles import ParagraphStyle
 from app.db import db
 from app.turnos.models import Turno
 from app.pedidos.models import Pedido, DetallePedido
-from app.factura.models import Factura
+from app.pedidos.servicio import pedidos_vendidos, totales_de_ventas
 from app.pagos.models import Pago
 from app.productos.models import Producto
 
@@ -286,26 +286,13 @@ def _tabla_metodos_pago(pagos_por_metodo, est):
 
 
 def _recolectar_datos(turno):
-    pedidos = Pedido.query.filter_by(turno_id=turno.id).all()
-    pedidos_activos = [p for p in pedidos if p.estado.nombre != 'cancelado']
+    pedidos_activos = pedidos_vendidos(turno.id)
+    totales = totales_de_ventas(pedidos_activos)
 
-    facturas = Factura.query.filter(
-        Factura.pedido_id.in_([p.id for p in pedidos_activos]),
-        Factura.anulada == False
-    ).all()
-
-    total_vendido  = sum(f.total    for f in facturas)
-    total_subtotal = sum(f.subtotal for f in facturas)
-    total_impuesto = sum(f.impuesto for f in facturas)
-
-    pagos_por_metodo = {}
-    for f in facturas:
-        for pago in f.pagos:
-            metodo = pago.metodo.nombre if pago.metodo else "Sin especificar"
-            if metodo not in pagos_por_metodo:
-                pagos_por_metodo[metodo] = {"cantidad": 0, "total": 0.0}
-            pagos_por_metodo[metodo]["cantidad"] += 1
-            pagos_por_metodo[metodo]["total"]    += pago.monto
+    total_vendido    = totales["total_vendido"]
+    total_subtotal   = totales["total_subtotal"]
+    total_impuesto   = totales["total_impuesto"]
+    pagos_por_metodo = totales["pagos_por_metodo"]
 
     ventas_productos = {}
     combos_vendidos  = {}
@@ -412,7 +399,7 @@ def _recolectar_datos(turno):
 
     return {
         "total_pedidos":      len(pedidos_activos),
-        "total_facturas":     len(facturas),
+        "total_facturas":     totales["total_facturas"],
         "total_subtotal":     round(total_subtotal, 2),
         "total_impuesto":     round(total_impuesto, 2),
         "total_vendido":      round(total_vendido,  2),

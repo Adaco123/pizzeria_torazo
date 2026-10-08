@@ -8,6 +8,7 @@ from app.db import db
 from app.pagos.models import Pago, MetodoPago
 from app.factura.models import Factura
 from app.users.models import Usuario
+from app.util.decorador_admin import admin_required
 
 from .schemas import PagoSchema, MetodoPagoSchema
 
@@ -132,41 +133,12 @@ class PagoListResource(Resource):
 
     @jwt_required()
     def post(self):
-        _asegurar_metodos_pago_por_defecto()
-        data, error = _cargar(pago_schema, request.get_json())
-        if error:
-            return error
-
-        factura = Factura.query.get(data['factura_id'])
-        if not factura:
-            return {'success': False, 'error': 'Factura no encontrada'}, 404
-
-        if factura.anulada:
-            return {'success': False, 'error': 'No se puede pagar una factura anulada'}, 400
-
-        metodo = MetodoPago.query.get(data['metodo_id'])
-        if not metodo:
-            return {'success': False, 'error': 'Método de pago no encontrado'}, 404
-
-        usuario = Usuario.query.get(data['usuario_id'])
-        if not usuario:
-            return {'success': False, 'error': 'Usuario no encontrado'}, 404
-
-        pago = Pago(
-            factura_id     = data['factura_id'],
-            metodo_id      = data['metodo_id'],
-            monto          = data['monto'],
-            usuario_id     = data['usuario_id'],
-            monto_recibido = data['monto_recibido'],
-        )
-
-        try:
-            db.session.add(pago)
-            db.session.commit()
-            return {'success': True, 'data': pago_schema.dump(pago)}, 201
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            return {'success': False, 'error': str(e)}, 500
+        # El cobro ya no se registra pago por pago contra una factura: se cobra el pedido
+        # completo con POST /pedidos/<id>/cobrar (valida turno, total, stock y ficha).
+        return {
+            'success': False,
+            'error': 'Los cobros se registran con POST /api/v1.0/pedidos/<id>/cobrar',
+        }, 409
 
 
 class PagoResource(Resource):
@@ -178,7 +150,7 @@ class PagoResource(Resource):
             return {'success': False, 'error': 'Pago no encontrado'}, 404
         return {'success': True, 'data': pago_schema.dump(pago)}, 200
 
-    @jwt_required()
+    @admin_required
     def delete(self, pago_id):
         pago = Pago.query.get(pago_id)
         if not pago:
