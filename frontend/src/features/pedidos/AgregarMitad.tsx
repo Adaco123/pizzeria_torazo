@@ -10,6 +10,8 @@ interface Props {
   pedidoId: number
   catalogo: Catalogo
   onAgregado: () => void
+  /** Sin aviso de éxito: la caja ya muestra la línea nueva en el ticket. */
+  silencioso?: boolean
 }
 
 function aExtras(valor: Record<number, number>) {
@@ -19,7 +21,7 @@ function aExtras(valor: Record<number, number>) {
   }))
 }
 
-export function AgregarMitad({ pedidoId, catalogo, onAgregado }: Props) {
+export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = false }: Props) {
   const toast = useToast()
   const categorias = catalogo.categorias.filter((c) => c.activo)
   const ingredientes = catalogo.ingredientes.filter((i) => i.activo)
@@ -65,7 +67,7 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado }: Props) {
         notas: notas.trim() || null,
         mitades,
       })
-      toast.exito('Pizza mitad y mitad agregada')
+      if (!silencioso) toast.exito('Pizza mitad y mitad agregada')
       setMitad1(null)
       setMitad2(null)
       setExtras1({})

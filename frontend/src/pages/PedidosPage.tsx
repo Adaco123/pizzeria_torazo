@@ -1,25 +1,24 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { ESTADOS_PEDIDO } from '../api.ts'
 import type { EstadoPedidoNombre } from '../api.ts'
 import { useAuth } from '../auth/auth-context.ts'
+import { Caja } from '../features/caja/Caja.tsx'
 import { ListaPedidos } from '../features/pedidos/ListaPedidos.tsx'
-import { NuevoPedidoForm } from '../features/pedidos/NuevoPedidoForm.tsx'
 import { estadoDe, ETIQUETA_ESTADO } from '../features/pedidos/estados.ts'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
+import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
 import { useTurnos } from '../features/turnos/useTurnos.ts'
 
 export function PedidosPage() {
   const { sesion, hasRole } = useAuth()
-  const navigate = useNavigate()
   const esAdmin = hasRole('Administrador')
 
   const turnos = useTurnos()
   const { pedidos, cargando, error, recargar } = usePedidos()
   const { clientes, recargar: recargarClientes } = useClientes()
 
-  const [creando, setCreando] = useState(false)
   const [filtro, setFiltro] = useState<EstadoPedidoNombre | 'todos'>('todos')
 
   const miTurno = turnos.turnos.find((t) => t.abierto && t.usuario_id === sesion?.id) ?? null
@@ -35,34 +34,35 @@ export function PedidosPage() {
     .filter((p) => filtro === 'todos' || estadoDe(p) === filtro)
     .toSorted((a, b) => b.id - a.id)
 
+  function alCambiar() {
+    recargar()
+    recargarClientes()
+  }
+
   return (
     <section className={styles.page}>
       <div className={styles.headerRow}>
         <h1>Pedidos</h1>
-        {miTurno && !creando && (
-          <button className={styles.primary} type="button" onClick={() => setCreando(true)}>
-            + Nuevo pedido
-          </button>
-        )}
       </div>
 
-      {sinTurno && (
+      {turnos.error && (
+        <p className={styles.error} role="alert">
+          {turnos.error}
+        </p>
+      )}
+
+      {/* Sin turno no se puede vender: el cajero lo abre aquí mismo, sin salir de la pantalla. */}
+      {sinTurno && !esAdmin && sesion && (
+        <MiTurnoPanel turno={null} usuarioId={sesion.id} onCambio={turnos.recargar} />
+      )}
+      {sinTurno && esAdmin && (
         <div className={styles.aviso}>
-          <p>Necesitas un turno abierto para crear pedidos.</p>
+          <p>Necesitas un turno abierto para registrar ventas.</p>
           <Link to="/turnos">Ir a Turnos</Link>
         </div>
       )}
 
-      {creando && miTurno && sesion && (
-        <NuevoPedidoForm
-          usuarioId={sesion.id}
-          turnoId={miTurno.id}
-          clientes={clientes}
-          onClienteCreado={recargarClientes}
-          onCreado={(id) => navigate(`/pedidos/${id}`)}
-          onCancelar={() => setCreando(false)}
-        />
-      )}
+      {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} onCambio={alCambiar} />}
 
       <section className={styles.card}>
         <div className={styles.headerRow}>

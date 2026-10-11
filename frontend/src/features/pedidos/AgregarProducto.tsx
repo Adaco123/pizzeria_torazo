@@ -12,9 +12,16 @@ interface FormularioProps {
   producto: Producto
   ingredientes: Ingrediente[]
   onAgregado: () => void
+  silencioso?: boolean
 }
 
-function FormularioProducto({ pedidoId, producto, ingredientes, onAgregado }: FormularioProps) {
+function FormularioProducto({
+  pedidoId,
+  producto,
+  ingredientes,
+  onAgregado,
+  silencioso = false,
+}: FormularioProps) {
   const toast = useToast()
   // null = todavía cargando los tamaños del producto
   const [tamanos, setTamanos] = useState<ProductoTamanoPrecio[] | null>(null)
@@ -74,7 +81,7 @@ function FormularioProducto({ pedidoId, producto, ingredientes, onAgregado }: Fo
           cantidad: cantidadExtra,
         })
       }
-      toast.exito(`${producto.nombre} agregado`)
+      if (!silencioso) toast.exito(`${producto.nombre} agregado`)
       setCantidad('1')
       setNotas('')
       setExtras({})
@@ -154,9 +161,11 @@ interface Props {
   pedidoId: number
   catalogo: Catalogo
   onAgregado: () => void
+  /** Sin aviso de éxito: la caja ya muestra la línea nueva en el ticket. */
+  silencioso?: boolean
 }
 
-export function AgregarProducto({ pedidoId, catalogo, onAgregado }: Props) {
+export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = false }: Props) {
   const categorias = catalogo.categorias.filter((c) => c.activo)
   const [categoriaId, setCategoriaId] = useState<number | null>(categorias[0]?.id ?? null)
   const [productoId, setProductoId] = useState<number | null>(null)
@@ -199,6 +208,7 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado }: Props) {
               onClick={() => setProductoId(p.id)}
             >
               {p.nombre}
+              {p.precio_base > 0 && <small>{formatearMonto(p.precio_base)}</small>}
             </button>
           ))}
         </div>
@@ -211,6 +221,7 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado }: Props) {
           producto={producto}
           ingredientes={ingredientes}
           onAgregado={onAgregado}
+          silencioso={silencioso}
         />
       )}
     </div>

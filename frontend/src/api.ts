@@ -521,13 +521,18 @@ export interface DetallePedido {
 
 export interface Pedido {
   id: number
-  numero_turno: number
+  /** Ficha del pedido dentro del turno. Es null mientras es borrador: se asigna al cobrar. */
+  numero_turno: number | null
   fecha: string
   updated_at: string
   estado_id: number
   tipo_entrega_id: number
   direccion_entrega: string | null
   total: number
+  /** Dinero neto cobrado: pagos menos devoluciones. */
+  pagado: number
+  /** Solo si el pedido se canceló después de cobrarlo. */
+  motivo_cancelacion: string | null
   cliente_id: number
   usuario_id: number
   turno_id: number
@@ -544,10 +549,30 @@ export interface PedidoCreate {
   direccion_entrega?: string | null
 }
 
+/** Solo se puede cambiar mientras el pedido es borrador. El estado cambia con cobrar/cambiarEstado. */
 export interface PedidoUpdate {
-  estado_id?: number
+  cliente_id?: number
   tipo_entrega_id?: number
   direccion_entrega?: string | null
+}
+
+/** Un pago dentro del cobro de un pedido. En efectivo, `monto_recibido` es obligatorio. */
+export interface PagoCobro {
+  metodo_id: number
+  monto: number
+  monto_recibido?: number | null
+}
+
+export interface CobroRequest {
+  /** La suma de los montos tiene que ser igual al total del pedido. */
+  pagos: PagoCobro[]
+}
+
+export interface CobroResultado {
+  /** El pedido ya cobrado, con su ficha (`numero_turno`) y en estado `confirmado`. */
+  pedido: Pedido
+  /** Vuelto total a entregar al cliente. */
+  vuelto: number
 }
 
 /** Producto suelto o combo: se envía `producto_id` o `combo_id`, nunca ambos. */
@@ -695,7 +720,9 @@ export interface MetodoPagoInput {
 
 export interface Pago {
   id: number
-  factura_id: number
+  pedido_id: number
+  /** null si el pago no tiene factura (la factura es opcional). */
+  factura_id: number | null
   metodo_id: number
   monto: number
   monto_recibido: number | null
@@ -1086,6 +1113,11 @@ export const pedidosApi = {
     return requestData<Pedido[]>(basePedidos, opts)
   },
 
+  /** Solo los pedidos de un turno (el cajero ya recibe solo los suyos). */
+  listarDelTurno(turnoId: number, opts: Opts = {}): Promise<Pedido[]> {
+    return requestData<Pedido[]>(basePedidos, { query: { turno_id: turnoId }, ...opts })
+  },
+
   obtener(id: number, opts: Opts = {}): Promise<Pedido> {
     return requestData<Pedido>(`${basePedidos}/${id}`, opts)
   },
@@ -1102,9 +1134,28 @@ export const pedidosApi = {
     await request(`${basePedidos}/${id}`, { method: 'DELETE' })
   },
 
-  /** Cambia el estado por nombre (`pendiente`, `en_preparacion`, `listo`, ...). */
-  cambiarEstado(id: number, estado: EstadoPedidoNombre): Promise<Pedido> {
-    return requestData<Pedido>(`${basePedidos}/${id}/estado`, { method: 'PATCH', body: { estado } })
+  /**
+   * Cambia el estado por nombre (`en_preparacion`, `listo`, `entregado`, `cancelado`).
+   * Pasar de pendiente a confirmado no se hace aquí: ocurre al cobrar. Cancelar un pedido
+   * ya cobrado exige `motivo`.
+   */
+  cambiarEstado(id: number, estado: EstadoPedidoNombre, motivo?: string): Promise<Pedido> {
+    return requestData<Pedido>(`${basePedidos}/${id}/estado`, {
+      method: 'PATCH',
+      body: { estado, motivo },
+    })
+  },
+
+  /**
+   * Cobra el pedido completo y lo manda a cocina en una sola operación: registra los pagos,
+   * descuenta el stock de bebidas y le asigna la ficha. Los pagos tienen que sumar el total.
+   */
+  async cobrar(id: number, data: CobroRequest): Promise<CobroResultado> {
+    const respuesta = await request<Envelope<Pedido> & { vuelto: number }>(
+      `${basePedidos}/${id}/cobrar`,
+      { method: 'POST', body: data },
+    )
+    return { pedido: respuesta.data, vuelto: respuesta.vuelto }
   },
 
   // --- Detalles -----------------------------------------------------------------
@@ -1119,6 +1170,11 @@ export const pedidosApi = {
       method: 'POST',
       body: data,
     })
+  },
+
+  /** Quita un producto del pedido. Solo se puede mientras el pedido es borrador. */
+  quitarDetalle(id: number, detalleId: number): Promise<Pedido> {
+    return requestData<Pedido>(`${basePedidos}/${id}/detalles/${detalleId}`, { method: 'DELETE' })
   },
 
   /** Agrega un ingrediente extra a un detalle normal (no mitad y mitad). */

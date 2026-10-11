@@ -9,6 +9,8 @@ interface Props {
   /** Si es true se pueden quitar extras. */
   editable: boolean
   onQuitarExtra: (detalleId: number, extraId: number) => void
+  /** Si se pasa, cada producto muestra un botón para quitarlo (la caja, mientras es borrador). */
+  onQuitarDetalle?: (detalleId: number) => void
 }
 
 function tituloDe(detalle: DetallePedido, combos: Combo[]): string {
@@ -19,7 +21,14 @@ function tituloDe(detalle: DetallePedido, combos: Combo[]): string {
   return detalle.producto_nombre ?? 'Producto'
 }
 
-export function DetalleItems({ detalles, total, combos, editable, onQuitarExtra }: Props) {
+export function DetalleItems({
+  detalles,
+  total,
+  combos,
+  editable,
+  onQuitarExtra,
+  onQuitarDetalle,
+}: Props) {
   if (detalles.length === 0) {
     return <p className={styles.muted}>Todavía no agregaste nada a este pedido.</p>
   }
@@ -78,6 +87,16 @@ export function DetalleItems({ detalles, total, combos, editable, onQuitarExtra 
             <div className={styles.itemPrice}>
               <span className={styles.muted}>{formatearMonto(detalle.precio_unitario)} c/u</span>
               <strong>{formatearMonto(detalle.subtotal)}</strong>
+              {onQuitarDetalle && (
+                <button
+                  className={styles.link}
+                  type="button"
+                  aria-label={`Quitar ${tituloDe(detalle, combos)}`}
+                  onClick={() => onQuitarDetalle(detalle.id)}
+                >
+                  quitar
+                </button>
+              )}
             </div>
           </li>
         ))}

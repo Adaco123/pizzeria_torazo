@@ -188,7 +188,7 @@ class PedidoDetailResource(Resource):
     @jwt_required()
     @manejar_reglas
     def put(self, pedido_id):
-        """Solo la entrega y la dirección, y solo mientras el pedido es borrador.
+        """El cliente, la entrega y la dirección, y solo mientras el pedido es borrador.
         El estado cambia únicamente por /cobrar y /estado."""
         try:
             pedido = _obtener_pedido_editable(pedido_id)
@@ -197,6 +197,11 @@ class PedidoDetailResource(Resource):
             if 'estado_id' in data:
                 return {'success': False,
                         'error': 'El estado no se cambia aquí: usa /cobrar o /estado'}, 400
+
+            if 'cliente_id' in data:
+                if not Cliente.query.get(data['cliente_id']):
+                    return {'success': False, 'error': 'Cliente no existe'}, 404
+                pedido.cliente_id = data['cliente_id']
 
             if 'tipo_entrega_id' in data:
                 if not TipoEntrega.query.get(data['tipo_entrega_id']):

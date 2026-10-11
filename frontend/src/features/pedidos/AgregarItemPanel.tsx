@@ -17,9 +17,11 @@ interface Props {
   pedidoId: number
   catalogo: Catalogo
   onAgregado: () => void
+  /** Sin avisos de éxito al agregar (la caja ya muestra el ticket). */
+  silencioso?: boolean
 }
 
-export function AgregarItemPanel({ pedidoId, catalogo, onAgregado }: Props) {
+export function AgregarItemPanel({ pedidoId, catalogo, onAgregado, silencioso = false }: Props) {
   const [pestana, setPestana] = useState<Pestana>('producto')
 
   return (
@@ -42,13 +44,28 @@ export function AgregarItemPanel({ pedidoId, catalogo, onAgregado }: Props) {
       </div>
 
       {pestana === 'producto' && (
-        <AgregarProducto pedidoId={pedidoId} catalogo={catalogo} onAgregado={onAgregado} />
+        <AgregarProducto
+          pedidoId={pedidoId}
+          catalogo={catalogo}
+          onAgregado={onAgregado}
+          silencioso={silencioso}
+        />
       )}
       {pestana === 'mitad' && (
-        <AgregarMitad pedidoId={pedidoId} catalogo={catalogo} onAgregado={onAgregado} />
+        <AgregarMitad
+          pedidoId={pedidoId}
+          catalogo={catalogo}
+          onAgregado={onAgregado}
+          silencioso={silencioso}
+        />
       )}
       {pestana === 'combo' && (
-        <AgregarCombo pedidoId={pedidoId} catalogo={catalogo} onAgregado={onAgregado} />
+        <AgregarCombo
+          pedidoId={pedidoId}
+          catalogo={catalogo}
+          onAgregado={onAgregado}
+          silencioso={silencioso}
+        />
       )}
     </section>
   )

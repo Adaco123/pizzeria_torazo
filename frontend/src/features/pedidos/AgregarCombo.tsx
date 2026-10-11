@@ -9,9 +9,11 @@ interface Props {
   pedidoId: number
   catalogo: Catalogo
   onAgregado: () => void
+  /** Sin aviso de éxito: la caja ya muestra la línea nueva en el ticket. */
+  silencioso?: boolean
 }
 
-export function AgregarCombo({ pedidoId, catalogo, onAgregado }: Props) {
+export function AgregarCombo({ pedidoId, catalogo, onAgregado, silencioso = false }: Props) {
   const toast = useToast()
   const combos = catalogo.combos.filter((c) => c.activo)
   const [comboId, setComboId] = useState<number | null>(null)
@@ -36,7 +38,7 @@ export function AgregarCombo({ pedidoId, catalogo, onAgregado }: Props) {
         cantidad: unidades,
         notas: notas.trim() || null,
       })
-      toast.exito(`${combo.nombre} agregado`)
+      if (!silencioso) toast.exito(`${combo.nombre} agregado`)
       setComboId(null)
       setCantidad('1')
       setNotas('')

@@ -128,6 +128,11 @@ def exigir_turno_abierto(turno):
 
 
 def recalcular_total(pedido):
+    # Las líneas nuevas se crean con `pedido_id`, no a través de `pedido.detalles`. Si esa lista
+    # ya se leyó antes en la misma petición (por ejemplo al validar el stock de una bebida),
+    # en memoria quedaría sin la línea nueva y el total saldría mal. Se vuelve a leer de la BD.
+    db.session.flush()
+    db.session.expire(pedido, ['detalles'])
     total = 0
     for detalle in pedido.detalles:
         if detalle.is_mitad:

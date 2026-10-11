@@ -31,7 +31,7 @@ export function ListaPedidos({ pedidos, nombres }: Props) {
         <tbody>
           {pedidos.map((pedido) => (
             <tr key={pedido.id}>
-              <td>{pedido.numero_turno}</td>
+              <td>{pedido.numero_turno ?? '—'}</td>
               <td>{formatearFecha(pedido.fecha)}</td>
               <td>{nombres[pedido.cliente_id] ?? `Cliente #${pedido.cliente_id}`}</td>
               <td>{pedido.tipo_entrega?.nombre ?? '—'}</td>
