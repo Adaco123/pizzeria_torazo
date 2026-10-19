@@ -32,6 +32,18 @@ def _asegurar_categorias_por_defecto():
 
 
 
+def _completar_precio_pizza(data):
+    """Las pizzas se cobran por tamano: su precio base es opcional y queda en 0.
+    Para el resto de productos el precio base sigue siendo obligatorio."""
+    if not isinstance(data, dict) or data.get('precio_base') not in (None, ''):
+        return data
+    categoria_id = data.get('categoria_id')
+    categoria = Categoria.query.get(categoria_id) if isinstance(categoria_id, int) else None
+    if categoria and categoria.nombre.strip().lower() in ('pizza', 'pizzas'):
+        data = {**data, 'precio_base': 0}
+    return data
+
+
 class CategoriasListResource(Resource):
     @jwt_required()
     def get(self):
@@ -102,7 +114,7 @@ class ProductosListResource(Resource):
     def post(self):
         """Create a new product"""
         _asegurar_categorias_por_defecto()
-        data = request.get_json()
+        data = _completar_precio_pizza(request.get_json())
         errors = producto_schema.validate(data)
         if errors:
             return errors, 400

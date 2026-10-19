@@ -179,6 +179,14 @@ def _es_bebida(producto):
     return bool(producto and producto.categoria and producto.categoria.nombre.lower() == 'bebidas')
 
 
+def es_pizza(producto):
+    """Solo los productos de la categoría Pizzas se pueden pedir mitad y mitad.
+    Se reconoce por el nombre de la categoría (como Bebidas), no por su id."""
+    if not producto or not producto.categoria:
+        return False
+    return producto.categoria.nombre.strip().lower() in ('pizza', 'pizzas')
+
+
 def cantidades_de_bebidas(pedido):
     """producto_id -> unidades de bebida del pedido."""
     cantidades = {}

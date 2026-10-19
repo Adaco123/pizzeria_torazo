@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { productosApi } from '../../api.ts'
 import type { Categoria, Producto } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
+import { esCategoriaPizzas } from '../pedidos/categorias.ts'
 import { parseMonto } from '../../utils/formato.ts'
 import { useAccion } from './useAccion.ts'
 import styles from './Catalogo.module.css'
@@ -25,10 +26,14 @@ export function ProductoForm({ categorias, inicial, onGuardado, onCancelar }: Pr
   )
   const [activo, setActivo] = useState(inicial?.activo ?? true)
 
+  // Las pizzas se cobran por tamaño: su precio base no se pide.
+  const categoria = categorias.find((c) => c.id === categoriaId)
+  const esPizza = categoria !== undefined && esCategoriaPizzas(categoria)
+
   async function guardar(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     const limpio = nombre.trim()
-    const precioBase = parseMonto(precio)
+    const precioBase = esPizza ? (precio.trim() === '' ? 0 : parseMonto(precio)) : parseMonto(precio)
 
     if (!limpio) return toast.error('Escribe el nombre del producto')
     if (precioBase === null) return toast.error('El precio base debe ser un monto válido (0 o mayor)')
@@ -68,13 +73,14 @@ export function ProductoForm({ categorias, inicial, onGuardado, onCancelar }: Pr
         </label>
 
         <label className={styles.field}>
-          <span>Precio base (Bs)</span>
+          <span>{esPizza ? 'Precio base (Bs, opcional)' : 'Precio base (Bs)'}</span>
           <input
             type="number"
             inputMode="decimal"
             min="0"
             step="0.01"
             value={precio}
+            placeholder={esPizza ? '0.00' : undefined}
             onChange={(e) => setPrecio(e.target.value)}
           />
         </label>
@@ -97,8 +103,9 @@ export function ProductoForm({ categorias, inicial, onGuardado, onCancelar }: Pr
         </button>
       </form>
       <p className={styles.muted}>
-        El precio base se usa en productos sin tamaños (por ejemplo las bebidas). Si el producto
-        tiene tamaños, se cobra el precio de cada tamaño.
+        {esPizza
+          ? 'Las pizzas se cobran por tamaño: después de crearla, asígnale sus tamaños y precios.'
+          : 'El precio base se usa en productos sin tamaños (por ejemplo las bebidas). Si el producto tiene tamaños, se cobra el precio de cada tamaño.'}
       </p>
     </section>
   )

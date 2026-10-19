@@ -1,11 +1,9 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router'
-import { ESTADOS_PEDIDO } from '../api.ts'
-import type { EstadoPedidoNombre } from '../api.ts'
 import { useAuth } from '../auth/auth-context.ts'
 import { Caja } from '../features/caja/Caja.tsx'
-import { ListaPedidos } from '../features/pedidos/ListaPedidos.tsx'
-import { estadoDe, ETIQUETA_ESTADO } from '../features/pedidos/estados.ts'
+import { INTERVALO_MS } from '../features/cocina/useCocina.ts'
+import { TableroPedidos } from '../features/pedidos/TableroPedidos.tsx'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
@@ -19,20 +17,24 @@ export function PedidosPage() {
   const { pedidos, cargando, error, recargar } = usePedidos()
   const { clientes, recargar: recargarClientes } = useClientes()
 
-  const [filtro, setFiltro] = useState<EstadoPedidoNombre | 'todos'>('todos')
-
   const miTurno = turnos.turnos.find((t) => t.abierto && t.usuario_id === sesion?.id) ?? null
   const sinTurno = !turnos.cargando && !turnos.error && miTurno === null
 
   const nombres = Object.fromEntries(clientes.map((c) => [c.id, c.nombre]))
 
-  // El cajero ve los pedidos de su turno abierto; el administrador ve todos.
+  // El cajero ve los pedidos de su turno abierto; el administrador, los de todos los turnos abiertos.
+  const turnosAbiertos = new Set(turnos.turnos.filter((t) => t.abierto).map((t) => t.id))
   const delAlcance = esAdmin
-    ? pedidos
+    ? pedidos.filter((p) => turnosAbiertos.has(p.turno_id))
     : pedidos.filter((p) => miTurno !== null && p.turno_id === miTurno.id)
-  const visibles = delAlcance
-    .filter((p) => filtro === 'todos' || estadoDe(p) === filtro)
-    .toSorted((a, b) => b.id - a.id)
+
+  // El tablero se actualiza solo (cocina cambia los estados) mientras la pestaña esté visible.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') recargar()
+    }, INTERVALO_MS)
+    return () => window.clearInterval(id)
+  }, [recargar])
 
   function alCambiar() {
     recargar()
@@ -64,38 +66,20 @@ export function PedidosPage() {
 
       {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} onCambio={alCambiar} />}
 
-      <section className={styles.card}>
-        <div className={styles.headerRow}>
-          <h2>{esAdmin ? 'Todos los pedidos' : 'Pedidos de mi turno'}</h2>
-          <label className={styles.inline}>
-            <span className={styles.muted}>Estado</span>
-            <select
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value as EstadoPedidoNombre | 'todos')}
-            >
-              <option value="todos">Todos</option>
-              {ESTADOS_PEDIDO.map((estado) => (
-                <option key={estado} value={estado}>
-                  {ETIQUETA_ESTADO[estado]}
-                </option>
-              ))}
-            </select>
-          </label>
+      {error && (
+        <div className={styles.errorRow}>
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+          <button className={styles.secondary} type="button" onClick={recargar}>
+            Reintentar
+          </button>
         </div>
-
-        {error && (
-          <div className={styles.errorRow}>
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-            <button className={styles.secondary} type="button" onClick={recargar}>
-              Reintentar
-            </button>
-          </div>
-        )}
-        {cargando && <p className={styles.muted}>Cargando pedidos…</p>}
-        {!cargando && !error && <ListaPedidos pedidos={visibles} nombres={nombres} />}
-      </section>
+      )}
+      {cargando && <p className={styles.muted}>Cargando pedidos…</p>}
+      {!cargando && (miTurno !== null || esAdmin) && (
+        <TableroPedidos pedidos={delAlcance} nombres={nombres} onCambio={alCambiar} />
+      )}
     </section>
   )
 }

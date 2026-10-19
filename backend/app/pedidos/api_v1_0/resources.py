@@ -321,8 +321,15 @@ class DetalleMitadResource(Resource):
                     return {'success': False, 'error': 'Cada mitad necesita producto_id y mitad (1 o 2)'}, 400
                 if m['mitad'] not in (1, 2):
                     return {'success': False, 'error': 'mitad debe ser 1 o 2'}, 400
-                if not Producto.query.get(m['producto_id']):
+                producto = Producto.query.get(m['producto_id'])
+                if not producto:
                     return {'success': False, 'error': f'Producto {m["producto_id"]} no existe'}, 404
+                if not servicio.es_pizza(producto):
+                    return {
+                        'success': False,
+                        'error': f'"{producto.nombre}" no es una pizza: '
+                                 'solo las pizzas se pueden pedir mitad y mitad'
+                    }, 400
 
             precios = []
             for m in mitades_data:

@@ -10,14 +10,14 @@
 /**
  * Cliente HTTP base. Todos los módulos de más abajo pasan por aquí.
  *
- * - Lee la URL del backend de `VITE_API_URL`.
+ * - Lee la UL del backend de `VITE_API_URL`.
  * - Adjunta el JWT (`Authorization: Bearer ...`) si hay sesión.
  * - Normaliza los errores del backend (que usan `error`, `message`, `msg`
  *   o `errors` de marshmallow según el módulo) en un único `ApiError`.
  * - Soporta respuestas vacías (204) y descargas binarias (PDF).
  */
 
-const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000').replace(/\/+$/, '')
+const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:5000').replace(/\/+$/, '')
 
 const TOKEN_KEY = 'torazo_token'
 

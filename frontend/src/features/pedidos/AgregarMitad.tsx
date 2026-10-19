@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { pedidosApi } from '../../api.ts'
 import type { DetalleMitadInput } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
+import { esCategoriaPizzas } from './categorias.ts'
 import type { Catalogo } from './useCatalogo.ts'
 import { ExtrasSelector } from './ExtrasSelector.tsx'
 import styles from './Pedidos.module.css'
@@ -23,13 +24,10 @@ function aExtras(valor: Record<number, number>) {
 
 export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = false }: Props) {
   const toast = useToast()
-  const categorias = catalogo.categorias.filter((c) => c.activo)
   const ingredientes = catalogo.ingredientes.filter((i) => i.activo)
 
-  // Por defecto, la categoría de pizzas si existe.
-  const [categoriaId, setCategoriaId] = useState<number | null>(
-    (categorias.find((c) => /pizza/i.test(c.nombre)) ?? categorias[0])?.id ?? null,
-  )
+  // Mitad y mitad es solo de pizzas: los sabores salen de esa categoría y de ninguna otra.
+  const categoriaPizzas = catalogo.categorias.find((c) => c.activo && esCategoriaPizzas(c)) ?? null
   const [tamanoId, setTamanoId] = useState<number | null>(null)
   const [mitad1, setMitad1] = useState<number | null>(null)
   const [mitad2, setMitad2] = useState<number | null>(null)
@@ -39,7 +37,9 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
   const [notas, setNotas] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  const productos = catalogo.productos.filter((p) => p.activo && p.categoria_id === categoriaId)
+  const productos = categoriaPizzas
+    ? catalogo.productos.filter((p) => p.activo && p.categoria_id === categoriaPizzas.id)
+    : []
   const unidades = Number.parseInt(cantidad, 10)
 
   function elegir(setter: (id: number | null) => void, valor: string) {
@@ -82,33 +82,26 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
     }
   }
 
-  if (categorias.length === 0) return <p className={styles.muted}>No hay categorías activas.</p>
+  if (!categoriaPizzas) {
+    return (
+      <p className={styles.muted}>
+        No hay una categoría «Pizzas» activa, por eso no se puede armar mitad y mitad.
+      </p>
+    )
+  }
+  if (productos.length < 2) {
+    return (
+      <p className={styles.muted}>Para mitad y mitad hacen falta al menos dos pizzas activas.</p>
+    )
+  }
 
   return (
     <form className={styles.formStack} onSubmit={agregar}>
       <p className={styles.muted}>
-        El precio lo calcula el sistema: el de la mitad más cara según el tamaño.
+        Solo pizzas. El precio lo calcula el sistema: el de la mitad más cara según el tamaño.
       </p>
 
       <div className={styles.formRow}>
-        <label className={styles.field}>
-          <span>Categoría</span>
-          <select
-            value={categoriaId ?? ''}
-            onChange={(e) => {
-              elegir(setCategoriaId, e.target.value)
-              setMitad1(null)
-              setMitad2(null)
-            }}
-          >
-            {categorias.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <label className={styles.field}>
           <span>Tamaño</span>
           <select value={tamanoId ?? ''} onChange={(e) => elegir(setTamanoId, e.target.value)}>
@@ -140,6 +133,9 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
             valor={extras1}
             onChange={setExtras1}
             titulo="Extras del primer sabor"
+            tamanoId={tamanoId}
+            precios={catalogo.preciosExtra}
+            soloPorTamano
           />
         </div>
 
@@ -160,6 +156,9 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
             valor={extras2}
             onChange={setExtras2}
             titulo="Extras del segundo sabor"
+            tamanoId={tamanoId}
+            precios={catalogo.preciosExtra}
+            soloPorTamano
           />
         </div>
       </div>

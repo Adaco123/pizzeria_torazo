@@ -20,22 +20,6 @@ export function estadoDe(pedido: Pick<Pedido, 'estado'>): EstadoPedidoNombre | n
   return ESTADOS_PEDIDO.find((estado) => estado === nombre) ?? null
 }
 
-const SIGUIENTE: Partial<Record<EstadoPedidoNombre, EstadoPedidoNombre>> = {
-  pendiente: 'confirmado',
-  confirmado: 'en_preparacion',
-  en_preparacion: 'listo',
-  listo: 'entregado',
-}
-
-export function siguienteEstado(estado: EstadoPedidoNombre | null): EstadoPedidoNombre | null {
-  return estado ? (SIGUIENTE[estado] ?? null) : null
-}
-
-/** Solo se pueden agregar o quitar ítems mientras la cocina no empezó a prepararlo. */
-export function esEditable(estado: EstadoPedidoNombre | null): boolean {
-  return estado === 'pendiente' || estado === 'confirmado'
-}
-
 export function esFinal(estado: EstadoPedidoNombre | null): boolean {
   return estado === 'entregado' || estado === 'cancelado'
 }

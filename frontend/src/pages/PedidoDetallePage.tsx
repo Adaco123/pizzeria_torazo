@@ -1,34 +1,27 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { pedidosApi } from '../api.ts'
-import type { EstadoPedidoNombre } from '../api.ts'
 import { useAuth } from '../auth/auth-context.ts'
-import { CobroPanel } from '../features/cobro/CobroPanel.tsx'
-import { useCobro } from '../features/cobro/useCobro.ts'
-import { AgregarItemPanel } from '../features/pedidos/AgregarItemPanel.tsx'
+import { FacturaPanel } from '../features/cobro/FacturaPanel.tsx'
+import { useFactura } from '../features/cobro/useFactura.ts'
 import { DetalleItems } from '../features/pedidos/DetalleItems.tsx'
 import { EstadoBadge } from '../features/pedidos/EstadoBadge.tsx'
-import {
-  esEditable,
-  esFinal,
-  estadoDe,
-  ETIQUETA_ESTADO,
-  siguienteEstado,
-} from '../features/pedidos/estados.ts'
+import { esFinal, estadoDe } from '../features/pedidos/estados.ts'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useCatalogo } from '../features/pedidos/useCatalogo.ts'
 import { useClientes, usePedido } from '../features/pedidos/usePedidos.ts'
 import { useToast } from '../toast/toast-context.ts'
 import { descargarBlob } from '../utils/archivos.ts'
-import { formatearFecha } from '../utils/formato.ts'
+import { formatearFecha, formatearMonto } from '../utils/formato.ts'
 
 function PedidoDetalle({ id }: { id: number }) {
   const { sesion, hasRole } = useAuth()
   const toast = useToast()
+  const esAdmin = hasRole('Administrador')
   const { pedido, cargando, error, recargar } = usePedido(id)
-  const { catalogo, error: errorCatalogo } = useCatalogo()
+  const { catalogo } = useCatalogo()
   const { clientes } = useClientes()
-  const cobro = useCobro(id)
+  const factura = useFactura(id)
   const [ocupado, setOcupado] = useState(false)
 
   const volver = (
@@ -50,7 +43,7 @@ function PedidoDetalle({ id }: { id: number }) {
   }
 
   // El cajero solo puede abrir sus propios pedidos.
-  if (!hasRole('Administrador') && pedido.usuario_id !== sesion?.id) {
+  if (!esAdmin && pedido.usuario_id !== sesion?.id) {
     return (
       <section className={styles.page}>
         {volver}
@@ -61,42 +54,52 @@ function PedidoDetalle({ id }: { id: number }) {
   }
 
   const estado = estadoDe(pedido)
-  const siguiente = siguienteEstado(estado)
-  const facturado = cobro.factura !== null
-  // Con una factura activa el pedido no se toca: la factura ya fijó el subtotal.
-  const editable = esEditable(estado) && !facturado
   const cliente = clientes.find((c) => c.id === pedido.cliente_id)
+  const borrador = estado === 'pendiente'
+  // Misma regla que el servidor: el cajero cancela hasta que cocina lo deja listo; el administrador siempre.
+  const sePuedeCancelar =
+    estado === 'pendiente' ||
+    estado === 'confirmado' ||
+    estado === 'en_preparacion' ||
+    (estado === 'listo' && esAdmin)
 
-  async function cambiarEstado(nuevo: EstadoPedidoNombre) {
+  async function accion(tarea: () => Promise<unknown>, exito: string) {
     setOcupado(true)
     try {
-      await pedidosApi.cambiarEstado(id, nuevo)
-      toast.exito(`Pedido marcado como ${ETIQUETA_ESTADO[nuevo].toLowerCase()}`)
-      recargar()
+      await tarea()
+      toast.exito(exito)
     } catch (e) {
       toast.error(e)
     } finally {
       setOcupado(false)
+      recargar()
+      factura.recargar()
     }
+  }
+
+  async function entregar() {
+    await accion(() => pedidosApi.cambiarEstado(id, 'entregado'), 'Pedido entregado')
   }
 
   async function cancelar() {
-    if (facturado) {
+    if (factura.factura) {
       toast.error('Anula la factura antes de cancelar el pedido')
       return
     }
-    if (!window.confirm('¿Cancelar este pedido?')) return
-    await cambiarEstado('cancelado')
-  }
-
-  async function quitarExtra(detalleId: number, extraId: number) {
-    try {
-      await pedidosApi.quitarExtra(id, detalleId, extraId)
-      toast.exito('Extra quitado')
-      recargar()
-    } catch (e) {
-      toast.error(e)
+    let motivo: string | undefined
+    if (borrador) {
+      if (!window.confirm('¿Cancelar este pedido?')) return
+    } else {
+      // Ya está cobrado: se devuelve el dinero, así que queda escrito por qué.
+      const escrito = window.prompt('Motivo de la cancelación (se devuelve lo cobrado):')
+      if (escrito === null) return
+      if (escrito.trim().length < 3) {
+        toast.error('Escribe el motivo de la cancelación')
+        return
+      }
+      motivo = escrito.trim()
     }
+    await accion(() => pedidosApi.cambiarEstado(id, 'cancelado', motivo), 'Pedido cancelado')
   }
 
   async function descargarTicket() {
@@ -117,35 +120,52 @@ function PedidoDetalle({ id }: { id: number }) {
 
       <section className={styles.card}>
         <div className={styles.headerRow}>
-          <h1>Pedido N° {pedido.numero_turno}</h1>
-          <EstadoBadge estado={estado} />
+          <h1>{pedido.numero_turno ? `Ficha N° ${pedido.numero_turno}` : 'Pedido sin cobrar'}</h1>
+          <span>
+            <EstadoBadge estado={estado} />
+            {!borrador && pedido.pagado >= pedido.total && pedido.total > 0 && (
+              <>
+                {' '}
+                <span className={`${styles.badge} ${styles.estadoListo}`}>Pagado</span>
+              </>
+            )}
+          </span>
         </div>
         <p className={styles.muted}>
           {formatearFecha(pedido.fecha)} · {cliente?.nombre ?? `Cliente #${pedido.cliente_id}`} ·{' '}
           {pedido.tipo_entrega?.nombre ?? '—'}
           {pedido.direccion_entrega ? ` · ${pedido.direccion_entrega}` : ''}
         </p>
+        {!borrador && <p className={styles.muted}>Cobrado: {formatearMonto(pedido.pagado)}</p>}
+        {pedido.motivo_cancelacion && (
+          <p className={styles.muted}>Motivo de la cancelación: {pedido.motivo_cancelacion}</p>
+        )}
 
         <div className={styles.formRow}>
-          {siguiente && (
-            <button
-              className={styles.primary}
-              type="button"
-              disabled={ocupado}
-              onClick={() => cambiarEstado(siguiente)}
-            >
-              Marcar como {ETIQUETA_ESTADO[siguiente].toLowerCase()}
+          {estado === 'listo' && (
+            <button className={styles.primary} type="button" disabled={ocupado} onClick={entregar}>
+              Entregar
             </button>
           )}
-          <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicket}>
-            Ticket de cocina (PDF)
-          </button>
-          {!esFinal(estado) && (
+          {borrador && (
+            <Link to="/pedidos" className={styles.secondary} style={{ textDecoration: "none" }}>
+              Seguir armándolo en caja
+            </Link>
+          )}
+          {!borrador && (
+            <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicket}>
+              Ticket de cocina (PDF)
+            </button>
+          )}
+          {!esFinal(estado) && sePuedeCancelar && (
             <button className={styles.danger} type="button" disabled={ocupado} onClick={cancelar}>
               Cancelar pedido
             </button>
           )}
         </div>
+        {estado === 'listo' && !esAdmin && (
+          <p className={styles.muted}>Ya está listo: solo el administrador puede cancelarlo.</p>
+        )}
       </section>
 
       <section className={styles.card}>
@@ -154,37 +174,19 @@ function PedidoDetalle({ id }: { id: number }) {
           detalles={pedido.detalles}
           total={pedido.total}
           combos={catalogo?.combos ?? []}
-          editable={editable}
-          onQuitarExtra={quitarExtra}
+          editable={false}
+          onQuitarExtra={() => {}}
         />
       </section>
 
-      {sesion && (
-        <CobroPanel
+      {sesion && !borrador && (
+        <FacturaPanel
           pedido={pedido}
           usuarioId={sesion.id}
-          esAdmin={hasRole('Administrador')}
-          cobro={cobro}
+          esAdmin={esAdmin}
+          clientes={clientes}
+          factura={factura}
         />
-      )}
-
-      {editable && catalogo && (
-        <AgregarItemPanel pedidoId={id} catalogo={catalogo} onAgregado={recargar} />
-      )}
-      {editable && !catalogo && !errorCatalogo && (
-        <p className={styles.muted}>Cargando catálogo…</p>
-      )}
-      {errorCatalogo && (
-        <p className={styles.error} role="alert">
-          No se pudo cargar el catálogo: {errorCatalogo}
-        </p>
-      )}
-      {!editable && (
-        <p className={styles.muted}>
-          {facturado && esEditable(estado)
-            ? 'Este pedido tiene una factura activa, por eso no se puede modificar. Anula la factura para cambiarlo.'
-            : `Este pedido ya no se puede modificar porque está ${estado ? ETIQUETA_ESTADO[estado].toLowerCase() : 'cerrado'}.`}
-        </p>
       )}
     </section>
   )

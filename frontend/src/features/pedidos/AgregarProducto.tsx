@@ -1,9 +1,11 @@
+
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { pedidosApi, productosApi } from '../../api.ts'
-import type { Ingrediente, Producto, ProductoTamanoPrecio } from '../../api.ts'
+import type { Ingrediente, IngredienteTamano, Producto, ProductoTamanoPrecio } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearMonto, mensajeDeError } from '../../utils/formato.ts'
 import type { Catalogo } from './useCatalogo.ts'
+import { totalExtras } from './extras.ts'
 import { ExtrasSelector } from './ExtrasSelector.tsx'
 import styles from './Pedidos.module.css'
 
@@ -11,6 +13,7 @@ interface FormularioProps {
   pedidoId: number
   producto: Producto
   ingredientes: Ingrediente[]
+  preciosExtra: IngredienteTamano[]
   onAgregado: () => void
   silencioso?: boolean
 }
@@ -19,6 +22,7 @@ function FormularioProducto({
   pedidoId,
   producto,
   ingredientes,
+  preciosExtra,
   onAgregado,
   silencioso = false,
 }: FormularioProps) {
@@ -53,6 +57,7 @@ function FormularioProducto({
   // El backend NO calcula el precio por tamaño al agregar un producto: hay que enviarlo.
   const precio = tamanoElegido ? tamanoElegido.precio : producto.precio_base
   const unidades = Number.parseInt(cantidad, 10)
+  const extrasTotal = totalExtras(extras, ingredientes, tamanoElegido?.tamano_id ?? null, preciosExtra)
   const cantidadValida = Number.isInteger(unidades) && unidades >= 1
 
   async function agregar(event: SubmitEvent<HTMLFormElement>) {
@@ -100,6 +105,12 @@ function FormularioProducto({
     <form className={styles.formStack} onSubmit={agregar}>
       <h3>{producto.nombre}</h3>
 
+      {tamanos.length === 0 && (
+        <p className={styles.muted}>
+          Este producto no tiene tamaños con precio cargados: se vende a {formatearMonto(producto.precio_base)}.
+          Para ofrecer tamaños, cárgalos en Catálogo → producto → precios por tamaño.
+        </p>
+      )}
       {tamanos.length > 0 && (
         <div className={styles.field}>
           <span>Tamaño</span>
@@ -141,16 +152,23 @@ function FormularioProducto({
         </label>
       </div>
 
-      {tamanos.length > 0 && (
-        <ExtrasSelector ingredientes={ingredientes} valor={extras} onChange={setExtras} />
-      )}
+      {/* Los extras no dependen del tamaño: sin tamaño se cobra el precio extra base del ingrediente. */}
+      <ExtrasSelector
+        ingredientes={ingredientes}
+        valor={extras}
+        onChange={setExtras}
+        tamanoId={tamanoElegido?.tamano_id ?? null}
+        precios={preciosExtra}
+      />
 
       <div className={styles.formRow}>
         <button className={styles.primary} type="submit" disabled={enviando || !cantidadValida}>
           {enviando ? 'Agregando…' : 'Agregar al pedido'}
         </button>
         <span className={styles.muted}>
-          {cantidadValida ? `${formatearMonto(precio * unidades)} (sin extras)` : ''}
+          {cantidadValida
+            ? `${formatearMonto(precio * unidades + extrasTotal)}${extrasTotal > 0 ? ` (incluye extras ${formatearMonto(extrasTotal)})` : ''}`
+            : ''}
         </span>
       </div>
     </form>
@@ -220,6 +238,7 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = f
           pedidoId={pedidoId}
           producto={producto}
           ingredientes={ingredientes}
+          preciosExtra={catalogo.preciosExtra}
           onAgregado={onAgregado}
           silencioso={silencioso}
         />
