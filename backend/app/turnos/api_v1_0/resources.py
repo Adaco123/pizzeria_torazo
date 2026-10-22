@@ -10,7 +10,9 @@ from .schemas import TurnoSchema
 from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
-from app.pedidos.servicio import pedidos_vendidos, totales_de_ventas
+from app.pedidos.servicio import (
+    cuadre_de_caja, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
+)
 from app.movimientos.models import MovimientoStock
 turnos_v1_0_bp = Blueprint('turnos_v1_0_bp', __name__)
 api = Api(turnos_v1_0_bp)
@@ -115,10 +117,12 @@ class TurnoResource(Resource):
         return {"success": True, "data": turno_schema.dump(turno)}, 200
 
     @jwt_required()
+    @manejar_reglas
     def put(self, turno_id):
         turno = Turno.query.get(turno_id)
         if not turno:
             return {"success": False, "message": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno)
 
         data, error = _cargar_turno(request.get_json(), partial=True)
         if error:
@@ -153,10 +157,12 @@ class TurnoResource(Resource):
 class TurnoCerrarResource(Resource):
 
     @jwt_required()
+    @manejar_reglas
     def post(self, turno_id):
         turno = Turno.query.get(turno_id)
         if not turno:
             return {"success": False, "message": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno)
         if not turno.abierto:
             return {"success": False, "message": "Turno ya está cerrado"}, 400
 
@@ -198,11 +204,13 @@ class TurnoResumenResource(Resource):
    
 
     @jwt_required()
+    @manejar_reglas
     def get(self, turno_id):
         _cerrar_turnos_vencidos()
         turno = Turno.query.get(turno_id)
         if not turno:
             return {'success': False, 'error': 'Turno no encontrado'}, 404
+        exigir_acceso_turno(turno, para_resumen=True)
 
         
         # Ventas = pedidos cobrados y no cancelados; el dinero sale de los pagos, no de las facturas.
@@ -386,6 +394,7 @@ class TurnoResumenResource(Resource):
                 'total_impuesto': round(total_impuesto, 2),
                 'total_vendido':  round(total_vendido,  2),
                 'pagos_por_metodo': totales['pagos_por_metodo'],
+                **cuadre_de_caja(turno, totales['pagos_por_metodo']),
 
                 'pizzas':  pizzas,
                 'bebidas': bebidas,

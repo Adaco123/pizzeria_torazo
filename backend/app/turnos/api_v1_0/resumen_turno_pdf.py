@@ -16,7 +16,9 @@ from reportlab.lib.styles import ParagraphStyle
 from app.db import db
 from app.turnos.models import Turno
 from app.pedidos.models import Pedido, DetallePedido
-from app.pedidos.servicio import pedidos_vendidos, totales_de_ventas
+from app.pedidos.servicio import (
+    ReglaNegocio, cuadre_de_caja, exigir_acceso_turno, pedidos_vendidos, totales_de_ventas,
+)
 from app.pagos.models import Pago
 from app.productos.models import Producto
 
@@ -462,9 +464,10 @@ def _generar_pdf(turno: Turno) -> bytes:
 
     if turno.monto_cierre is not None:
         story.append(_linea_punteada())
-        diferencia = turno.monto_cierre - turno.monto_inicio - datos["total_vendido"]
-        story.append(_fila_financiera("Monto cierre", f'Bs {turno.monto_cierre:.2f}', est))
-        story.append(_fila_financiera("Diferencia",   f'Bs {diferencia:.2f}',         est, negrita=True))
+        cuadre = cuadre_de_caja(turno, datos["pagos_por_metodo"])
+        story.append(_fila_financiera("Efectivo esperado", f'Bs {cuadre["efectivo_esperado"]:.2f}', est))
+        story.append(_fila_financiera("Efectivo contado",  f'Bs {turno.monto_cierre:.2f}',          est))
+        story.append(_fila_financiera("Diferencia",        f'Bs {cuadre["diferencia"]:.2f}',        est, negrita=True))
 
     story.append(_linea_fina())
 
@@ -520,10 +523,14 @@ def _generar_pdf(turno: Turno) -> bytes:
 )
 @jwt_required()
 def resumen_turno_pdf(turno_id: int):
+    turno = Turno.query.get(turno_id)
+    if not turno:
+        return {"success": False, "error": "Turno no encontrado"}, 404
     try:
-        turno = Turno.query.get(turno_id)
-        if not turno:
-            return {"success": False, "error": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno, para_resumen=True)
+    except ReglaNegocio as error:
+        return {"success": False, "error": error.mensaje}, error.status
+    try:
 
         pdf_bytes = _generar_pdf(turno)
         response  = make_response(pdf_bytes)

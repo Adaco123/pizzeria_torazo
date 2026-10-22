@@ -387,3 +387,34 @@ def totales_de_ventas(pedidos):
         'total_facturas': len(facturas),
         'pagos_por_metodo': pagos_por_metodo,
     }
+
+
+def cuadre_de_caja(turno, pagos_por_metodo):
+    """Efectivo que deberia haber en caja al cerrar: monto inicial + efectivo cobrado
+    (neto de devoluciones). El QR y otros metodos no pasan por la caja fisica."""
+    efectivo = sum(
+        info['total'] for nombre, info in pagos_por_metodo.items()
+        if nombre.strip().lower() == 'efectivo'
+    )
+    esperado = round(turno.monto_inicio + efectivo, 2)
+    diferencia = None if turno.monto_cierre is None else round(turno.monto_cierre - esperado, 2)
+    return {
+        'efectivo_cobrado': round(efectivo, 2),
+        'efectivo_esperado': esperado,
+        'diferencia': diferencia,
+    }
+
+
+def exigir_acceso_turno(turno, para_resumen=False):
+    """El administrador ve todos los turnos; el cajero solo los suyos.
+
+    El resumen de un turno abierto es solo del administrador: el cajero cierra a ciegas
+    (cuenta el efectivo sin saber cuanto "deberia" haber) y recien despues ve el cuadre."""
+    rol = rol_actual()
+    if rol == ROL_ADMINISTRADOR:
+        return
+    if rol == ROL_CAJERO and turno.usuario_id == usuario_actual().id:
+        if para_resumen and turno.cierre is None:
+            raise ReglaNegocio('El resumen de tu turno se ve cuando lo cierres', 403)
+        return
+    raise ReglaNegocio('No tienes acceso a este turno', 403)
