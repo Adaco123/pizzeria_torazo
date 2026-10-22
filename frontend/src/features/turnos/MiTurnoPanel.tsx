@@ -10,11 +10,19 @@ interface Props {
   turno: Turno | null
   usuarioId: number
   onCambio: () => void
-  /** Solo se pasa a quien puede ver resúmenes (administradores). Sin él, no hay botón. */
+  /** Se muestra al cerrar el turno (cuadre de caja). */
   onVerResumen?: (turnoId: number) => void
+  /** El administrador puede ver el resumen con el turno abierto; el cajero solo al cerrarlo. */
+  puedeVerResumenAbierto?: boolean
 }
 
-export function MiTurnoPanel({ turno, usuarioId, onCambio, onVerResumen }: Props) {
+export function MiTurnoPanel({
+  turno,
+  usuarioId,
+  onCambio,
+  onVerResumen,
+  puedeVerResumenAbierto = false,
+}: Props) {
   const toast = useToast()
   const [monto, setMonto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -121,7 +129,7 @@ export function MiTurnoPanel({ turno, usuarioId, onCambio, onVerResumen }: Props
         <button className={styles.primary} type="submit" disabled={enviando}>
           {enviando ? 'Cerrando…' : 'Cerrar turno'}
         </button>
-        {onVerResumen && (
+        {onVerResumen && puedeVerResumenAbierto && (
           <button className={styles.secondary} type="button" onClick={() => onVerResumen(turno.id)}>
             Ver resumen
           </button>

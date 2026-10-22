@@ -9,11 +9,14 @@ import {
   formatearMonto,
   mensajeDeError,
 } from '../../utils/formato.ts'
+import { CuadreCaja } from './CuadreCaja.tsx'
 import styles from './Turnos.module.css'
 
 interface Props {
   turnoId: number
   onCerrar: () => void
+  /** El cajero ve solo el cuadre de su turno; el administrador, el resumen completo. */
+  completo?: boolean
 }
 
 function TablaVentas({ titulo, items }: { titulo: string; items: VentaProducto[] }) {
@@ -56,7 +59,7 @@ function TablaVentas({ titulo, items }: { titulo: string; items: VentaProducto[]
   )
 }
 
-export function ResumenTurnoPanel({ turnoId, onCerrar }: Props) {
+export function ResumenTurnoPanel({ turnoId, onCerrar, completo = true }: Props) {
   const toast = useToast()
   const [resumen, setResumen] = useState<ResumenTurno | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -136,16 +139,12 @@ export function ResumenTurnoPanel({ turnoId, onCerrar }: Props) {
               <dt>Total vendido</dt>
               <dd>{formatearMonto(resumen.total_vendido)}</dd>
             </div>
-            <div>
-              <dt>Monto inicial</dt>
-              <dd>{formatearMonto(resumen.monto_inicio)}</dd>
-            </div>
-            <div>
-              <dt>Monto de cierre</dt>
-              <dd>{formatearMonto(resumen.monto_cierre)}</dd>
-            </div>
           </dl>
 
+          <CuadreCaja resumen={resumen} />
+
+          {completo && (
+            <>
           <TablaVentas titulo="Pizzas" items={resumen.pizzas} />
           <TablaVentas titulo="Bebidas" items={resumen.bebidas} />
           <TablaVentas titulo="Otros" items={resumen.otros} />
@@ -200,6 +199,8 @@ export function ResumenTurnoPanel({ turnoId, onCerrar }: Props) {
                 </table>
               </div>
             </div>
+          )}
+            </>
           )}
         </>
       )}

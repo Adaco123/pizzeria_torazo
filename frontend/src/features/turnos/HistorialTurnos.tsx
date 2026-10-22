@@ -6,19 +6,24 @@ interface Props {
   turnos: Turno[]
   /** Muestra la columna "Usuario" (para el administrador). */
   mostrarUsuario: boolean
+  /** El administrador ve el resumen también con el turno abierto. */
+  esAdmin: boolean
   nombres: Record<number, string>
   usuarioId: number | undefined
-  /** Solo se pasa a quien puede ver resúmenes (administradores). Sin él, no hay enlace. */
+  /** Resumen del turno: el cajero lo ve solo de sus turnos ya cerrados. */
   onResumen?: (turnoId: number) => void
+  onPedidos?: (turnoId: number) => void
   onCompletar: (turnoId: number) => void
 }
 
 export function HistorialTurnos({
   turnos,
   mostrarUsuario,
+  esAdmin,
   nombres,
   usuarioId,
   onResumen,
+  onPedidos,
   onCompletar,
 }: Props) {
   if (turnos.length === 0) return <p className={styles.muted}>Todavía no hay turnos.</p>
@@ -61,13 +66,22 @@ export function HistorialTurnos({
                   </span>
                 </td>
                 <td className={styles.actions}>
-                  {onResumen && (
+                  {onResumen && (esAdmin || !turno.abierto) && (
                     <button
                       className={styles.link}
                       type="button"
                       onClick={() => onResumen(turno.id)}
                     >
-                      Resumen
+                      {esAdmin ? 'Resumen' : 'Cuadre'}
+                    </button>
+                  )}
+                  {onPedidos && (
+                    <button
+                      className={styles.link}
+                      type="button"
+                      onClick={() => onPedidos(turno.id)}
+                    >
+                      Pedidos
                     </button>
                   )}
                   {sinMontoCierre && (

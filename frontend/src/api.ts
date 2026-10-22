@@ -10,14 +10,14 @@
 /**
  * Cliente HTTP base. Todos los módulos de más abajo pasan por aquí.
  *
- * - Lee la UL del backend de `VITE_API_URL`.
+ * - Lee la URL del backend de `VITE_API_URL`.
  * - Adjunta el JWT (`Authorization: Bearer ...`) si hay sesión.
  * - Normaliza los errores del backend (que usan `error`, `message`, `msg`
  *   o `errors` de marshmallow según el módulo) en un único `ApiError`.
  * - Soporta respuestas vacías (204) y descargas binarias (PDF).
  */
 
-const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:5000').replace(/\/+$/, '')
+const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000').replace(/\/+$/, '')
 
 const TOKEN_KEY = 'torazo_token'
 
@@ -651,6 +651,13 @@ export interface ResumenTurno {
   total_subtotal: number
   total_impuesto: number
   total_vendido: number
+  /** Cobrado por método de pago, neto de devoluciones. */
+  pagos_por_metodo: Record<string, { cantidad: number; total: number }>
+  efectivo_cobrado: number
+  /** Monto inicial + efectivo cobrado: lo que debería haber en la caja. */
+  efectivo_esperado: number
+  /** Contado - esperado. Null mientras el turno no tenga monto de cierre. */
+  diferencia: number | null
   pizzas: VentaProducto[]
   bebidas: VentaProducto[]
   otros: VentaProducto[]
@@ -1193,6 +1200,11 @@ export const pedidosApi = {
   /** PDF del ticket de cocina. Usa `URL.createObjectURL(blob)` para abrirlo o imprimirlo. */
   ticketCocina(id: number, opts: Opts = {}): Promise<Blob> {
     return requestBlob(`${basePedidos}/${id}/ticket-cocina`, opts)
+  },
+
+  /** PDF del ticket para el cliente (con precios y cómo pagó). Solo pedidos ya cobrados. */
+  ticketCliente(id: number, opts: Opts = {}): Promise<Blob> {
+    return requestBlob(`${basePedidos}/${id}/ticket-cliente`, opts)
   },
 }
 

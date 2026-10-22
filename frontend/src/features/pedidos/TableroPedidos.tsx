@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { pedidosApi } from '../../api.ts'
 import type { Pedido } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
+import { descargarBlob } from '../../utils/archivos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import { minutosDesde, textoTiempo } from '../cocina/tiempo.ts'
 import { useAhora } from '../cocina/useCocina.ts'
@@ -65,6 +66,17 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
     } finally {
       setOcupadoId(null)
       onCambio()
+    }
+  }
+
+  async function reimprimir(pedido: Pedido) {
+    setOcupadoId(pedido.id)
+    try {
+      descargarBlob(await pedidosApi.ticketCliente(pedido.id), `ticket-${pedido.numero_turno}.pdf`)
+    } catch (e) {
+      toast.error(e)
+    } finally {
+      setOcupadoId(null)
     }
   }
 
@@ -145,6 +157,14 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
                           {ocupadoId === pedido.id ? 'Entregando…' : 'Entregar'}
                         </button>
                       )}
+                      <button
+                        className={styles.ver}
+                        type="button"
+                        disabled={ocupadoId === pedido.id}
+                        onClick={() => void reimprimir(pedido)}
+                      >
+                        Ticket
+                      </button>
                       <Link className={styles.ver} to={`/pedidos/${pedido.id}`}>
                         Ver
                       </Link>

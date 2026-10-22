@@ -3,6 +3,7 @@ import { useAuth } from '../auth/auth-context.ts'
 import { CompletarCierreForm } from '../features/turnos/CompletarCierreForm.tsx'
 import { HistorialTurnos } from '../features/turnos/HistorialTurnos.tsx'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
+import { PedidosDelTurno } from '../features/turnos/PedidosDelTurno.tsx'
 import { ResumenTurnoPanel } from '../features/turnos/ResumenTurnoPanel.tsx'
 import styles from '../features/turnos/Turnos.module.css'
 import { useNombresUsuarios, useTurnos } from '../features/turnos/useTurnos.ts'
@@ -14,6 +15,7 @@ export function TurnosPage() {
   const nombres = useNombresUsuarios(esAdmin)
 
   const [resumenId, setResumenId] = useState<number | null>(null)
+  const [pedidosId, setPedidosId] = useState<number | null>(null)
   const [completandoId, setCompletandoId] = useState<number | null>(null)
 
   // El cajero solo ve sus turnos; el administrador ve todos.
@@ -43,16 +45,22 @@ export function TurnosPage() {
           turno={miTurno}
           usuarioId={sesion.id}
           onCambio={recargar}
-          onVerResumen={esAdmin ? setResumenId : undefined}
+          onVerResumen={setResumenId}
+          puedeVerResumenAbierto={esAdmin}
         />
       )}
 
-      {esAdmin && resumenId !== null && (
+      {resumenId !== null && (
         <ResumenTurnoPanel
           key={resumenId}
           turnoId={resumenId}
+          completo={esAdmin}
           onCerrar={() => setResumenId(null)}
         />
+      )}
+
+      {pedidosId !== null && (
+        <PedidosDelTurno key={pedidosId} turnoId={pedidosId} onCerrar={() => setPedidosId(null)} />
       )}
 
       {turnoACompletar && (
@@ -73,9 +81,11 @@ export function TurnosPage() {
           <HistorialTurnos
             turnos={visibles}
             mostrarUsuario={esAdmin}
+            esAdmin={esAdmin}
             nombres={nombres}
             usuarioId={sesion?.id}
-            onResumen={esAdmin ? setResumenId : undefined}
+            onResumen={setResumenId}
+            onPedidos={setPedidosId}
             onCompletar={setCompletandoId}
           />
         </section>

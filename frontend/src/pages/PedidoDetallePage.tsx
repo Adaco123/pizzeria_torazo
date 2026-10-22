@@ -114,6 +114,18 @@ function PedidoDetalle({ id }: { id: number }) {
     }
   }
 
+  async function descargarTicketCliente() {
+    setOcupado(true)
+    try {
+      const pdf = await pedidosApi.ticketCliente(id)
+      descargarBlob(pdf, `ticket-${pedido?.numero_turno ?? id}.pdf`)
+    } catch (e) {
+      toast.error(e)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
   return (
     <section className={styles.page}>
       {volver}
@@ -153,8 +165,13 @@ function PedidoDetalle({ id }: { id: number }) {
             </Link>
           )}
           {!borrador && (
+            <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicketCliente}>
+              Ticket del cliente (PDF)
+            </button>
+          )}
+          {!borrador && (
             <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicket}>
-              Ticket de cocina (PDF)
+              Ficha de cocina (PDF)
             </button>
           )}
           {!esFinal(estado) && sePuedeCancelar && (

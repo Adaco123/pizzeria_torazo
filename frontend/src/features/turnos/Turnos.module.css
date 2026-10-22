@@ -219,3 +219,24 @@
 .statTotal dd {
   color: var(--color-primary);
 }
+.stats .statBien {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+}
+
+.stats .statBien dd {
+  color: var(--color-success);
+}
+
+.stats .statMal {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+}
+
+.stats .statMal dd {
+  color: var(--color-error);
+}
+
+.stats .statAviso dd {
+  color: var(--color-muted);
+}
