@@ -1,4 +1,3 @@
-
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { pedidosApi, productosApi } from '../../api.ts'
 import type { Ingrediente, IngredienteTamano, Producto, ProductoTamanoPrecio } from '../../api.ts'
@@ -189,7 +188,8 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = f
   const [productoId, setProductoId] = useState<number | null>(null)
 
   const productos = catalogo.productos.filter((p) => p.activo && p.categoria_id === categoriaId)
-  const producto = productos.find((p) => p.id === productoId) ?? null
+  // Si se agota mientras estaba elegido, deja de ofrecerse el formulario.
+  const producto = productos.find((p) => p.id === productoId && !p.agotado) ?? null
   const ingredientes = catalogo.ingredientes.filter((i) => i.activo)
 
   if (categorias.length === 0) return <p className={styles.muted}>No hay categorías activas.</p>
@@ -221,12 +221,15 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = f
             <button
               key={p.id}
               type="button"
-              className={p.id === productoId ? styles.productActive : styles.product}
+              className={
+                p.agotado ? styles.productAgotado : p.id === productoId ? styles.productActive : styles.product
+              }
               aria-pressed={p.id === productoId}
+              disabled={p.agotado}
               onClick={() => setProductoId(p.id)}
             >
               {p.nombre}
-              {p.precio_base > 0 && <small>{formatearMonto(p.precio_base)}</small>}
+              {p.agotado ? <small>Agotado</small> : p.precio_base > 0 && <small>{formatearMonto(p.precio_base)}</small>}
             </button>
           ))}
         </div>

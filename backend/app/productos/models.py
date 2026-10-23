@@ -30,6 +30,8 @@ class Producto(db.Model, BaseModelMixin):
                              onupdate=datetime.utcnow)
 
     stock = db.Column(db.Integer, nullable=True, default=None)
+    # Se acabo un ingrediente o la masa: no se puede vender hasta que se desmarque.
+    agotado = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     
     categoria             = db.relationship("Categoria", back_populates="productos")
     producto_tamanos      = db.relationship("ProductoTamano", back_populates="producto",

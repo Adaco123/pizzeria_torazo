@@ -218,3 +218,8 @@
     font-size: 16px;
   }
 }
+
+.atrasado {
+  font-weight: 700;
+  color: var(--color-error);
+}

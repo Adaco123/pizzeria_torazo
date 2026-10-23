@@ -5,6 +5,7 @@ import type { CobroResultado } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { descargarBlob } from '../../utils/archivos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
+import { textoHoraPrometida } from '../cocina/tiempo.ts'
 import base from '../pedidos/Pedidos.module.css'
 import styles from './Caja.module.css'
 
@@ -49,6 +50,7 @@ export function FichaConfirmada({ resultado, onNuevo }: Props) {
       <p className={base.muted}>
         Enviado a cocina · {pedido.tipo_entrega?.nombre ?? 'Local'}
         {pedido.direccion_entrega ? ` · ${pedido.direccion_entrega}` : ''}
+        {pedido.hora_prometida ? ` · ${textoHoraPrometida(pedido.hora_prometida)}` : ''}
       </p>
 
       <div className={styles.accionesFicha}>

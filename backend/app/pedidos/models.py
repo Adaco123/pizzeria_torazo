@@ -51,6 +51,8 @@ class Pedido(db.Model, BaseModelMixin):
     updated_at        = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
                                   onupdate=datetime.utcnow)
     motivo_cancelacion = db.Column(db.Text, nullable=True)
+    # Hora a la que se le prometio el pedido al cliente (UTC, como `fecha`). Se fija al cobrar.
+    hora_prometida     = db.Column(db.DateTime, nullable=True)
 
     cliente      = db.relationship("Cliente",      back_populates="pedidos")
     usuario      = db.relationship("Usuario",      back_populates="pedidos")

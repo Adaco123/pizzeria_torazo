@@ -1,6 +1,13 @@
 import type { EstadoPedidoNombre, Pedido } from '../../api.ts'
 import { ItemsCocina } from './ItemsCocina.tsx'
-import { MINUTOS_URGENTE, minutosDesde, textoTiempo } from './tiempo.ts'
+import {
+  MINUTOS_URGENTE,
+  minutosDesde,
+  minutosParaPromesa,
+  textoHoraPrometida,
+  textoPromesa,
+  textoTiempo,
+} from './tiempo.ts'
 import styles from './Cocina.module.css'
 
 const ACCION: Partial<Record<EstadoPedidoNombre, { siguiente: EstadoPedidoNombre; label: string }>> = {
@@ -21,7 +28,10 @@ interface Props {
 export function TarjetaPedido({ pedido, estado, ahora, nombresCombos, ocupado, onAvanzar, onTicket }: Props) {
   const minutos = minutosDesde(pedido.fecha, ahora)
   const accion = ACCION[estado]
-  const urgente = estado !== 'listo' && minutos >= MINUTOS_URGENTE
+  // Con hora prometida, "urgente" es estar atrasado; sin ella (pedidos viejos) se usa la espera.
+  const paraLaHora = pedido.hora_prometida ? minutosParaPromesa(pedido.hora_prometida, ahora) : null
+  const urgente =
+    estado !== 'listo' && (paraLaHora !== null ? paraLaHora < 0 : minutos >= MINUTOS_URGENTE)
 
   return (
     <article className={urgente ? `${styles.tarjeta} ${styles.tarjetaUrgente}` : styles.tarjeta}>
@@ -30,6 +40,13 @@ export function TarjetaPedido({ pedido, estado, ahora, nombresCombos, ocupado, o
         <span className={styles.tipo}>{pedido.tipo_entrega?.nombre ?? '—'}</span>
         <span className={urgente ? styles.tiempoUrgente : styles.tiempo}>{textoTiempo(minutos)}</span>
       </header>
+
+      {pedido.hora_prometida && paraLaHora !== null && (
+        <p className={estado !== 'listo' && paraLaHora < 0 ? styles.promesaAtrasada : styles.promesa}>
+          {textoHoraPrometida(pedido.hora_prometida)}
+          {estado !== 'listo' && ` · ${textoPromesa(paraLaHora)}`}
+        </p>
+      )}
 
       <ItemsCocina detalles={pedido.detalles} nombresCombos={nombresCombos} />
 

@@ -5,6 +5,7 @@ salvo `cobrar_pedido` y `cancelar_pedido` / `cambiar_estado_pedido`, que cierran
 propia transaccion; si algo falla se lanza `ReglaNegocio` y el decorador
 `manejar_reglas` hace rollback y responde con el estado HTTP que corresponda.
 """
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask_jwt_extended import get_current_user
@@ -31,6 +32,12 @@ TRANSICIONES = {
 }
 
 ESTADOS_CANCELABLES = {"pendiente", "confirmado", "en_preparacion", "listo"}
+
+# Minutos de espera que se prometen al cobrar, segun el tipo de entrega (el cajero puede cambiarlos).
+MINUTOS_ESPERA = {"local": 20, "domicilio": 40}
+MINUTOS_ESPERA_DEFECTO = 25
+# Solo se puede cambiar la hora prometida mientras el pedido sigue en cocina o esperando entrega.
+ESTADOS_CON_HORA_EDITABLE = {"confirmado", "en_preparacion", "listo"}
 
 
 class ReglaNegocio(Exception):
@@ -217,7 +224,52 @@ def devolver_stock(pedido):
 # ---------------------------------------------------------------------------
 # Cobro
 # ---------------------------------------------------------------------------
-def cobrar_pedido(pedido, pagos_data):
+def minutos_espera_por_defecto(pedido):
+    nombre = (pedido.tipo_entrega.nombre if pedido.tipo_entrega else '').lower()
+    return MINUTOS_ESPERA.get(nombre, MINUTOS_ESPERA_DEFECTO)
+
+
+def exigir_disponible(producto):
+    """No se vende un producto que cocina marco como agotado."""
+    if producto is not None and producto.agotado:
+        raise ReglaNegocio(f'"{producto.nombre}" está agotado', 409)
+
+
+def exigir_productos_disponibles(pedido):
+    """Revisa el pedido completo antes de cobrar: algo pudo agotarse despues de agregarlo."""
+    agotados = []
+    for detalle in pedido.detalles:
+        productos = [detalle.producto] + [m.producto for m in detalle.mitades]
+        for producto in productos:
+            if producto is not None and producto.agotado and producto.nombre not in agotados:
+                agotados.append(producto.nombre)
+    if agotados:
+        nombres = ', '.join(f'"{n}"' for n in agotados)
+        raise ReglaNegocio(f'Se agotó: {nombres}. Quítalo del pedido antes de cobrar', 409)
+
+
+def marcar_agotado(producto, agotado):
+    """Cocina, caja y administrador pueden marcar o desmarcar un producto agotado."""
+    exigir_rol(ROL_PIZZERO, ROL_CAJERO, ROL_ADMINISTRADOR)
+    producto.agotado = bool(agotado)
+    db.session.commit()
+    return producto
+
+
+def ajustar_hora_prometida(pedido, minutos):
+    """Cambia la hora prometida: `minutos` contados desde ahora."""
+    exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+    exigir_acceso_pedido(pedido)
+    actual = estado_de(pedido)
+    if actual not in ESTADOS_CON_HORA_EDITABLE:
+        raise ReglaNegocio(
+            f'No se puede cambiar la hora de un pedido {actual.replace("_", " ")}', 409)
+    pedido.hora_prometida = datetime.utcnow() + timedelta(minutes=minutos)
+    db.session.commit()
+    return pedido
+
+
+def cobrar_pedido(pedido, pagos_data, minutos_espera=None):
     """Cobra el pedido completo y lo manda a cocina, todo en una transaccion.
 
     `pagos_data`: lista de {metodo_id, monto, monto_recibido}; la suma de montos tiene
@@ -235,6 +287,8 @@ def cobrar_pedido(pedido, pagos_data):
     total = round(recalcular_total(pedido), 2)
     if total <= 0:
         raise ReglaNegocio('El total del pedido debe ser mayor a 0', 400)
+
+    exigir_productos_disponibles(pedido)
 
     suma = round(sum(pago['monto'] for pago in pagos_data), 2)
     if abs(suma - total) > TOLERANCIA:
@@ -267,6 +321,8 @@ def cobrar_pedido(pedido, pagos_data):
 
     descontar_stock(pedido)
     asignar_ficha(pedido)
+    pedido.hora_prometida = datetime.utcnow() + timedelta(
+        minutes=minutos_espera or minutos_espera_por_defecto(pedido))
     db.session.add_all(pagos)
     cambiar_estado(pedido, 'confirmado')
     db.session.commit()

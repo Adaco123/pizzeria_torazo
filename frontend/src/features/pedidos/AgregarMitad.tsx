@@ -122,8 +122,8 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
             <select value={mitad1 ?? ''} onChange={(e) => elegir(setMitad1, e.target.value)}>
               <option value="">Elegir…</option>
               {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
+                <option key={p.id} value={p.id} disabled={p.agotado}>
+                  {p.agotado ? `${p.nombre} (agotado)` : p.nombre}
                 </option>
               ))}
             </select>
@@ -145,8 +145,8 @@ export function AgregarMitad({ pedidoId, catalogo, onAgregado, silencioso = fals
             <select value={mitad2 ?? ''} onChange={(e) => elegir(setMitad2, e.target.value)}>
               <option value="">Elegir…</option>
               {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
+                <option key={p.id} value={p.id} disabled={p.agotado}>
+                  {p.agotado ? `${p.nombre} (agotado)` : p.nombre}
                 </option>
               ))}
             </select>

@@ -3,6 +3,8 @@ import type { MetodoPago, PagoCobro } from '../../api.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import { redondear } from '../cobro/facturacion.ts'
 import base from '../pedidos/Pedidos.module.css'
+import type { TipoEntregaNombre } from '../pedidos/estados.ts'
+import { esperaSugerida, OPCIONES_ESPERA } from './espera.ts'
 import { armarPagos, esEfectivo, sugerenciasDeRecibido, type ModoPago } from './pagos.ts'
 import styles from './Caja.module.css'
 
@@ -10,7 +12,10 @@ interface Props {
   total: number
   metodos: MetodoPago[]
   ocupado: boolean
-  onConfirmar: (pagos: PagoCobro[]) => void
+  /** Tipo de entrega: decide los minutos de espera que se sugieren. */
+  tipo: TipoEntregaNombre
+  /** `minutosEspera` solo viene si el cajero cambió la sugerencia. */
+  onConfirmar: (pagos: PagoCobro[], minutosEspera?: number) => void
   onVolver: () => void
 }
 
@@ -45,7 +50,7 @@ function AtajosDeRecibido({ total, recibido, onElegir }: AtajosProps) {
   )
 }
 
-export function PanelCobro({ total, metodos, ocupado, onConfirmar, onVolver }: Props) {
+export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolver }: Props) {
   const efectivo = metodos.find((m) => esEfectivo(m))
   const otros = metodos.filter((m) => !esEfectivo(m))
   const puedeDividir = efectivo !== undefined && otros.length > 0
@@ -56,6 +61,8 @@ export function PanelCobro({ total, metodos, ocupado, onConfirmar, onVolver }: P
   const [recibido, setRecibido] = useState('')
   const [montoEfectivo, setMontoEfectivo] = useState('')
   const [intentado, setIntentado] = useState(false)
+  const sugerida = esperaSugerida(tipo)
+  const [espera, setEspera] = useState(sugerida)
 
   const resultado = armarPagos({ total, metodos, modo, metodoId, recibido, montoEfectivo, otroMetodoId })
   const metodoUnico = metodos.find((m) => m.id === metodoId)
@@ -75,7 +82,7 @@ export function PanelCobro({ total, metodos, ocupado, onConfirmar, onVolver }: P
 
   function confirmar() {
     setIntentado(true)
-    if (resultado.ok) onConfirmar(resultado.pagos)
+    if (resultado.ok) onConfirmar(resultado.pagos, espera === sugerida ? undefined : espera)
   }
 
   if (metodos.length === 0) {
@@ -198,6 +205,23 @@ export function PanelCobro({ total, metodos, ocupado, onConfirmar, onVolver }: P
           )}
         </div>
       )}
+
+      <div className={base.field}>
+        <span>Se lo prometes en</span>
+        <div className={base.chips} role="group" aria-label="Minutos de espera">
+          {OPCIONES_ESPERA.map((minutos) => (
+            <button
+              key={minutos}
+              type="button"
+              className={minutos === espera ? base.chipActive : base.chip}
+              aria-pressed={minutos === espera}
+              onClick={() => setEspera(minutos)}
+            >
+              {minutos} min
+            </button>
+          ))}
+        </div>
+      </div>
 
       {resultado.ok && resultado.vuelto > 0 && (
         <p className={styles.vuelto}>

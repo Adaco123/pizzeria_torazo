@@ -1,12 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { pedidosApi } from '../../api.ts'
 import type { Pedido } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { descargarBlob } from '../../utils/archivos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
-import { minutosDesde, textoTiempo } from '../cocina/tiempo.ts'
+import { BotonSonido } from '../cocina/BotonSonido.tsx'
+import {
+  minutosDesde,
+  minutosParaPromesa,
+  textoHoraPrometida,
+  textoPromesa,
+  textoTiempo,
+} from '../cocina/tiempo.ts'
 import { useAhora } from '../cocina/useCocina.ts'
+import { useAvisoSonoro } from '../cocina/useSonido.ts'
 import { estadoDe } from './estados.ts'
 import styles from './Tablero.module.css'
 
@@ -49,6 +57,13 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
   const ahora = useAhora()
   const [filtro, setFiltro] = useState<FiltroEntrega>('todos')
   const [ocupadoId, setOcupadoId] = useState<number | null>(null)
+
+  // Suena cuando cocina deja un pedido listo para entregar.
+  const idsListos = useMemo(
+    () => pedidos.filter((p) => estadoDe(p) === 'listo').map((p) => p.id),
+    [pedidos],
+  )
+  const sonido = useAvisoSonoro(idsListos)
 
   async function entregar(pedido: Pedido) {
     setOcupadoId(pedido.id)
@@ -95,6 +110,7 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
     <section className={styles.tablero} aria-label="Tablero de pedidos">
       <div className={styles.cabecera}>
         <h2>Pedidos</h2>
+        <BotonSonido activo={sonido.activo} onAlternar={sonido.alternar} />
         <div className={styles.filtros} role="group" aria-label="Tipo de entrega">
           {(['todos', 'Local', 'Domicilio'] as const).map((f) => (
             <button
@@ -145,7 +161,27 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
                         <span className={styles.impago}>Sin cobrar</span>
                       )}
                     </div>
-                    {id !== 'entregado' && <p className={styles.tiempo}>{textoTiempo(minutos)}</p>}
+                    {id !== 'entregado' && (
+                      <p className={styles.tiempo}>
+                        {textoTiempo(minutos)}
+                        {pedido.hora_prometida && (
+                          <>
+                            {' · '}
+                            <span
+                              className={
+                                id === 'cocina' && minutosParaPromesa(pedido.hora_prometida, ahora) < 0
+                                  ? styles.atrasado
+                                  : undefined
+                              }
+                            >
+                              {textoHoraPrometida(pedido.hora_prometida)}
+                              {id === 'cocina' &&
+                                ` (${textoPromesa(minutosParaPromesa(pedido.hora_prometida, ahora)).toLowerCase()})`}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    )}
                     <div className={styles.acciones}>
                       {id === 'listo' && (
                         <button

@@ -4,6 +4,10 @@ from flask_jwt_extended import jwt_required
 
 from app.db import db
 from ..models import Categoria, Producto, ProductoTamano
+from marshmallow import ValidationError
+from app.pedidos import servicio
+from app.pedidos.api_v1_0.schemas import AgotadoSchema
+from app.pedidos.servicio import manejar_reglas, primer_mensaje
 from .schemas import CategoriaSchema, ProductoSchema, ProductoTamanoSchema
 
 productos_v1_0_bp = Blueprint('productos_v1_0_bp', __name__)
@@ -13,6 +17,7 @@ categoria_schema = CategoriaSchema()
 categorias_schema = CategoriaSchema(many=True)
 producto_schema = ProductoSchema()
 productos_schema = ProductoSchema(many=True)
+agotado_schema = AgotadoSchema()
 producto_tamano_schema = ProductoTamanoSchema()
 productos_tamano_schema = ProductoTamanoSchema(many=True)
 
@@ -136,6 +141,9 @@ class ProductoResource(Resource):
         """Update a product"""
         producto = Producto.query.get_or_404(producto_id)
         data = request.get_json()
+        if isinstance(data, dict):
+            # "agotado" solo cambia por /agotado, con su control de roles
+            data = {k: v for k, v in data.items() if k != 'agotado'}
         errors = producto_schema.validate(data, partial=True)
         if errors:
             return errors, 400
@@ -160,6 +168,20 @@ class ProductoToggleActiveResource(Resource):
         producto = Producto.query.get_or_404(producto_id)
         producto.activo = not producto.activo
         producto.save()
+        return producto_schema.dump(producto), 200
+
+
+class ProductoAgotadoResource(Resource):
+    @jwt_required()
+    @manejar_reglas
+    def patch(self, producto_id):
+        """Marca o desmarca un producto como agotado. JSON: { "agotado": true }"""
+        producto = Producto.query.get_or_404(producto_id)
+        try:
+            datos = agotado_schema.load(request.get_json() or {})
+        except ValidationError as err:
+            return {'success': False, 'error': primer_mensaje(err.messages)}, 400
+        servicio.marcar_agotado(producto, datos['agotado'])
         return producto_schema.dump(producto), 200
 
 
@@ -281,6 +303,7 @@ api.add_resource(CategoriaToggleActiveResource, '/api/v1.0/categorias/<int:categ
 api.add_resource(ProductosListResource, '/api/v1.0/productos/', endpoint='productos_list')
 api.add_resource(ProductoResource, '/api/v1.0/productos/<int:producto_id>', endpoint='producto_detail')
 api.add_resource(ProductoToggleActiveResource, '/api/v1.0/productos/<int:producto_id>/toggle-active', endpoint='producto_toggle_active')
+api.add_resource(ProductoAgotadoResource, '/api/v1.0/productos/<int:producto_id>/agotado', endpoint='producto_agotado')
 api.add_resource(ProductosByCategoriaResource, '/api/v1.0/categorias/<int:categoria_id>/productos', endpoint='productos_by_categoria')
 #pizza con tramanos
 api.add_resource(ProductoTamanosResource, '/api/v1.0/productos/<int:producto_id>/tamanos', endpoint='producto_tamanos')

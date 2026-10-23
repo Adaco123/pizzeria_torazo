@@ -9,6 +9,8 @@ import {
 import type { Categoria, Combo, Ingrediente, IngredienteTamano, Producto, Tamano } from '../../api.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
+const REFRESCO_PRODUCTOS_MS = 30_000
+
 export interface Catalogo {
   categorias: Categoria[]
   productos: Producto[]
@@ -45,6 +47,21 @@ export function useCatalogo() {
       })
 
     return () => controller.abort()
+  }, [])
+
+  // Cocina puede marcar un producto como agotado mientras la caja está abierta: se refresca la
+  // lista de productos cada tanto (solo con la pestaña visible). El servidor igual lo rechaza.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      productosApi
+        .listar()
+        .then((productos) => setCatalogo((actual) => (actual ? { ...actual, productos } : actual)))
+        .catch(() => {
+          /* se conserva la lista anterior */
+        })
+    }, REFRESCO_PRODUCTOS_MS)
+    return () => window.clearInterval(id)
   }, [])
 
   return { catalogo, error }

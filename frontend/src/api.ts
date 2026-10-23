@@ -345,6 +345,8 @@ export interface Producto {
   descripcion: string | null
   precio_base: number
   activo: boolean
+  /** Se acabó (masa, ingrediente…): no se puede vender hasta desmarcarlo. */
+  agotado: boolean
   categoria_id: number
   categoria?: Categoria
 }
@@ -533,6 +535,8 @@ export interface Pedido {
   pagado: number
   /** Solo si el pedido se canceló después de cobrarlo. */
   motivo_cancelacion: string | null
+  /** Hora que se le prometió al cliente. Se fija al cobrar; null mientras es borrador. */
+  hora_prometida: string | null
   cliente_id: number
   usuario_id: number
   turno_id: number
@@ -566,6 +570,8 @@ export interface PagoCobro {
 export interface CobroRequest {
   /** La suma de los montos tiene que ser igual al total del pedido. */
   pagos: PagoCobro[]
+  /** Minutos de espera que se prometen. Si no se envía, el servidor usa 20 (local) o 40 (domicilio). */
+  minutos_espera?: number
 }
 
 export interface CobroResultado {
@@ -928,6 +934,11 @@ export const productosApi = {
     return request<Producto>(`/api/v1.0/productos/${id}/toggle-active`, { method: 'PATCH' })
   },
 
+  /** Cocina, caja y administrador pueden marcar un producto como agotado (o volverlo a habilitar). */
+  marcarAgotado(id: number, agotado: boolean): Promise<Producto> {
+    return request<Producto>(`/api/v1.0/productos/${id}/agotado`, { method: 'PATCH', body: { agotado } })
+  },
+
   // --- Tamaños y precios del producto ---------------------------------------
   tamanos(id: number, opts: Opts = {}): Promise<ProductoTamanoPrecio[]> {
     return request<ProductoTamanoPrecio[]>(`/api/v1.0/productos/${id}/tamanos`, opts)
@@ -1163,6 +1174,15 @@ export const pedidosApi = {
       { method: 'POST', body: data },
     )
     return { pedido: respuesta.data, vuelto: respuesta.vuelto }
+  },
+
+  /** Cambia la hora prometida de un pedido cobrado: `minutos` contados desde ahora. */
+  async cambiarHoraPrometida(id: number, minutos: number): Promise<Pedido> {
+    const respuesta = await request<Envelope<Pedido>>(`${basePedidos}/${id}/hora-prometida`, {
+      method: 'PATCH',
+      body: { minutos_espera: minutos },
+    })
+    return respuesta.data
   },
 
   // --- Detalles -----------------------------------------------------------------

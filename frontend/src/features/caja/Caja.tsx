@@ -122,7 +122,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
     setCobrando(true)
   }
 
-  async function confirmarCobro(pagos: PagoCobro[]) {
+  async function confirmarCobro(pagos: PagoCobro[], minutosEspera?: number) {
     setOcupado(true)
     try {
       // El cobro no recibe la entrega: se guarda antes, solo si cambió.
@@ -137,7 +137,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
           direccion_entrega: tipo === 'Domicilio' ? direccionLimpia : null,
         })
       }
-      onCobrado(await pedidosApi.cobrar(borrador.id, { pagos }))
+      onCobrado(await pedidosApi.cobrar(borrador.id, { pagos, minutos_espera: minutosEspera }))
     } catch (e) {
       toast.error(e)
       // Puede haber cambiado algo en el servidor (stock, turno cerrado): se vuelve a leer el pedido.
@@ -152,6 +152,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
         total={borrador.total}
         metodos={metodos}
         ocupado={ocupado}
+        tipo={tipo}
         onConfirmar={confirmarCobro}
         onVolver={() => setCobrando(false)}
       />

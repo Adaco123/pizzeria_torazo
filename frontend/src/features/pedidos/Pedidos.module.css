@@ -564,3 +564,23 @@
   color: var(--color-error);
   text-decoration: line-through;
 }
+.productAgotado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  font: inherit;
+  text-align: left;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.productAgotado small {
+  color: var(--color-error);
+  font-weight: 700;
+  text-decoration: none;
+}

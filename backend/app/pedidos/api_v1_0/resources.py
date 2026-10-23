@@ -18,7 +18,7 @@ from app.users.models import Usuario, ROL_ADMINISTRADOR, ROL_CAJERO, ROL_PIZZERO
 from app.tamanos.models import Tamano
 from app.pedidos.api_v1_0.schemas import (
     PedidoSchema, DetallePedidoSchema, DetalleExtrasSchema,
-    DetalleMitadSchema, CobrarSchema
+    DetalleMitadSchema, CobrarSchema, HoraPrometidaSchema
 )
 from app.combos.models import Combo, ComboProducto
 
@@ -33,6 +33,7 @@ extra_schema    = DetalleExtrasSchema()
 extras_schema   = DetalleExtrasSchema(many=True)
 mitad_schema    = DetalleMitadSchema()
 cobrar_schema   = CobrarSchema()
+hora_prometida_schema = HoraPrometidaSchema()
 
 
 # Tipos de entrega base (el orden fija el id autoincremental: Local=1, Domicilio=2).
@@ -271,7 +272,7 @@ class PedidoCobrarResource(Resource):
             return {'success': False, 'error': servicio.primer_mensaje(err.messages)}, 400
 
         try:
-            vuelto = servicio.cobrar_pedido(pedido, datos['pagos'])
+            vuelto = servicio.cobrar_pedido(pedido, datos['pagos'], datos.get('minutos_espera'))
         except SQLAlchemyError as e:
             db.session.rollback()
             return {'success': False, 'error': str(e)}, 500
@@ -282,6 +283,29 @@ class PedidoCobrarResource(Resource):
             'vuelto':  vuelto,
             'data':    pedido_schema.dump(pedido)
         }, 200
+
+
+class PedidoHoraPrometidaResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def patch(self, pedido_id):
+        """
+        Cambia la hora prometida de un pedido ya cobrado y todavía sin entregar.
+
+        JSON esperado: { "minutos_espera": 15 }   (minutos contados desde ahora)
+        """
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+
+        try:
+            datos = hora_prometida_schema.load(request.get_json() or {})
+        except ValidationError as err:
+            return {'success': False, 'error': servicio.primer_mensaje(err.messages)}, 400
+
+        servicio.ajustar_hora_prometida(pedido, datos['minutos_espera'])
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
 
 
 class DetalleMitadResource(Resource):
@@ -324,6 +348,7 @@ class DetalleMitadResource(Resource):
                 producto = Producto.query.get(m['producto_id'])
                 if not producto:
                     return {'success': False, 'error': f'Producto {m["producto_id"]} no existe'}, 404
+                servicio.exigir_disponible(producto)
                 if not servicio.es_pizza(producto):
                     return {
                         'success': False,
@@ -610,6 +635,7 @@ class DetallePedidoResource(Resource):
             producto = Producto.query.get(producto_id)
             if not producto:
                 return {'success': False, 'error': 'Producto no existe'}, 404
+            servicio.exigir_disponible(producto)
 
             tamano_id = data.get('tamano_id')
 
@@ -668,6 +694,10 @@ api.add_resource(PedidoDetailResource,
 api.add_resource(PedidoCobrarResource,
     '/api/v1.0/pedidos/<int:pedido_id>/cobrar',
     endpoint='pedido_cobrar')
+
+api.add_resource(PedidoHoraPrometidaResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/hora-prometida',
+    endpoint='pedido_hora_prometida')
 
 api.add_resource(DetallePedidoResource,
     '/api/v1.0/pedidos/<int:pedido_id>/detalles',
