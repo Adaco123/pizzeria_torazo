@@ -3,6 +3,7 @@ import { CategoriasTab } from '../features/catalogo/CategoriasTab.tsx'
 import { CombosTab } from '../features/catalogo/CombosTab.tsx'
 import { IngredientesTab } from '../features/catalogo/IngredientesTab.tsx'
 import { ProductosTab } from '../features/catalogo/ProductosTab.tsx'
+import { PanelStockBebidas } from '../features/stock/PanelStockBebidas.tsx'
 import { TamanosTab } from '../features/catalogo/TamanosTab.tsx'
 import { useCatalogoAdmin } from '../features/catalogo/useCatalogoAdmin.ts'
 import styles from '../features/catalogo/Catalogo.module.css'
@@ -13,6 +14,7 @@ const PESTANAS = [
   { id: 'tamanos', label: 'Tamaños' },
   { id: 'ingredientes', label: 'Ingredientes' },
   { id: 'combos', label: 'Combos' },
+  { id: 'stock', label: 'Stock de bebidas' },
 ] as const
 
 type PestanaId = (typeof PESTANAS)[number]['id']
@@ -67,6 +69,7 @@ export function CatalogoPage() {
       {datos && pestana === 'tamanos' && <TamanosTab tamanos={datos.tamanos} recargar={recargar} />}
       {datos && pestana === 'ingredientes' && <IngredientesTab datos={datos} recargar={recargar} />}
       {datos && pestana === 'combos' && <CombosTab datos={datos} recargar={recargar} />}
+      {pestana === 'stock' && <PanelStockBebidas esAdmin />}
     </section>
   )
 }

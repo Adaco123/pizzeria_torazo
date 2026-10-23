@@ -4,6 +4,7 @@ import type { Ingrediente, IngredienteTamano, Producto, ProductoTamanoPrecio } f
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearMonto, mensajeDeError } from '../../utils/formato.ts'
 import type { Catalogo } from './useCatalogo.ts'
+import { esCategoriaBebidas } from './categorias.ts'
 import { totalExtras } from './extras.ts'
 import { ExtrasSelector } from './ExtrasSelector.tsx'
 import styles from './Pedidos.module.css'
@@ -11,6 +12,8 @@ import styles from './Pedidos.module.css'
 interface FormularioProps {
   pedidoId: number
   producto: Producto
+  /** Bebida: se vende por unidad con stock, sin tamaños ni extras. */
+  esBebida: boolean
   ingredientes: Ingrediente[]
   preciosExtra: IngredienteTamano[]
   onAgregado: () => void
@@ -20,6 +23,7 @@ interface FormularioProps {
 function FormularioProducto({
   pedidoId,
   producto,
+  esBebida,
   ingredientes,
   preciosExtra,
   onAgregado,
@@ -35,6 +39,7 @@ function FormularioProducto({
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
+    if (esBebida) return
     const controller = new AbortController()
 
     productosApi
@@ -50,9 +55,11 @@ function FormularioProducto({
       })
 
     return () => controller.abort()
-  }, [producto.id, toast])
+  }, [producto.id, esBebida, toast])
 
-  const tamanoElegido = tamanos?.find((t) => t.tamano_id === tamanoId) ?? null
+  // Una bebida no espera tamaños: no hay nada que cargar.
+  const tamanosVisibles = esBebida ? [] : tamanos
+  const tamanoElegido = tamanosVisibles?.find((t) => t.tamano_id === tamanoId) ?? null
   // El backend NO calcula el precio por tamaño al agregar un producto: hay que enviarlo.
   const precio = tamanoElegido ? tamanoElegido.precio : producto.precio_base
   const unidades = Number.parseInt(cantidad, 10)
@@ -65,7 +72,7 @@ function FormularioProducto({
       toast.error('La cantidad debe ser 1 o más')
       return
     }
-    if (tamanos && tamanos.length > 0 && !tamanoElegido) {
+    if (tamanosVisibles && tamanosVisibles.length > 0 && !tamanoElegido) {
       toast.error('Elige un tamaño')
       return
     }
@@ -98,23 +105,28 @@ function FormularioProducto({
     }
   }
 
-  if (tamanos === null) return <p className={styles.muted}>Cargando tamaños…</p>
+  if (tamanosVisibles === null) return <p className={styles.muted}>Cargando tamaños…</p>
 
   return (
     <form className={styles.formStack} onSubmit={agregar}>
       <h3>{producto.nombre}</h3>
 
-      {tamanos.length === 0 && (
+      {esBebida && (
+        <p className={styles.muted}>
+          Quedan {producto.stock ?? 0} unidades. Si llegó mercadería, agrégala en «Stock de bebidas».
+        </p>
+      )}
+      {!esBebida && tamanosVisibles.length === 0 && (
         <p className={styles.muted}>
           Este producto no tiene tamaños con precio cargados: se vende a {formatearMonto(producto.precio_base)}.
           Para ofrecer tamaños, cárgalos en Catálogo → producto → precios por tamaño.
         </p>
       )}
-      {tamanos.length > 0 && (
+      {tamanosVisibles.length > 0 && (
         <div className={styles.field}>
           <span>Tamaño</span>
           <div className={styles.chips}>
-            {tamanos.map((t) => (
+            {tamanosVisibles.map((t) => (
               <button
                 key={t.tamano_id}
                 type="button"
@@ -152,13 +164,15 @@ function FormularioProducto({
       </div>
 
       {/* Los extras no dependen del tamaño: sin tamaño se cobra el precio extra base del ingrediente. */}
-      <ExtrasSelector
-        ingredientes={ingredientes}
-        valor={extras}
-        onChange={setExtras}
-        tamanoId={tamanoElegido?.tamano_id ?? null}
-        precios={preciosExtra}
-      />
+      {!esBebida && (
+        <ExtrasSelector
+          ingredientes={ingredientes}
+          valor={extras}
+          onChange={setExtras}
+          tamanoId={tamanoElegido?.tamano_id ?? null}
+          precios={preciosExtra}
+        />
+      )}
 
       <div className={styles.formRow}>
         <button className={styles.primary} type="submit" disabled={enviando || !cantidadValida}>
@@ -191,6 +205,8 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = f
   // Si se agota mientras estaba elegido, deja de ofrecerse el formulario.
   const producto = productos.find((p) => p.id === productoId && !p.agotado) ?? null
   const ingredientes = catalogo.ingredientes.filter((i) => i.activo)
+  const categoriaElegida = categorias.find((c) => c.id === categoriaId)
+  const esBebida = categoriaElegida !== undefined && esCategoriaBebidas(categoriaElegida)
 
   if (categorias.length === 0) return <p className={styles.muted}>No hay categorías activas.</p>
 
@@ -240,6 +256,7 @@ export function AgregarProducto({ pedidoId, catalogo, onAgregado, silencioso = f
           key={producto.id}
           pedidoId={pedidoId}
           producto={producto}
+          esBebida={esBebida}
           ingredientes={ingredientes}
           preciosExtra={catalogo.preciosExtra}
           onAgregado={onAgregado}

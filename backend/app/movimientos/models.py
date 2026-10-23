@@ -13,6 +13,11 @@ class MovimientoStock(db.Model):
     stock_anterior = db.Column(db.Integer, nullable=True)
     stock_nuevo    = db.Column(db.Integer, nullable=True)
     fecha          = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # Solo los ajustes (correcciones hacia arriba o abajo) llevan motivo; las entradas no.
+    motivo         = db.Column(db.String(200), nullable=True)
+    # entrada: llegó mercadería · venta: se cobró un pedido · devolucion: se canceló un pedido
+    # cobrado · ajuste: corrección del administrador.
+    tipo           = db.Column(db.String(20), nullable=False, default='entrada', server_default='entrada')
 
     producto = db.relationship('Producto',  backref='movimientos_stock', lazy='select')
     usuario  = db.relationship('Usuario',   backref='movimientos_stock', lazy='select')
@@ -37,5 +42,7 @@ class MovimientoStock(db.Model):
             'cantidad':       self.cantidad,
             'stock_anterior': self.stock_anterior,
             'stock_nuevo':    self.stock_nuevo,
+            'motivo':         self.motivo,
+            'tipo':           self.tipo,
             'fecha':          self.fecha.isoformat(),
         }

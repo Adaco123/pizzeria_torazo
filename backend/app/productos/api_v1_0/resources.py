@@ -5,6 +5,7 @@ from flask_jwt_extended import jwt_required
 from app.db import db
 from ..models import Categoria, Producto, ProductoTamano
 from marshmallow import ValidationError
+from app.movimientos import servicio as movimientos_servicio
 from app.pedidos import servicio
 from app.pedidos.api_v1_0.schemas import AgotadoSchema
 from app.pedidos.servicio import manejar_reglas, primer_mensaje
@@ -142,8 +143,8 @@ class ProductoResource(Resource):
         producto = Producto.query.get_or_404(producto_id)
         data = request.get_json()
         if isinstance(data, dict):
-            # "agotado" solo cambia por /agotado, con su control de roles
-            data = {k: v for k, v in data.items() if k != 'agotado'}
+            # "agotado" y "stock" solo cambian por sus propios endpoints, con control de roles
+            data = {k: v for k, v in data.items() if k not in ('agotado', 'stock')}
         errors = producto_schema.validate(data, partial=True)
         if errors:
             return errors, 400
@@ -195,6 +196,9 @@ class ProductosByCategoriaResource(Resource):
 class ProductoTamanosResource(Resource):
     @jwt_required()
     def get(self, producto_id):
+        # Las bebidas no tienen tamaños (aunque queden filas viejas en la base).
+        if servicio.es_bebida(Producto.query.get(producto_id)):
+            return [], 200
 
         producto_tamanos = ProductoTamano.query.filter_by(
             producto_id=producto_id
@@ -214,6 +218,9 @@ class ProductoTamanosResource(Resource):
     @jwt_required()
     def post(self, producto_id):
         """Assign a size to a product with price"""
+        producto = Producto.query.get_or_404(producto_id)
+        if servicio.es_bebida(producto):
+            return {'error': f'"{producto.nombre}" es una bebida: las bebidas no tienen tamaños'}, 400
         data = request.get_json()
         data['producto_id'] = producto_id
         errors = producto_tamano_schema.validate(data)
@@ -253,17 +260,17 @@ class ProductoStockResource(Resource):
         """Añadir stock a una bebida"""
         producto = Producto.query.get_or_404(producto_id)
 
-        if producto.categoria.nombre.lower() != 'bebidas':
-            return {'message': 'Este producto no es una bebida'}, 400
-
-        data = request.get_json()
+        data = request.get_json() or {}
         cantidad = data.get('cantidad')
 
-        if not cantidad or cantidad <= 0:
-            return {'message': 'La cantidad debe ser mayor a 0'}, 400
+        if not isinstance(cantidad, int) or isinstance(cantidad, bool) or cantidad <= 0:
+            return {'message': 'La cantidad debe ser un entero mayor a 0'}, 400
 
-        producto.stock = (producto.stock or 0) + cantidad
-        producto.save()
+        try:
+            # Igual que /api/stock/movimientos: queda en el historial con quién y cuándo.
+            movimientos_servicio.registrar_entrada(producto, cantidad)
+        except servicio.ReglaNegocio as error:
+            return {'message': error.mensaje}, error.status
 
         return {
             'message': f'Stock actualizado para {producto.nombre}',
@@ -282,13 +289,17 @@ class ProductosStockListResource(Resource):
             .all()
         )
 
+        hoy = movimientos_servicio.resumen_del_dia([p.id for p in productos])
         return {
             'data': [
                 {
                     'producto_id': p.id,
                     'nombre': p.nombre,
                     'stock': p.stock,
-                    'agotado': p.stock == 0
+                    'agotado': (p.stock or 0) <= 0,
+                    # Desde las 00:00 de hoy (hora de Bolivia): lo que llegó y lo que se vendió.
+                    'entradas_hoy': hoy.get(p.id, {}).get('entradas', 0),
+                    'vendidas_hoy': hoy.get(p.id, {}).get('vendidas', 0),
                 }
                 for p in productos
             ]

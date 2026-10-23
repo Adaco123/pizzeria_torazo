@@ -4,6 +4,7 @@ import type { Producto } from '../../api.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import type { DatosCatalogo } from './useCatalogoAdmin.ts'
 import { mensajeEliminar } from './errores.ts'
+import { esCategoriaBebidas } from '../pedidos/categorias.ts'
 import { ProductoDetalle } from './ProductoDetalle.tsx'
 import { ProductoForm } from './ProductoForm.tsx'
 import { useAccion } from './useAccion.ts'
@@ -28,6 +29,10 @@ export function ProductosTab({ datos, recargar }: Props) {
   const [formulario, setFormulario] = useState<'nuevo' | number | null>(null)
   const [abiertoId, setAbiertoId] = useState<number | null>(null)
 
+  const esBebida = (p: Producto) => {
+    const categoria = datos.categorias.find((c) => c.id === p.categoria_id)
+    return categoria !== undefined && esCategoriaBebidas(categoria)
+  }
   const nombreCategoria = (id: number) => datos.categorias.find((c) => c.id === id)?.nombre ?? '—'
   const texto = normalizar(busqueda.trim())
 
@@ -113,6 +118,7 @@ export function ProductosTab({ datos, recargar }: Props) {
                 <th>Producto</th>
                 <th>Categoría</th>
                 <th className={styles.num}>Precio base</th>
+                <th className={styles.num}>Stock</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -124,20 +130,24 @@ export function ProductosTab({ datos, recargar }: Props) {
                     <td>{producto.nombre}</td>
                     <td>{nombreCategoria(producto.categoria_id)}</td>
                     <td className={styles.num}>{formatearMonto(producto.precio_base)}</td>
+                    <td className={styles.num}>{esBebida(producto) ? (producto.stock ?? 0) : '—'}</td>
                     <td>
                       <span className={producto.activo ? `${styles.badge} ${styles.badgeOn}` : `${styles.badge} ${styles.badgeOff}`}>
                         {producto.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className={styles.acciones}>
-                      <button
-                        className={styles.link}
-                        type="button"
-                        aria-expanded={abiertoId === producto.id}
-                        onClick={() => setAbiertoId(abiertoId === producto.id ? null : producto.id)}
-                      >
-                        {abiertoId === producto.id ? 'ocultar tamaños' : 'tamaños e ingredientes'}
-                      </button>
+                      {/* Las bebidas no tienen tamaños ni ingredientes: su stock está en «Stock de bebidas». */}
+                      {!esBebida(producto) && (
+                        <button
+                          className={styles.link}
+                          type="button"
+                          aria-expanded={abiertoId === producto.id}
+                          onClick={() => setAbiertoId(abiertoId === producto.id ? null : producto.id)}
+                        >
+                          {abiertoId === producto.id ? 'ocultar tamaños' : 'tamaños e ingredientes'}
+                        </button>
+                      )}
                       <button className={styles.link} type="button" onClick={() => setFormulario(producto.id)}>
                         editar
                       </button>
@@ -161,7 +171,7 @@ export function ProductosTab({ datos, recargar }: Props) {
                   </tr>
                   {abiertoId === producto.id && (
                     <tr>
-                      <td colSpan={5} style={{ padding: 0 }}>
+                      <td colSpan={6} style={{ padding: 0 }}>
                         <ProductoDetalle producto={producto} tamanos={datos.tamanos} ingredientes={datos.ingredientes} />
                       </td>
                     </tr>
@@ -170,7 +180,7 @@ export function ProductosTab({ datos, recargar }: Props) {
               ))}
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={styles.muted}>
+                  <td colSpan={6} className={styles.muted}>
                     No hay productos que coincidan.
                   </td>
                 </tr>

@@ -445,6 +445,8 @@ class DetalleExtrasResource(Resource):
                     'success': False,
                     'error': 'Esta pizza es mitad/mitad. Usa el endpoint de extras por mitad'
                 }, 400
+            if servicio.es_bebida(detalle.producto):
+                return {'success': False, 'error': 'Las bebidas no llevan extras'}, 400
 
             data = request.get_json() or {}
             if not data.get('ingrediente_id'):
@@ -641,7 +643,9 @@ class DetallePedidoResource(Resource):
 
             # El stock se valida aquí (contando lo que ya hay en el pedido) pero se descuenta
             # recién al cobrar: un borrador que se abandona no consume bebidas.
-            if producto.categoria.nombre.lower() == 'bebidas':
+            if servicio.es_bebida(producto):
+                if tamano_id:
+                    return {'success': False, 'error': f'"{producto.nombre}" es una bebida: no tiene tamaños'}, 400
                 disponible = producto.stock or 0
                 if disponible <= 0:
                     return {'success': False, 'error': f'"{producto.nombre}" está agotado'}, 400

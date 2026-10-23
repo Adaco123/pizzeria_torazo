@@ -38,7 +38,25 @@ class MovimientoStockSchema(ma.Schema):
     )
     stock_anterior = fields.Int(dump_only=True)
     stock_nuevo    = fields.Int(dump_only=True)
+    motivo         = fields.Str(dump_only=True, allow_none=True)
+    tipo           = fields.Str(dump_only=True)
     fecha          = fields.DateTime(dump_only=True)
+
+
+class AjusteStockSchema(ma.Schema):
+    """Corrección del stock (botella rota, error al contar): cantidad con signo y motivo."""
+    class Meta:
+        unknown = EXCLUDE
+
+    producto_id = fields.Int(
+        required=True, error_messages=_mensajes('producto_id'),
+        validate=validate.Range(min=1, error='producto_id no es válido'))
+    cantidad = fields.Int(
+        strict=True, required=True, error_messages=_mensajes('cantidad', 'requerida'),
+        validate=validate.NoneOf([0], error='La cantidad no puede ser 0'))
+    motivo = fields.Str(
+        required=True, error_messages=_mensajes('motivo'),
+        validate=validate.Length(min=3, max=200, error='Escribe el motivo (entre 3 y 200 caracteres)'))
 
 
 class MovimientoStockListQuerySchema(ma.Schema):
@@ -61,6 +79,7 @@ class MovimientoStockProductoQuerySchema(ma.Schema):
 
 
 movimiento_stock_schema  = MovimientoStockSchema()
+ajuste_stock_schema      = AjusteStockSchema()
 movimientos_stock_schema = MovimientoStockSchema(many=True)
 list_query_schema        = MovimientoStockListQuerySchema()
 producto_query_schema    = MovimientoStockProductoQuerySchema()

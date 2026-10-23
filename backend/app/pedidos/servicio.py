@@ -12,6 +12,7 @@ from flask_jwt_extended import get_current_user
 
 from app.db import db
 from app.factura.models import Factura
+from app.movimientos.models import MovimientoStock
 from app.pagos.models import MetodoPago, Pago
 from app.pedidos.models import EstadoPedido, Pedido, PedidoHistorialEstado
 from app.productos.models import Producto
@@ -182,8 +183,12 @@ def factura_activa(pedido):
 # ---------------------------------------------------------------------------
 # Stock de bebidas
 # ---------------------------------------------------------------------------
-def _es_bebida(producto):
-    return bool(producto and producto.categoria and producto.categoria.nombre.lower() == 'bebidas')
+def es_bebida(producto):
+    """Las bebidas se venden por unidad con stock: no tienen tamaños, ingredientes ni extras."""
+    return bool(producto and producto.categoria and producto.categoria.nombre.strip().lower() == 'bebidas')
+
+
+_es_bebida = es_bebida
 
 
 def es_pizza(producto):
@@ -203,8 +208,17 @@ def cantidades_de_bebidas(pedido):
     return cantidades
 
 
+def _anotar_movimiento(pedido, producto, cantidad, anterior, tipo, motivo):
+    """Deja en el historial de stock lo que vendió o devolvió un pedido (no hace commit)."""
+    db.session.add(MovimientoStock(
+        producto_id=producto.id, usuario_id=usuario_actual().id, turno_id=pedido.turno_id,
+        cantidad=cantidad, stock_anterior=anterior, stock_nuevo=anterior + cantidad,
+        motivo=motivo, tipo=tipo))
+
+
 def descontar_stock(pedido):
-    """Descuenta las bebidas del pedido. Falla sin tocar nada si alguna no alcanza."""
+    """Descuenta las bebidas del pedido y lo anota en el historial. Falla sin tocar nada
+    si alguna no alcanza. Conviene llamarla con la ficha ya asignada."""
     for producto_id, cantidad in cantidades_de_bebidas(pedido).items():
         producto = Producto.query.filter_by(id=producto_id).with_for_update().first()
         disponible = producto.stock or 0
@@ -213,12 +227,16 @@ def descontar_stock(pedido):
                 f'Stock insuficiente para "{producto.nombre}". '
                 f'Disponible: {disponible}, solicitado: {cantidad}', 409)
         producto.stock = disponible - cantidad
+        _anotar_movimiento(pedido, producto, -cantidad, disponible, 'venta', f'Venta ficha {pedido.numero_turno}')
 
 
 def devolver_stock(pedido):
     for producto_id, cantidad in cantidades_de_bebidas(pedido).items():
         producto = Producto.query.filter_by(id=producto_id).with_for_update().first()
-        producto.stock = (producto.stock or 0) + cantidad
+        anterior = producto.stock or 0
+        producto.stock = anterior + cantidad
+        _anotar_movimiento(pedido, producto, cantidad, anterior, 'devolucion',
+                           f'Pedido cancelado, ficha {pedido.numero_turno}')
 
 
 # ---------------------------------------------------------------------------
@@ -319,8 +337,8 @@ def cobrar_pedido(pedido, pagos_data, minutos_espera=None):
             monto_recibido=recibido,
         ))
 
-    descontar_stock(pedido)
     asignar_ficha(pedido)
+    descontar_stock(pedido)
     pedido.hora_prometida = datetime.utcnow() + timedelta(
         minutes=minutos_espera or minutos_espera_por_defecto(pedido))
     db.session.add_all(pagos)

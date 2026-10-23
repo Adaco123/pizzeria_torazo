@@ -356,6 +356,8 @@ export interface Producto {
   activo: boolean
   /** Se acabó (masa, ingrediente…): no se puede vender hasta desmarcarlo. */
   agotado: boolean
+  /** Unidades disponibles. Solo las bebidas llevan stock; null = nunca se cargó. */
+  stock?: number | null
   categoria_id: number
   categoria?: Categoria
 }
@@ -448,11 +450,16 @@ export interface ComboProducto {
 export interface StockBebida {
   producto_id: number
   nombre: string
-  stock: number
+  /** null = todavía no se cargó stock (cuenta como 0). */
+  stock: number | null
 }
 
 export interface StockBebidaResumen extends StockBebida {
   agotado: boolean
+  /** Unidades que llegaron desde las 00:00 de hoy (hora de Bolivia). */
+  entradas_hoy: number
+  /** Unidades vendidas hoy, neto de pedidos cancelados. */
+  vendidas_hoy: number
 }
 
 export interface StockActualizado {
@@ -470,6 +477,10 @@ export interface MovimientoStock {
   cantidad: number
   stock_anterior: number
   stock_nuevo: number
+  /** Los ajustes llevan el motivo escrito; las ventas y devoluciones, la ficha. */
+  motivo?: string | null
+  /** entrada: llegó mercadería · venta: pedido cobrado · devolucion: pedido cancelado · ajuste: corrección. */
+  tipo: 'entrada' | 'venta' | 'devolucion' | 'ajuste'
   fecha: string
 }
 
@@ -1442,6 +1453,11 @@ export const stockApi = {
       method: 'POST',
       body: { cantidad },
     })
+  },
+
+  /** Corrige el stock (solo administrador): `cantidad` con signo y un motivo. */
+  ajustar(data: { producto_id: number; cantidad: number; motivo: string }): Promise<MovimientoStock> {
+    return request<MovimientoStock>('/api/stock/movimientos/ajuste', { method: 'POST', body: data })
   },
 
   // --- Historial de movimientos ---------------------------------------------------

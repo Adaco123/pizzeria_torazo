@@ -3,6 +3,8 @@ from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
+from app.pedidos.servicio import es_bebida
+from app.productos.models import Producto
 from ..models import Ingrediente, IngredienteTamano, ProductoIngrediente
 from app.tamanos.models import Tamano
 from .schemas import IngredienteSchema, ProductoIngredienteSchema, IngredienteTamanoSchema
@@ -83,6 +85,9 @@ class ProductoIngredientesResource(Resource):
     @jwt_required()
     def post(self, producto_id):
         """Assign an ingredient to a product"""
+        producto = Producto.query.get_or_404(producto_id)
+        if es_bebida(producto):
+            return {'error': f'"{producto.nombre}" es una bebida: no lleva ingredientes'}, 400
         data = request.get_json()
         if isinstance(data, dict):
             data = {**data, 'producto_id': producto_id}  # el id de la URL manda

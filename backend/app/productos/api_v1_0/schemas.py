@@ -61,6 +61,8 @@ class ProductoSchema(ma.Schema):
         validate=validate.Range(min=0, error='El precio base no puede ser negativo'))
     activo = fields.Bool()
     agotado = fields.Bool(dump_only=True)
+    # Unidades disponibles; solo las bebidas lo usan. Se cambia desde el stock, no editando el producto.
+    stock = fields.Int(dump_only=True, allow_none=True)
     categoria_id = fields.Int(required=True, validate=_categoria_existe)
     categoria = fields.Nested(CategoriaSchema, dump_only=True)
    # stock = fields.Integer()
