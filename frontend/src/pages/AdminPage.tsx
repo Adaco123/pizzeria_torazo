@@ -16,7 +16,25 @@ export function AdminPage() {
         </div>
       </section>
 
-      <p className={styles.muted}>Próximamente: usuarios, estadísticas y stock de bebidas.</p>
+      <section className={styles.card}>
+        <h2>Usuarios</h2>
+        <p className={styles.muted}>
+          Crear cuentas, cambiar roles, desactivar a quien ya no trabaja y restablecer contraseñas.
+        </p>
+        <div>
+          <Link to="/admin/usuarios">Administrar usuarios →</Link>
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <h2>Reportes</h2>
+        <p className={styles.muted}>
+          Ventas por día, por método de pago y por producto, y las cancelaciones con devolución.
+        </p>
+        <div>
+          <Link to="/admin/reportes">Ver reportes →</Link>
+        </div>
+      </section>
     </section>
   )
 }

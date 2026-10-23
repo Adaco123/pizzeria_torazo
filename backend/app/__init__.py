@@ -19,13 +19,13 @@ from app.tamanos.api_v1_0.resources import tamanos_v1_0_bp
 from app.admin.api_v1_0.resources import admin_v1_0_bp
 from app.turnos.api_v1_0.resources import turnos_v1_0_bp
 from app.pedidos.api_v1_0.ticket_cocina import ticket_cocina_bp
+from app.pedidos.api_v1_0.ticket_cliente import ticket_cliente_bp
+from app.reportes.api_v1_0 import reportes_v1_0_bp
 from app.movimientos.api_v1_0.resources import movimientos_v1_0_bp
 from app.turnos.api_v1_0.resumen_turno_pdf import resumen_turno_pdf_bp
 from .ext import ma, migrate
 from flask_cors import CORS
 from app.ia_telefono.webhook import ia_telefono_bp
-from app.pedidos.api_v1_0.ticket_cliente import ticket_cliente_bp
-   
 jwt=JWTManager()
 
 def create_app(settings_module):
@@ -65,7 +65,9 @@ def create_app(settings_module):
             identity = int(identity)
         except (TypeError, ValueError):
             pass
-        return Usuario.query.get(identity)
+        usuario = Usuario.query.get(identity)
+        # Desactivar a alguien le corta la sesión de inmediato, sin esperar a que el token venza.
+        return usuario if usuario is not None and usuario.activo else None
 
 
     app.register_blueprint(usuarios_v1_0_bp)
@@ -80,10 +82,11 @@ def create_app(settings_module):
     app.register_blueprint(turnos_v1_0_bp)
     app.register_blueprint(admin_v1_0_bp)
     app.register_blueprint(ticket_cocina_bp)
+    app.register_blueprint(ticket_cliente_bp)
+    app.register_blueprint(reportes_v1_0_bp)
     app.register_blueprint(movimientos_v1_0_bp)
     app.register_blueprint(resumen_turno_pdf_bp)
     app.register_blueprint(ia_telefono_bp)
-    app.register_blueprint(ticket_cliente_bp)
     register_error_handlers(app)
 
     return app

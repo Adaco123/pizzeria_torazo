@@ -4,8 +4,11 @@ import { AdminPage } from '../pages/AdminPage.tsx'
 import { CatalogoPage } from '../pages/CatalogoPage.tsx'
 import { CocinaPage } from '../pages/CocinaPage.tsx'
 import { PedidoDetallePage } from '../pages/PedidoDetallePage.tsx'
+import { CuentaPage } from '../pages/CuentaPage.tsx'
 import { PedidosPage } from '../pages/PedidosPage.tsx'
+import { ReportesPage } from '../pages/ReportesPage.tsx'
 import { TurnosPage } from '../pages/TurnosPage.tsx'
+import { UsuariosPage } from '../pages/UsuariosPage.tsx'
 
 export interface Acceso {
   path: string
@@ -32,8 +35,14 @@ export const ACCESOS: Acceso[] = [
     label: 'Administración',
     roles: ['Administrador'],
     Page: AdminPage,
-    hijas: [{ path: '/admin/catalogo', Page: CatalogoPage }],
+    hijas: [
+      { path: '/admin/catalogo', Page: CatalogoPage },
+      { path: '/admin/usuarios', Page: UsuariosPage },
+      { path: '/admin/reportes', Page: ReportesPage },
+    ],
   },
+  // Cada usuario cambia su propia contraseña, sea cual sea su rol.
+  { path: '/cuenta', label: 'Mi cuenta', roles: ['Administrador', 'Cajero', 'Pizzero'], Page: CuentaPage },
 ]
 
 const INICIO: Record<RolNombre, string> = {

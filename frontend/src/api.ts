@@ -278,6 +278,9 @@ export interface UsuarioEditRequest {
   codigo?: string
   /** Solo un administrador puede cambiarlo. */
   activo?: boolean
+  /** Solo un administrador puede cambiarlos. */
+  correo?: string
+  cedula?: string
 }
 
 export interface CambiarContrasenaRequest {
@@ -285,11 +288,17 @@ export interface CambiarContrasenaRequest {
   contra_nueva: string
 }
 
+export interface RolInfo {
+  id: number
+  nombre: string
+}
+
 export interface UsuarioAdmin {
   id: number
   nombre: string
   correo: string
   rol: string | null
+  rol_id: number
   activo: boolean
   cedula?: string
   codigo?: string | null
@@ -827,6 +836,52 @@ export const authApi = {
   /** Listado de administración (rol como nombre limpio y `activo`). */
   async listarUsuariosAdmin(opts: Opts = {}): Promise<UsuarioAdmin[]> {
     return request<UsuarioAdmin[]>('/api/v1.0/usuarios', opts)
+  },
+
+  /** Roles que se pueden asignar (solo administrador). */
+  async listarRoles(opts: Opts = {}): Promise<RolInfo[]> {
+    return request<RolInfo[]>('/api/v1.0/roles', opts)
+  },
+
+  /** El administrador le pone una contraseña nueva a otro usuario. */
+  async resetearContrasena(id: number, contraNueva: string): Promise<void> {
+    await request(`/api/v1.0/usuarios/${id}/resetear-contrasena`, {
+      method: 'POST',
+      body: { contra_nueva: contraNueva },
+    })
+  },
+}
+
+// ===========================================================================
+// reportes (solo administrador)
+// ===========================================================================
+export interface ReporteVentas {
+  desde: string
+  hasta: string
+  total_vendido: number
+  pedidos: number
+  ticket_promedio: number
+  /** Dinero devuelto por pedidos cancelados después de cobrarlos. */
+  total_devuelto: number
+  por_dia: { fecha: string; pedidos: number; total: number }[]
+  /** Neto cobrado por método (cobros menos devoluciones). */
+  por_metodo: { metodo: string; cantidad: number; total: number }[]
+  por_producto: { producto: string; cantidad: number; total: number }[]
+  cancelaciones: {
+    pedido_id: number
+    ficha: number | null
+    fecha: string
+    total_devuelto: number
+    motivo: string | null
+    cajero: string | null
+    cancelado_por: string | null
+  }[]
+}
+
+export const reportesApi = {
+  /** Fechas AAAA-MM-DD en horario de Bolivia. */
+  ventas(desde: string, hasta: string, opts: Opts = {}): Promise<ReporteVentas> {
+    return request<ReporteVentas>('/api/v1.0/reportes/ventas', { query: { desde, hasta }, ...opts })
   },
 }
 

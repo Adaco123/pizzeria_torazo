@@ -365,3 +365,60 @@
   opacity: 0.6;
   cursor: wait;
 }
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardHeader h2 {
+  margin: 0;
+}
+
+/* ---------- Reportes ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.stats div {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.stats dt {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.stats dd {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.barra {
+  display: block;
+  height: 10px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.celdaBarra {
+  width: 40%;
+}
+
+.rangoFechas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
