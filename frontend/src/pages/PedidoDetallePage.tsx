@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { pedidosApi } from '../api.ts'
 import { useAuth } from '../auth/auth-context.ts'
+import { minutosParaPromesa, textoHoraPrometida, textoPromesa } from '../features/cocina/tiempo.ts'
+import { useAhora } from '../features/cocina/useCocina.ts'
 import { FacturaPanel } from '../features/cobro/FacturaPanel.tsx'
 import { useFactura } from '../features/cobro/useFactura.ts'
 import { DetalleItems } from '../features/pedidos/DetalleItems.tsx'
@@ -14,6 +16,9 @@ import { useToast } from '../toast/toast-context.ts'
 import { descargarBlob } from '../utils/archivos.ts'
 import { formatearFecha, formatearMonto } from '../utils/formato.ts'
 
+/** Minutos (desde ahora) que se ofrecen al cambiar la hora prometida. */
+const CAMBIOS_DE_ESPERA = [5, 10, 15, 20, 30, 45, 60]
+
 function PedidoDetalle({ id }: { id: number }) {
   const { sesion, hasRole } = useAuth()
   const toast = useToast()
@@ -23,6 +28,7 @@ function PedidoDetalle({ id }: { id: number }) {
   const { clientes } = useClientes()
   const factura = useFactura(id)
   const [ocupado, setOcupado] = useState(false)
+  const ahora = useAhora()
 
   const volver = (
     <Link to="/pedidos" className={styles.back}>
@@ -75,6 +81,10 @@ function PedidoDetalle({ id }: { id: number }) {
       recargar()
       factura.recargar()
     }
+  }
+
+  async function cambiarEspera(minutos: number) {
+    await accion(() => pedidosApi.cambiarHoraPrometida(id, minutos), `Nueva espera: ${minutos} min desde ahora`)
   }
 
   async function entregar() {
@@ -149,6 +159,31 @@ function PedidoDetalle({ id }: { id: number }) {
           {pedido.direccion_entrega ? ` · ${pedido.direccion_entrega}` : ''}
         </p>
         {!borrador && <p className={styles.muted}>Cobrado: {formatearMonto(pedido.pagado)}</p>}
+        {pedido.hora_prometida && (
+          <p className={styles.muted}>
+            {textoHoraPrometida(pedido.hora_prometida)}
+            {estado !== 'entregado' && estado !== 'cancelado' &&
+              ` · ${textoPromesa(minutosParaPromesa(pedido.hora_prometida, ahora))}`}
+          </p>
+        )}
+        {(estado === 'confirmado' || estado === 'en_preparacion' || estado === 'listo') && (
+          <div className={styles.field}>
+            <span>Cambiar la hora prometida (minutos desde ahora)</span>
+            <div className={styles.chips} role="group" aria-label="Cambiar la hora prometida">
+              {CAMBIOS_DE_ESPERA.map((minutos) => (
+                <button
+                  key={minutos}
+                  type="button"
+                  className={styles.chip}
+                  disabled={ocupado}
+                  onClick={() => void cambiarEspera(minutos)}
+                >
+                  {minutos} min
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {pedido.motivo_cancelacion && (
           <p className={styles.muted}>Motivo de la cancelación: {pedido.motivo_cancelacion}</p>
         )}

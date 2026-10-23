@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../auth/auth-context.ts'
 import { Caja } from '../features/caja/Caja.tsx'
+import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'
 import { INTERVALO_MS } from '../features/cocina/useCocina.ts'
 import { TableroPedidos } from '../features/pedidos/TableroPedidos.tsx'
 import styles from '../features/pedidos/Pedidos.module.css'
@@ -65,6 +66,8 @@ export function PedidosPage() {
       )}
 
       {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} onCambio={alCambiar} />}
+
+      {miTurno && <PanelAgotados />}
 
       {error && (
         <div className={styles.errorRow}>

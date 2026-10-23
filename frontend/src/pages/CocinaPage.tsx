@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { pedidosApi } from '../api.ts'
 import type { EstadoPedidoNombre, Pedido } from '../api.ts'
+import { BotonSonido } from '../features/cocina/BotonSonido.tsx'
 import styles from '../features/cocina/Cocina.module.css'
+import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'
 import { TarjetaPedido } from '../features/cocina/TarjetaPedido.tsx'
 import { useAhora, useCocina, useNombresCombos } from '../features/cocina/useCocina.ts'
+import { useAvisoSonoro } from '../features/cocina/useSonido.ts'
 import { estadoDe, ETIQUETA_ESTADO } from '../features/pedidos/estados.ts'
 import { useToast } from '../toast/toast-context.ts'
 import { descargarBlob } from '../utils/archivos.ts'
@@ -22,6 +25,13 @@ export function CocinaPage() {
   const nombresCombos = useNombresCombos()
   const ahora = useAhora()
   const [ocupadoId, setOcupadoId] = useState<number | null>(null)
+
+  // Suena cuando entra un pedido nuevo por preparar (no al abrir la pantalla).
+  const idsPorPreparar = useMemo(
+    () => (actualizadoEn === null ? null : pedidos.filter((p) => estadoDe(p) === 'confirmado').map((p) => p.id)),
+    [pedidos, actualizadoEn],
+  )
+  const sonido = useAvisoSonoro(idsPorPreparar)
 
   async function avanzar(pedido: Pedido, desde: EstadoPedidoNombre, hacia: EstadoPedidoNombre) {
     setOcupadoId(pedido.id)
@@ -66,12 +76,15 @@ export function CocinaPage() {
       <div className={styles.cabecera}>
         <h1>Cocina</h1>
         <div className={styles.estado}>
+          <BotonSonido activo={sonido.activo} onAlternar={sonido.alternar} />
           {actualizadoEn !== null && <span>Actualizado a las {hora.format(actualizadoEn)}</span>}
           <button className={styles.secundario} type="button" onClick={recargar}>
             Actualizar
           </button>
         </div>
       </div>
+
+      <PanelAgotados />
 
       {error && (
         <p className={styles.aviso} role="alert">
