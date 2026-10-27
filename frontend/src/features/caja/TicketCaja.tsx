@@ -4,6 +4,7 @@ import { formatearMonto } from '../../utils/formato.ts'
 import { DetalleItems } from '../pedidos/DetalleItems.tsx'
 import { TIPO_ENTREGA_ID, type TipoEntregaNombre } from '../pedidos/estados.ts'
 import base from '../pedidos/Pedidos.module.css'
+import { DescuentoCaja } from './DescuentoCaja.tsx'
 import { ClienteFrecuente } from './ClienteFrecuente.tsx'
 import { SelectorCliente } from './SelectorCliente.tsx'
 import { esMostrador } from './useCaja.ts'
@@ -31,6 +32,7 @@ interface Props {
   onCostoEnvio: (costo: string) => void
   onRepartidor: (id: number | null) => void
   onRepetido: () => Promise<void> | void
+  onPedidoCambiado: (pedido: Pedido) => void
   onElegirCliente: (cliente: Cliente) => void
   onClienteCreado: (cliente: Cliente) => void
   onQuitarDetalle: (detalleId: number) => void
@@ -59,6 +61,7 @@ export function TicketCaja({
   onCostoEnvio,
   onRepartidor,
   onRepetido,
+  onPedidoCambiado,
   onElegirCliente,
   onClienteCreado,
   onQuitarDetalle,
@@ -185,12 +188,15 @@ export function TicketCaja({
       <DetalleItems
         detalles={pedido.detalles}
         total={totalMostrado}
+        descuento={pedido.descuento}
         envio={esDomicilio ? { costo: envioMostrado, repartidor: repartidores.find((r) => r.id === repartidorId)?.nombre } : undefined}
         combos={combos}
         editable
         onQuitarExtra={onQuitarExtra}
         onQuitarDetalle={onQuitarDetalle}
       />
+
+      <DescuentoCaja pedido={pedido} ocupado={ocupado} onCambio={onPedidoCambiado} />
 
       <button
         className={`${base.primary} ${styles.cobrar}`}

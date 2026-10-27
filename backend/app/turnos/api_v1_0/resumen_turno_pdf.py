@@ -17,7 +17,7 @@ from app.db import db
 from app.turnos.models import Turno
 from app.pedidos.models import Pedido, DetallePedido
 from app.pedidos.servicio import (
-    ReglaNegocio, cuadre_de_caja, exigir_acceso_turno, pedidos_vendidos, totales_de_ventas,
+    ReglaNegocio, cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, pedidos_vendidos, totales_de_ventas,
 )
 from app.pagos.models import Pago
 from app.productos.models import Producto
@@ -413,7 +413,8 @@ def _recolectar_datos(turno):
         "inventario_bebidas": inventario_bebidas,
         "movimientos_stock":  movimientos_lista,
         "top_extras":         top_extras,
-        "pagos_por_metodo":   pagos_por_metodo,   # ← NUEVO
+        "pagos_por_metodo":   pagos_por_metodo,
+        **envios_y_descuentos(pedidos_activos),
     }
 
 def _generar_pdf(turno: Turno) -> bytes:
@@ -455,6 +456,12 @@ def _generar_pdf(turno: Turno) -> bytes:
     story.append(_fila_financiera("Facturas emitidas", str(datos["total_facturas"]),           est))
     story.append(_fila_financiera("Subtotal",          f'Bs {datos["total_subtotal"]:.2f}',   est))
     story.append(_fila_financiera("IVA (16%)",         f'Bs {datos["total_impuesto"]:.2f}',   est))
+    if datos["descuentos"]["total"] > 0:
+        story.append(_fila_financiera(
+            f'Descuentos (ya restados) ({datos["descuentos"]["pedidos"]})', f'Bs {datos["descuentos"]["total"]:.2f}', est))
+    if datos["envios"]["total"] > 0:
+        story.append(_fila_financiera(
+            f'Envíos (ya incluidos) ({datos["envios"]["pedidos"]})', f'Bs {datos["envios"]["total"]:.2f}', est))
     story.append(_linea_punteada())
     story.append(_fila_financiera("TOTAL VENDIDO",     f'Bs {datos["total_vendido"]:.2f}',    est, negrita=True))
 
@@ -462,6 +469,13 @@ def _generar_pdf(turno: Turno) -> bytes:
         story.append(_linea_punteada())
         story.append(Paragraph("-- METODOS DE PAGO --", est["sec_titulo"]))
         story.append(_tabla_metodos_pago(datos["pagos_por_metodo"], est))
+
+    if datos["por_repartidor"]:
+        story.append(_linea_punteada())
+        story.append(Paragraph("-- DOMICILIOS POR REPARTIDOR --", est["sec_titulo"]))
+        for fila in datos["por_repartidor"]:
+            story.append(_fila_financiera(
+                f'{fila["repartidor"]} ({fila["entregas"]})', f'Bs {fila["envios"]:.2f}', est))
 
     if turno.monto_cierre is not None:
         story.append(_linea_punteada())

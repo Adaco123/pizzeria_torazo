@@ -313,6 +313,34 @@ class PedidoHoraPrometidaResource(Resource):
         return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
 
 
+class PedidoDescuentoResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def put(self, pedido_id):
+        """Pone el descuento de un borrador.
+
+        JSON esperado: { "tipo": "porcentaje" | "monto", "valor": 10, "motivo": "cliente frecuente" }
+        """
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+        data = request.get_json() or {}
+        servicio.aplicar_descuento(pedido, data.get('tipo'), data.get('valor'), data.get('motivo'))
+        db.session.commit()
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
+
+    @jwt_required()
+    @manejar_reglas
+    def delete(self, pedido_id):
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+        servicio.quitar_descuento(pedido)
+        db.session.commit()
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
+
+
 class DetalleMitadResource(Resource):
 
     @jwt_required()
@@ -613,7 +641,8 @@ class DetallePedidoResource(Resource):
                 if not combo.activo:
                     return {'success': False, 'error': f'El combo "{combo.nombre}" no está activo'}, 400
 
-                precio_unitario = float(data.get('precio_unitario', combo.precio))
+                servicio.exigir_combo_disponible(combo, cantidad, pedido)
+                precio_unitario = float(combo.precio)      # el precio lo decide el servidor
 
                 detalle = DetallePedido(
                     pedido_id       = pedido_id,
@@ -726,6 +755,10 @@ api.add_resource(PedidoCobrarResource,
 api.add_resource(PedidoHoraPrometidaResource,
     '/api/v1.0/pedidos/<int:pedido_id>/hora-prometida',
     endpoint='pedido_hora_prometida')
+
+api.add_resource(PedidoDescuentoResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/descuento',
+    endpoint='pedido_descuento')
 
 api.add_resource(DetallePedidoResource,
     '/api/v1.0/pedidos/<int:pedido_id>/detalles',

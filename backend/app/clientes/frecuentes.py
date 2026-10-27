@@ -114,6 +114,10 @@ def _copiar_linea(origen, borrador):
         combo = Combo.query.get(origen.combo_id)
         if not combo or not combo.activo:
             raise _Omitido('el combo ya no está activo')
+        try:
+            servicio.exigir_combo_disponible(combo, origen.cantidad, borrador)
+        except servicio.ReglaNegocio as e:
+            raise _Omitido(str(e)) from None
         db.session.add(DetallePedido(pedido_id=borrador.id, combo_id=combo.id, tamano_id=origen.tamano_id,
                                      cantidad=origen.cantidad, precio_unitario=float(combo.precio),
                                      notas=origen.notas))

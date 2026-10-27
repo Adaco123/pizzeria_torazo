@@ -71,6 +71,7 @@ def reporte_de_ventas(inicio, fin):
     por_dia, por_metodo, por_producto = {}, {}, {}
     por_cliente, por_repartidor = {}, {}
     envios_total, envios_pedidos = 0.0, 0
+    descuentos_total, descuentos_pedidos = 0.0, 0
     pedidos_ids = set()
     cancelados = {}
     devuelto = 0.0
@@ -101,6 +102,9 @@ def reporte_de_ventas(inicio, fin):
         if pedido.envio_cobrado > 0:
             envios_total += pedido.envio_cobrado
             envios_pedidos += 1
+        if (pedido.descuento or 0) > 0:
+            descuentos_total += pedido.descuento
+            descuentos_pedidos += 1
         if pedido.es_domicilio:
             nombre_rep = pedido.repartidor.nombre if pedido.repartidor else 'Sin repartidor'
             r = por_repartidor.setdefault(nombre_rep, {'repartidor': nombre_rep, 'entregas': 0, 'envios': 0.0})
@@ -163,6 +167,7 @@ def reporte_de_ventas(inicio, fin):
             sorted(por_producto.values(), key=lambda p: -p['total'])[:TOP_PRODUCTOS], 'cantidad', 'total'),
         'cancelaciones': cancelaciones,
         'envios': {'pedidos': envios_pedidos, 'total': round(envios_total, 2)},
+        'descuentos': {'pedidos': descuentos_pedidos, 'total': round(descuentos_total, 2)},
         'por_repartidor': redondeado(sorted(por_repartidor.values(), key=lambda r: -r['entregas']), 'envios'),
         'mejores_clientes': redondeado(
             sorted(por_cliente.values(), key=lambda c: (-c['total'], -c['pedidos']))[:TOP_CLIENTES], 'total'),

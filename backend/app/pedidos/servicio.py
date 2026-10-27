@@ -148,6 +148,8 @@ def recalcular_total(pedido):
         else:
             detalle.calcular_subtotal()
         total += detalle.subtotal
+    pedido.descuento = monto_del_descuento(pedido, total)
+    total -= pedido.descuento              # el descuento es solo sobre los productos
     total += pedido.envio_cobrado          # el envío es parte de lo que paga el cliente
     pedido.total = total
     db.session.flush()
@@ -155,6 +157,80 @@ def recalcular_total(pedido):
 
 
 MAX_COSTO_ENVIO = 1000
+TOPE_DESCUENTO_CAJERO = 10      # % de los productos: más que eso solo lo da el administrador
+TIPOS_DESCUENTO = ('porcentaje', 'monto')
+
+
+def monto_del_descuento(pedido, productos):
+    """Bs que se descuentan hoy, según lo pedido (nunca más que el valor de los productos)."""
+    if not pedido.descuento_tipo or not pedido.descuento_valor:
+        return 0.0
+    if pedido.descuento_tipo == 'porcentaje':
+        monto = productos * pedido.descuento_valor / 100
+    else:
+        monto = pedido.descuento_valor
+    return round(min(max(monto, 0.0), productos), 2)
+
+
+def aplicar_descuento(pedido, tipo, valor, motivo):
+    """Pone (o cambia) el descuento de un borrador. El cajero tiene tope; el admin no."""
+    exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+    exigir_acceso_pedido(pedido)
+    exigir_borrador(pedido)
+    if tipo not in TIPOS_DESCUENTO:
+        raise ReglaNegocio('El descuento es un porcentaje o un monto en Bs', 400)
+    if isinstance(valor, bool) or not isinstance(valor, (int, float)) or valor != valor or valor <= 0:
+        raise ReglaNegocio('El descuento debe ser un número mayor a 0', 400)
+    motivo = (motivo or '').strip()
+    if not motivo:
+        raise ReglaNegocio('Escribe el motivo del descuento', 400)
+    if len(motivo) > 200:
+        raise ReglaNegocio('El motivo es demasiado largo (máximo 200 letras)', 400)
+
+    recalcular_total(pedido)
+    productos = round(sum(d.subtotal for d in pedido.detalles), 2)
+    if productos <= 0:
+        raise ReglaNegocio('Agrega productos al pedido antes de dar un descuento', 400)
+    if tipo == 'porcentaje' and valor > 100:
+        raise ReglaNegocio('El porcentaje no puede pasar de 100', 400)
+    if tipo == 'monto' and valor > productos + TOLERANCIA:
+        raise ReglaNegocio(f'El descuento no puede ser mayor a los productos (Bs {productos:.2f})', 400)
+
+    pedido.descuento_tipo = tipo
+    pedido.descuento_valor = float(valor)
+    pedido.descuento_motivo = motivo
+    pedido.descuento_usuario_id = usuario_actual().id
+    recalcular_total(pedido)
+    if not es_admin() and pedido.descuento > productos * TOPE_DESCUENTO_CAJERO / 100 + TOLERANCIA:
+        raise ReglaNegocio(
+            f'Un cajero da hasta {TOPE_DESCUENTO_CAJERO}% de descuento. '
+            'Para más, pide al administrador', 403)
+
+
+def quitar_descuento(pedido):
+    exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+    exigir_acceso_pedido(pedido)
+    exigir_borrador(pedido)
+    pedido.descuento_tipo = None
+    pedido.descuento_valor = 0
+    pedido.descuento_motivo = None
+    pedido.descuento_usuario_id = None
+    recalcular_total(pedido)
+
+
+def exigir_descuento_permitido(pedido):
+    """Antes de cobrar: un descuento de cajero que quedó sobre el tope (por ejemplo, porque
+    quitó productos después de ponerlo) necesita al administrador."""
+    if not pedido.descuento:
+        return
+    quien = pedido.descuento_usuario
+    if quien is not None and quien.rol is not None and quien.rol.nombre == ROL_ADMINISTRADOR:
+        return
+    productos = sum(d.subtotal for d in pedido.detalles)
+    if pedido.descuento > productos * TOPE_DESCUENTO_CAJERO / 100 + TOLERANCIA:
+        raise ReglaNegocio(
+            f'El descuento supera el tope del cajero ({TOPE_DESCUENTO_CAJERO}% de los productos). '
+            'Bájalo o pide al administrador que lo aplique', 409)
 
 
 def aplicar_envio(pedido, data):
@@ -242,13 +318,38 @@ def es_pizza(producto):
     return producto.categoria.nombre.strip().lower() in ('pizza', 'pizzas')
 
 
+def productos_de_combo(combo, cantidad=1):
+    """(producto, unidades) que lleva un combo pedido `cantidad` veces."""
+    return [(cp.producto, cp.cantidad * cantidad) for cp in combo.combo_productos if cp.producto]
+
+
 def cantidades_de_bebidas(pedido):
-    """producto_id -> unidades de bebida del pedido."""
+    """producto_id -> unidades de bebida del pedido (las que vienen dentro de un combo también)."""
     cantidades = {}
     for detalle in pedido.detalles:
         if detalle.producto_id and _es_bebida(detalle.producto):
             cantidades[detalle.producto_id] = cantidades.get(detalle.producto_id, 0) + detalle.cantidad
+        elif detalle.combo is not None:
+            for producto, unidades in productos_de_combo(detalle.combo, detalle.cantidad):
+                if _es_bebida(producto):
+                    cantidades[producto.id] = cantidades.get(producto.id, 0) + unidades
     return cantidades
+
+
+def exigir_combo_disponible(combo, cantidad, pedido):
+    """Un combo no se vende si alguno de sus productos está agotado o no alcanza el stock
+    de sus bebidas (contando lo que el pedido ya lleva)."""
+    for producto, _ in productos_de_combo(combo):
+        if producto.agotado:
+            raise ReglaNegocio(f'El combo "{combo.nombre}" no se puede vender: "{producto.nombre}" está agotado', 409)
+    ya_en_pedido = cantidades_de_bebidas(pedido)
+    for producto, unidades in productos_de_combo(combo, cantidad):
+        if _es_bebida(producto):
+            disponible = producto.stock or 0
+            if disponible < ya_en_pedido.get(producto.id, 0) + unidades:
+                raise ReglaNegocio(
+                    f'El combo "{combo.nombre}" lleva "{producto.nombre}" y no alcanza el stock '
+                    f'(hay {disponible}, en el pedido {ya_en_pedido.get(producto.id, 0)}, el combo pide {unidades})', 400)
 
 
 def _anotar_movimiento(pedido, producto, cantidad, anterior, tipo, motivo):
@@ -301,6 +402,8 @@ def exigir_productos_disponibles(pedido):
     agotados = []
     for detalle in pedido.detalles:
         productos = [detalle.producto] + [m.producto for m in detalle.mitades]
+        if detalle.combo is not None:
+            productos += [producto for producto, _ in productos_de_combo(detalle.combo)]
         for producto in productos:
             if producto is not None and producto.agotado and producto.nombre not in agotados:
                 agotados.append(producto.nombre)
@@ -346,6 +449,7 @@ def cobrar_pedido(pedido, pagos_data, minutos_espera=None):
         raise ReglaNegocio('Agrega productos al pedido antes de cobrar', 400)
 
     total = round(recalcular_total(pedido), 2)
+    exigir_descuento_permitido(pedido)
     if total <= 0:
         raise ReglaNegocio('El total del pedido debe ser mayor a 0', 400)
 
@@ -503,6 +607,33 @@ def totales_de_ventas(pedidos):
         'total_impuesto': sum(f.impuesto for f in facturas),
         'total_facturas': len(facturas),
         'pagos_por_metodo': pagos_por_metodo,
+    }
+
+
+def envios_y_descuentos(pedidos):
+    """Lo cobrado por envío (total y por repartidor) y lo descontado, de pedidos que ya son venta."""
+    envios_total, envios_pedidos = 0.0, 0
+    descuentos_total, descuentos_pedidos = 0.0, 0
+    por_repartidor = {}
+    for pedido in pedidos:
+        if pedido.envio_cobrado > 0:
+            envios_total += pedido.envio_cobrado
+            envios_pedidos += 1
+        if (pedido.descuento or 0) > 0:
+            descuentos_total += pedido.descuento
+            descuentos_pedidos += 1
+        if pedido.es_domicilio:
+            nombre = pedido.repartidor.nombre if pedido.repartidor else 'Sin repartidor'
+            fila = por_repartidor.setdefault(nombre, {'repartidor': nombre, 'entregas': 0, 'envios': 0.0})
+            fila['entregas'] += 1
+            fila['envios'] += pedido.envio_cobrado
+    return {
+        'envios': {'pedidos': envios_pedidos, 'total': round(envios_total, 2)},
+        'descuentos': {'pedidos': descuentos_pedidos, 'total': round(descuentos_total, 2)},
+        'por_repartidor': [
+            {**fila, 'envios': round(fila['envios'], 2)}
+            for fila in sorted(por_repartidor.values(), key=lambda f: -f['entregas'])
+        ],
     }
 
 

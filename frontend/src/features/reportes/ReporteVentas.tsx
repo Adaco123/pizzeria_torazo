@@ -98,6 +98,10 @@ export function ReporteVentas() {
                 <dt>Devuelto por cancelaciones</dt>
                 <dd>{formatearMonto(reporte.total_devuelto)}</dd>
               </div>
+              <div>
+                <dt>Descuentos dados ({reporte.descuentos.pedidos})</dt>
+                <dd>{formatearMonto(reporte.descuentos.total)}</dd>
+              </div>
             </dl>
           </section>
 

@@ -145,6 +145,46 @@ export function ResumenTurnoPanel({ turnoId, onCerrar, completo = true }: Props)
 
           {completo && (
             <>
+          {(resumen.envios.total > 0 || resumen.descuentos.total > 0) && (
+            <div>
+              <h3>Envíos y descuentos</h3>
+              <p className={styles.muted}>
+                Ya están dentro del total vendido: los envíos suman, los descuentos restan.
+              </p>
+              <dl className={styles.stats}>
+                <div>
+                  <dt>Envíos cobrados ({resumen.envios.pedidos})</dt>
+                  <dd>{formatearMonto(resumen.envios.total)}</dd>
+                </div>
+                <div>
+                  <dt>Descuentos dados ({resumen.descuentos.pedidos})</dt>
+                  <dd>{formatearMonto(resumen.descuentos.total)}</dd>
+                </div>
+              </dl>
+              {resumen.por_repartidor.length > 0 && (
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Repartidor</th>
+                        <th>Entregas</th>
+                        <th>Envíos cobrados</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resumen.por_repartidor.map((r) => (
+                        <tr key={r.repartidor}>
+                          <td>{r.repartidor}</td>
+                          <td>{r.entregas}</td>
+                          <td>{formatearMonto(r.envios)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
           <TablaVentas titulo="Pizzas" items={resumen.pizzas} />
           <TablaVentas titulo="Bebidas" items={resumen.bebidas} />
           <TablaVentas titulo="Otros" items={resumen.otros} />

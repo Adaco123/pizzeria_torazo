@@ -11,7 +11,7 @@ from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
 from app.pedidos.servicio import (
-    cuadre_de_caja, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
+    cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
 )
 from app.movimientos.models import MovimientoStock
 turnos_v1_0_bp = Blueprint('turnos_v1_0_bp', __name__)
@@ -395,6 +395,7 @@ class TurnoResumenResource(Resource):
                 'total_impuesto': round(total_impuesto, 2),
                 'total_vendido':  round(total_vendido,  2),
                 'pagos_por_metodo': totales['pagos_por_metodo'],
+                **envios_y_descuentos(pedidos_activos),
                 **cuadre_de_caja(turno, totales['pagos_por_metodo']),
 
                 'pizzas':  pizzas,

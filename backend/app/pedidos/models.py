@@ -57,9 +57,17 @@ class Pedido(db.Model, BaseModelMixin):
     # Solo pedidos a domicilio: lo que se cobra por llevarlo (lo escribe el cajero) y quién lo lleva.
     costo_envio        = db.Column(db.Float, nullable=False, default=0, server_default='0')
     repartidor_id      = db.Column(db.Integer, db.ForeignKey("repartidores.id"), nullable=True)
+    # Descuento sobre los productos (no sobre el envío). Se guarda cómo se pidió (porcentaje o
+    # monto) y `descuento` es lo que resulta en Bs con los productos de ahora.
+    descuento_tipo       = db.Column(db.String(12), nullable=True)
+    descuento_valor      = db.Column(db.Float, nullable=False, default=0, server_default='0')
+    descuento            = db.Column(db.Float, nullable=False, default=0, server_default='0')
+    descuento_motivo     = db.Column(db.String(200), nullable=True)
+    descuento_usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
 
     cliente      = db.relationship("Cliente",      back_populates="pedidos")
-    usuario      = db.relationship("Usuario",      back_populates="pedidos")
+    usuario      = db.relationship("Usuario",      back_populates="pedidos",
+                                   foreign_keys=[usuario_id])
     turno        = db.relationship("Turno",        back_populates="pedidos")
     estado       = db.relationship("EstadoPedido", back_populates="pedidos")
     tipo_entrega = db.relationship("TipoEntrega",  back_populates="pedidos")
@@ -70,6 +78,7 @@ class Pedido(db.Model, BaseModelMixin):
     facturas     = db.relationship("Factura", back_populates="pedido")
     pagos        = db.relationship("Pago",    back_populates="pedido")
     repartidor   = db.relationship("Repartidor")
+    descuento_usuario = db.relationship("Usuario", foreign_keys=[descuento_usuario_id])
 
     def __init__(self, tipo_entrega_id, usuario_id, turno_id,
                  cliente_id=1, direccion_entrega=None, estado_id=1):
@@ -99,7 +108,8 @@ class Pedido(db.Model, BaseModelMixin):
         return round(self.costo_envio or 0, 2) if self.es_domicilio else 0.0
 
     def calcular_total(self):
-        self.total = sum(d.subtotal for d in self.detalles) + self.envio_cobrado
+        productos = sum(d.subtotal for d in self.detalles)
+        self.total = productos - (self.descuento or 0) + self.envio_cobrado
         return self.total
 
     def cambiar_estado(self, nuevo_estado_id, usuario_id):

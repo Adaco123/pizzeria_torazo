@@ -84,6 +84,9 @@ def _generar_pdf(pedido: Pedido) -> bytes:
             ing = extra.ingrediente.nombre if extra.ingrediente else f"Ing.#{extra.ingrediente_id}"
             veces = f" x{extra.cantidad}" if extra.cantidad > 1 else ""
             filas.append(_fila(f"+ {ing}{veces}", "", detalle_txt, importe))
+    if (pedido.descuento or 0) > 0:
+        motivo = f" ({pedido.descuento_motivo})" if pedido.descuento_motivo else ""
+        filas.append(_fila(f"Descuento{motivo}", "-" + _bs(pedido.descuento), texto, importe))
     if pedido.envio_cobrado > 0:
         quien = f" ({pedido.repartidor.nombre})" if pedido.repartidor else ""
         filas.append(_fila(f"Envío{quien}", _bs(pedido.envio_cobrado), texto, importe))

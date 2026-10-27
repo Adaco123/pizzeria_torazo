@@ -6,6 +6,8 @@ interface Props {
   detalles: DetallePedido[]
   total: number
   /** Costo de envío (solo domicilio): se muestra antes del total. */
+  /** Bs descontados de los productos (se muestra antes del envío y del total). */
+  descuento?: number
   envio?: { costo: number; repartidor?: string | null }
   combos: Combo[]
   /** Si es true se pueden quitar extras. */
@@ -26,6 +28,7 @@ function tituloDe(detalle: DetallePedido, combos: Combo[]): string {
 export function DetalleItems({
   detalles,
   total,
+  descuento,
   envio,
   combos,
   editable,
@@ -104,6 +107,13 @@ export function DetalleItems({
           </li>
         ))}
       </ul>
+
+      {descuento !== undefined && descuento > 0 && (
+        <div className={styles.totalRow}>
+          <span className={styles.muted}>Descuento</span>
+          <span>-{formatearMonto(descuento)}</span>
+        </div>
+      )}
 
       {envio && envio.costo > 0 && (
         <div className={styles.totalRow}>

@@ -84,7 +84,8 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
   const unidades = borrador.detalles.reduce((suma, d) => suma + d.cantidad, 0)
   // El envío se guarda al cobrar; mientras tanto el total se muestra con lo escrito en pantalla.
   const envioMostrado = tipo === 'Domicilio' ? (parseMonto(costoEnvio) ?? 0) : 0
-  const totalMostrado = borrador.detalles.reduce((suma, d) => suma + d.subtotal, 0) + envioMostrado
+  const totalMostrado =
+    borrador.detalles.reduce((suma, d) => suma + d.subtotal, 0) - borrador.descuento + envioMostrado
 
   /** La dirección del cliente se ofrece sola en domicilio, si todavía no escribieron una. */
   function sugerirDireccion(deCliente: Cliente | null, paraTipo: TipoEntregaNombre) {
@@ -259,6 +260,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
           onCostoEnvio={setCostoEnvio}
           onRepartidor={setRepartidorId}
           onRepetido={refrescar}
+          onPedidoCambiado={caja.actualizarBorrador}
           onElegirCliente={elegirCliente}
           onClienteCreado={caja.agregarCliente}
           onQuitarDetalle={quitarDetalle}
