@@ -190,6 +190,75 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
+            <h2>Mejores clientes</h2>
+            <p className={styles.muted}>
+              Ordenado por lo que gastaron en el periodo. Las ventas de mostrador (sin cliente) no cuentan.
+            </p>
+            {reporte.mejores_clientes.length === 0 ? (
+              <p className={styles.muted}>Ningún cliente registrado compró en este periodo.</p>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th className={styles.num}>Pedidos</th>
+                      <th className={styles.num}>Gastó</th>
+                      <th>Última compra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reporte.mejores_clientes.map((c, i) => (
+                      <tr key={c.cliente_id}>
+                        <td>{i + 1}</td>
+                        <td>{c.cliente}</td>
+                        <td>{c.telefono && c.telefono !== '0' ? c.telefono : '—'}</td>
+                        <td className={styles.num}>{c.pedidos}</td>
+                        <td className={styles.num}>{formatearMonto(c.total)}</td>
+                        <td>{formatearFecha(c.ultima_compra)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.card}>
+            <h2>Envíos y repartidores</h2>
+            <p className={styles.muted}>
+              Envíos cobrados: <strong>{formatearMonto(reporte.envios.total)}</strong> en {reporte.envios.pedidos}{' '}
+              {reporte.envios.pedidos === 1 ? 'pedido' : 'pedidos'}.
+            </p>
+            {reporte.por_repartidor.length === 0 ? (
+              <p className={styles.muted}>No hubo domicilios en este periodo.</p>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Repartidor</th>
+                      <th className={styles.num}>Entregas</th>
+                      <th className={styles.num}>Envíos cobrados</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reporte.por_repartidor.map((r) => (
+                      <tr key={r.repartidor}>
+                        <td>{r.repartidor}</td>
+                        <td className={styles.num}>{r.entregas}</td>
+                        <td className={styles.num}>{formatearMonto(r.envios)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.card}>
             <h2>Cancelaciones con devolución</h2>
             {reporte.cancelaciones.length === 0 ? (
               <p className={styles.muted}>No hubo cancelaciones en este periodo.</p>

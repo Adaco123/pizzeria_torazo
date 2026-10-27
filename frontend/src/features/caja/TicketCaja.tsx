@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { Cliente, Combo, Pedido } from '../../api.ts'
+import type { Cliente, Combo, Pedido, Repartidor } from '../../api.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import { DetalleItems } from '../pedidos/DetalleItems.tsx'
 import { TIPO_ENTREGA_ID, type TipoEntregaNombre } from '../pedidos/estados.ts'
 import base from '../pedidos/Pedidos.module.css'
+import { ClienteFrecuente } from './ClienteFrecuente.tsx'
 import { SelectorCliente } from './SelectorCliente.tsx'
 import { esMostrador } from './useCaja.ts'
 import styles from './Caja.module.css'
@@ -16,10 +17,20 @@ interface Props {
   mostrador: Cliente
   tipo: TipoEntregaNombre
   direccion: string
+  /** Lo escrito en «Costo de envío» (solo domicilio). */
+  costoEnvio: string
+  repartidorId: number | null
+  repartidores: Repartidor[]
+  /** Lo que va a pagar el cliente, con el envío que todavía no se guardó. */
+  totalMostrado: number
+  envioMostrado: number
   proximaFicha: number
   ocupado: boolean
   onTipo: (tipo: TipoEntregaNombre) => void
   onDireccion: (direccion: string) => void
+  onCostoEnvio: (costo: string) => void
+  onRepartidor: (id: number | null) => void
+  onRepetido: () => Promise<void> | void
   onElegirCliente: (cliente: Cliente) => void
   onClienteCreado: (cliente: Cliente) => void
   onQuitarDetalle: (detalleId: number) => void
@@ -36,10 +47,18 @@ export function TicketCaja({
   mostrador,
   tipo,
   direccion,
+  costoEnvio,
+  repartidorId,
+  repartidores,
+  totalMostrado,
+  envioMostrado,
   proximaFicha,
   ocupado,
   onTipo,
   onDireccion,
+  onCostoEnvio,
+  onRepartidor,
+  onRepetido,
   onElegirCliente,
   onClienteCreado,
   onQuitarDetalle,
@@ -80,15 +99,46 @@ export function TicketCaja({
       </div>
 
       {esDomicilio && (
-        <label className={base.field}>
-          <span>Dirección de entrega</span>
-          <input
-            type="text"
-            value={direccion}
-            placeholder="Calle, número, zona"
-            onChange={(e) => onDireccion(e.target.value)}
-          />
-        </label>
+        <>
+          <label className={base.field}>
+            <span>Dirección de entrega</span>
+            <input
+              type="text"
+              value={direccion}
+              placeholder="Calle, número, zona"
+              onChange={(e) => onDireccion(e.target.value)}
+            />
+          </label>
+          <div className={styles.envio}>
+            <label className={base.field}>
+              <span>Costo de envío (Bs)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={costoEnvio}
+                placeholder="0"
+                aria-label="Costo de envío"
+                onChange={(e) => onCostoEnvio(e.target.value)}
+              />
+            </label>
+            <label className={`${base.field} ${base.grow}`}>
+              <span>Repartidor</span>
+              <select
+                value={repartidorId ?? ''}
+                aria-label="Repartidor"
+                onChange={(e) => onRepartidor(e.target.value === '' ? null : Number(e.target.value))}
+              >
+                <option value="">Sin asignar</option>
+                {repartidores.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.nombre}
+                    {r.tipo === 'empresa' ? ' (empresa)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </>
       )}
 
       <div className={styles.cliente}>
@@ -103,6 +153,17 @@ export function TicketCaja({
           </button>
         </span>
       </div>
+
+      {cliente && !esMostrador(cliente) && (
+        <ClienteFrecuente
+          key={cliente.id}
+          cliente={cliente}
+          pedidoId={pedido.id}
+          hayProductos={!vacio}
+          ocupado={ocupado}
+          onRepetido={onRepetido}
+        />
+      )}
 
       {eligiendo && (
         <div className={styles.selector}>
@@ -123,7 +184,8 @@ export function TicketCaja({
 
       <DetalleItems
         detalles={pedido.detalles}
-        total={pedido.total}
+        total={totalMostrado}
+        envio={esDomicilio ? { costo: envioMostrado, repartidor: repartidores.find((r) => r.id === repartidorId)?.nombre } : undefined}
         combos={combos}
         editable
         onQuitarExtra={onQuitarExtra}
@@ -136,7 +198,7 @@ export function TicketCaja({
         disabled={ocupado}
         onClick={onCobrar}
       >
-        {vacio ? 'Cobrar' : `Cobrar ${formatearMonto(pedido.total)} y enviar a cocina`}
+        {vacio ? 'Cobrar' : `Cobrar ${formatearMonto(totalMostrado)} y enviar a cocina`}
       </button>
 
       {!vacio && (

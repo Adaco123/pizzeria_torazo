@@ -4,6 +4,9 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
 from app.db import db
+from app.pedidos import servicio
+from app.pedidos.servicio import manejar_reglas
+from app.users.models import ROL_ADMINISTRADOR, ROL_CAJERO
 from ..models import Cliente
 from .schemas import ClienteSchema, ClienteUpdateSchema
 
@@ -93,6 +96,43 @@ class ClienteResource(Resource):
         return {'message': 'Cliente eliminado'}, 200
 
 
+class ClienteHistorialResource(Resource):
+    @jwt_required()
+    @manejar_reglas
+    def get(self, id):
+        """Pedidos del cliente, cuánto ha gastado y cuándo compró por última vez."""
+        from app.clientes.frecuentes import historial_de_cliente
+        servicio.exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+        cliente = Cliente.query.get(id)
+        if not cliente:
+            return {'success': False, 'error': 'Cliente no encontrado'}, 404
+        return {'success': True, 'data': historial_de_cliente(cliente)}, 200
+
+
+class ClienteRepetirUltimoResource(Resource):
+    @jwt_required()
+    @manejar_reglas
+    def post(self, id):
+        """Agrega a un borrador lo mismo que el cliente pidió la última vez (precios de hoy).
+
+        JSON esperado: { "pedido_id": 12 }
+        """
+        from app.clientes.frecuentes import repetir_ultimo_pedido
+        from app.pedidos.api_v1_0.resources import _obtener_pedido_editable
+        data = request.get_json() or {}
+        if not isinstance(data.get('pedido_id'), int) or isinstance(data.get('pedido_id'), bool):
+            return {'success': False, 'error': 'Falta pedido_id'}, 400
+        cliente = Cliente.query.get(id)
+        if not cliente:
+            return {'success': False, 'error': 'Cliente no encontrado'}, 404
+        borrador = _obtener_pedido_editable(data['pedido_id'])
+        resultado = repetir_ultimo_pedido(cliente, borrador)
+        db.session.commit()
+        return {'success': True, 'data': resultado}, 200
+
+
 # register routes
 api.add_resource(ClientesListResource, '/api/v1.0/clientes/', endpoint='clientes_list')
 api.add_resource(ClienteResource, '/api/v1.0/clientes/<int:id>', endpoint='cliente')
+api.add_resource(ClienteHistorialResource, '/api/v1.0/clientes/<int:id>/historial', endpoint='cliente_historial')
+api.add_resource(ClienteRepetirUltimoResource, '/api/v1.0/clientes/<int:id>/repetir-ultimo', endpoint='cliente_repetir_ultimo')

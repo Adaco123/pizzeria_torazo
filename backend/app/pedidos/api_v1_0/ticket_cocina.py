@@ -175,6 +175,8 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     if pedido.direccion_entrega and pedido.direccion_entrega.strip():
         story.append(Paragraph("[ NOTA DEL PEDIDO ]", est["label_sec"]))
         story.append(Paragraph(pedido.direccion_entrega.strip(), est["nota_txt"]))
+        if pedido.es_domicilio and pedido.repartidor:
+            story.append(Paragraph(f"Reparte: {pedido.repartidor.nombre}", est["nota_txt"]))
         story.append(_linea_fina())
     for idx, detalle in enumerate(pedido.detalles, start=1):
         story.append(_linea_punteada())

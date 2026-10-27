@@ -1,5 +1,6 @@
 from app.db import db, BaseModelMixin
 from datetime import datetime
+from app.repartidores.models import Repartidor  # noqa: F401  (relación de Pedido)
 
 
 class TipoEntrega(db.Model, BaseModelMixin):
@@ -53,6 +54,9 @@ class Pedido(db.Model, BaseModelMixin):
     motivo_cancelacion = db.Column(db.Text, nullable=True)
     # Hora a la que se le prometio el pedido al cliente (UTC, como `fecha`). Se fija al cobrar.
     hora_prometida     = db.Column(db.DateTime, nullable=True)
+    # Solo pedidos a domicilio: lo que se cobra por llevarlo (lo escribe el cajero) y quién lo lleva.
+    costo_envio        = db.Column(db.Float, nullable=False, default=0, server_default='0')
+    repartidor_id      = db.Column(db.Integer, db.ForeignKey("repartidores.id"), nullable=True)
 
     cliente      = db.relationship("Cliente",      back_populates="pedidos")
     usuario      = db.relationship("Usuario",      back_populates="pedidos")
@@ -65,6 +69,7 @@ class Pedido(db.Model, BaseModelMixin):
                                    cascade="all, delete-orphan")
     facturas     = db.relationship("Factura", back_populates="pedido")
     pagos        = db.relationship("Pago",    back_populates="pedido")
+    repartidor   = db.relationship("Repartidor")
 
     def __init__(self, tipo_entrega_id, usuario_id, turno_id,
                  cliente_id=1, direccion_entrega=None, estado_id=1):
@@ -84,8 +89,17 @@ class Pedido(db.Model, BaseModelMixin):
         """Dinero neto cobrado: pagos menos devoluciones (montos negativos)."""
         return round(sum(p.monto for p in self.pagos), 2)
 
+    @property
+    def es_domicilio(self):
+        return bool(self.tipo_entrega and self.tipo_entrega.nombre == 'Domicilio')
+
+    @property
+    def envio_cobrado(self):
+        """El envío solo cuenta en pedidos a domicilio."""
+        return round(self.costo_envio or 0, 2) if self.es_domicilio else 0.0
+
     def calcular_total(self):
-        self.total = sum(d.subtotal for d in self.detalles)
+        self.total = sum(d.subtotal for d in self.detalles) + self.envio_cobrado
         return self.total
 
     def cambiar_estado(self, nuevo_estado_id, usuario_id):
@@ -169,16 +183,16 @@ class DetallePedido(db.Model, BaseModelMixin):
 
     def calcular_subtotal(self):
         """Subtotal para producto/combo normal incluyendo extras."""
-        base        = self.precio_unitario * self.cantidad
-        extra_total = sum(e.precio_extra * e.cantidad for e in self.extras)
-        self.subtotal = base + extra_total
+        # Los extras se cobran en cada unidad: 2 pizzas con queso extra = 2 quesos extra.
+        extras_por_unidad = sum(e.precio_extra * e.cantidad for e in self.extras)
+        self.subtotal = (self.precio_unitario + extras_por_unidad) * self.cantidad
         return self.subtotal
 
     def calcular_subtotal_mitad(self):
         """
         Subtotal para pizza mitad/mitad.
-        precio_unitario ya viene calculado (max entre las 2 mitades + extras).
-        Solo multiplica por cantidad y suma extras de cada mitad.
+        precio_unitario es solo el de la pizza (el mayor entre las 2 mitades); los extras
+        de cada mitad se cobran en cada unidad.
         """
         extras_mitad = 0.0
         for mitad in self.mitades:
@@ -191,7 +205,7 @@ class DetallePedido(db.Model, BaseModelMixin):
                 precio_extra  = it.precio_extra if it else 0.0
                 extras_mitad += precio_extra * extra.cantidad
 
-        self.subtotal = (self.precio_unitario * self.cantidad) + extras_mitad
+        self.subtotal = (self.precio_unitario + extras_mitad) * self.cantidad
         return self.subtotal
 
     def __repr__(self):

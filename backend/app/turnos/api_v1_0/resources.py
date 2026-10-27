@@ -351,9 +351,10 @@ class TurnoResumenResource(Resource):
                             'cantidad':       0,
                             'ingreso':        0.0,
                         }
-                    extras_ingredientes[iid]['cantidad'] += extra.cantidad
+                    unidades = extra.cantidad * detalle.cantidad
+                    extras_ingredientes[iid]['cantidad'] += unidades
                     extras_ingredientes[iid]['ingreso']  += round(
-                        extra.cantidad * extra.precio_extra, 2
+                        unidades * extra.precio_extra, 2
                     )
 
         top_extras = sorted(

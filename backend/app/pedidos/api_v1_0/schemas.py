@@ -128,6 +128,9 @@ class PedidoSchema(ma.Schema):
     pagado            = fields.Float(dump_only=True)
     motivo_cancelacion = fields.Str(dump_only=True, allow_none=True)
     hora_prometida    = fields.DateTime(dump_only=True, allow_none=True)
+    costo_envio       = fields.Float(dump_only=True)
+    repartidor_id     = fields.Int(dump_only=True, allow_none=True)
+    repartidor        = fields.Method("get_repartidor", dump_only=True)
     cliente_id        = _id_positivo()
     usuario_id        = _id_positivo()
     turno_id          = _id_positivo()
@@ -139,6 +142,10 @@ class PedidoSchema(ma.Schema):
     def get_estado(self, obj):
         return {"id": obj.estado.id, "nombre": obj.estado.nombre} \
                if obj.estado else None
+
+    def get_repartidor(self, obj):
+        r = obj.repartidor
+        return {"id": r.id, "nombre": r.nombre, "tipo": r.tipo, "telefono": r.telefono} if r else None
 
     def get_tipo_entrega(self, obj):
         return {"id": obj.tipo_entrega.id, "nombre": obj.tipo_entrega.nombre} \

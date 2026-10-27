@@ -225,6 +225,7 @@ function PedidoDetalle({ id }: { id: number }) {
         <DetalleItems
           detalles={pedido.detalles}
           total={pedido.total}
+          envio={{ costo: pedido.costo_envio, repartidor: pedido.repartidor?.nombre }}
           combos={catalogo?.combos ?? []}
           editable={false}
           onQuitarExtra={() => {}}

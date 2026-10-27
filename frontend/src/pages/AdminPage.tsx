@@ -27,9 +27,19 @@ export function AdminPage() {
       </section>
 
       <section className={styles.card}>
+        <h2>Repartidores</h2>
+        <p className={styles.muted}>
+          Personas o empresas que llevan los domicilios. El costo de envío lo escribe el cajero al cobrar.
+        </p>
+        <div>
+          <Link to="/admin/repartidores">Administrar repartidores →</Link>
+        </div>
+      </section>
+
+      <section className={styles.card}>
         <h2>Reportes</h2>
         <p className={styles.muted}>
-          Ventas por día, por método de pago y por producto, y las cancelaciones con devolución.
+          Ventas por día, por método de pago y por producto, los mejores clientes, los envíos y las cancelaciones con devolución.
         </p>
         <div>
           <Link to="/admin/reportes">Ver reportes →</Link>

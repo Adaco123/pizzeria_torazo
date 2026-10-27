@@ -60,7 +60,7 @@ function FormularioProducto({
   // Una bebida no espera tamaños: no hay nada que cargar.
   const tamanosVisibles = esBebida ? [] : tamanos
   const tamanoElegido = tamanosVisibles?.find((t) => t.tamano_id === tamanoId) ?? null
-  // El backend NO calcula el precio por tamaño al agregar un producto: hay que enviarlo.
+  // Solo es la vista previa: el precio real lo decide el servidor según el tamaño.
   const precio = tamanoElegido ? tamanoElegido.precio : producto.precio_base
   const unidades = Number.parseInt(cantidad, 10)
   const extrasTotal = totalExtras(extras, ingredientes, tamanoElegido?.tamano_id ?? null, preciosExtra)
@@ -83,7 +83,6 @@ function FormularioProducto({
         producto_id: producto.id,
         cantidad: unidades,
         tamano_id: tamanoElegido?.tamano_id ?? null,
-        precio_unitario: precio,
         notas: notas.trim() || null,
       })
       for (const [ingredienteId, cantidadExtra] of Object.entries(extras)) {
@@ -180,7 +179,7 @@ function FormularioProducto({
         </button>
         <span className={styles.muted}>
           {cantidadValida
-            ? `${formatearMonto(precio * unidades + extrasTotal)}${extrasTotal > 0 ? ` (incluye extras ${formatearMonto(extrasTotal)})` : ''}`
+            ? `${formatearMonto((precio + extrasTotal) * unidades)}${extrasTotal > 0 ? ` (extras ${formatearMonto(extrasTotal)} por unidad)` : ''}`
             : ''}
         </span>
       </div>

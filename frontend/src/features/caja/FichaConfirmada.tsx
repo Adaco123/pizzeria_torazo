@@ -50,6 +50,8 @@ export function FichaConfirmada({ resultado, onNuevo }: Props) {
       <p className={base.muted}>
         Enviado a cocina · {pedido.tipo_entrega?.nombre ?? 'Local'}
         {pedido.direccion_entrega ? ` · ${pedido.direccion_entrega}` : ''}
+        {pedido.costo_envio > 0 ? ` · Envío ${formatearMonto(pedido.costo_envio)}` : ''}
+        {pedido.repartidor ? ` · Reparte ${pedido.repartidor.nombre}` : ''}
         {pedido.hora_prometida ? ` · ${textoHoraPrometida(pedido.hora_prometida)}` : ''}
       </p>
 

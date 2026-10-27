@@ -557,6 +557,10 @@ export interface Pedido {
   motivo_cancelacion: string | null
   /** Hora que se le prometió al cliente. Se fija al cobrar; null mientras es borrador. */
   hora_prometida: string | null
+  /** Solo domicilio: lo que se cobra por llevarlo (ya está dentro de `total`). */
+  costo_envio: number
+  repartidor_id: number | null
+  repartidor: { id: number; nombre: string; tipo: TipoRepartidor; telefono: string | null } | null
   cliente_id: number
   usuario_id: number
   turno_id: number
@@ -578,6 +582,9 @@ export interface PedidoUpdate {
   cliente_id?: number
   tipo_entrega_id?: number
   direccion_entrega?: string | null
+  /** Solo domicilio. Si el pedido pasa a Local el servidor los borra. */
+  costo_envio?: number
+  repartidor_id?: number | null
 }
 
 /** Un pago dentro del cobro de un pedido. En efectivo, `monto_recibido` es obligatorio. */
@@ -878,6 +885,10 @@ export interface ReporteVentas {
   /** Neto cobrado por método (cobros menos devoluciones). */
   por_metodo: { metodo: string; cantidad: number; total: number }[]
   por_producto: { producto: string; cantidad: number; total: number }[]
+  /** Envíos cobrados en el periodo. */
+  envios: { pedidos: number; total: number }
+  por_repartidor: { repartidor: string; entregas: number; envios: number }[]
+  mejores_clientes: ClienteFrecuente[]
   cancelaciones: {
     pedido_id: number
     ficha: number | null
@@ -887,6 +898,16 @@ export interface ReporteVentas {
     cajero: string | null
     cancelado_por: string | null
   }[]
+}
+
+export interface ClienteFrecuente {
+  cliente_id: number
+  cliente: string
+  telefono: string | null
+  pedidos: number
+  total: number
+  /** Fecha y hora (ISO) del último cobro dentro del periodo. */
+  ultima_compra: string | null
 }
 
 export const reportesApi = {
@@ -899,7 +920,81 @@ export const reportesApi = {
 // ===========================================================================
 // clientes
 // ===========================================================================
+export interface HistorialCliente {
+  cliente: { id: number; nombre: string; telefono: string }
+  num_pedidos: number
+  total_gastado: number
+  ultima_compra: string | null
+  pedidos: {
+    id: number
+    ficha: number | null
+    fecha: string
+    estado: string
+    tipo_entrega: string | null
+    total: number
+    resumen: string
+  }[]
+}
+
+export interface ResultadoRepetir {
+  pedido_origen: number
+  agregados: number
+  /** Lo que ya no se pudo repetir (agotado, sin stock, fuera del menú). */
+  omitidos: { nombre: string; motivo: string }[]
+}
+
+export type TipoRepartidor = 'persona' | 'empresa'
+
+export interface Repartidor {
+  id: number
+  nombre: string
+  tipo: TipoRepartidor
+  telefono: string | null
+  activo: boolean
+}
+
+export interface RepartidorDatos {
+  nombre?: string
+  tipo?: TipoRepartidor
+  telefono?: string | null
+  activo?: boolean
+}
+
+export const repartidoresApi = {
+  /** El cajero recibe solo los activos; el admin puede pedir todos. */
+  listar(todos = false, opts: Opts = {}): Promise<Repartidor[]> {
+    return requestData<Repartidor[]>('/api/v1.0/repartidores', {
+      query: todos ? { todos: 1 } : undefined,
+      ...opts,
+    })
+  },
+
+  crear(data: RepartidorDatos): Promise<Repartidor> {
+    return requestData<Repartidor>('/api/v1.0/repartidores', { method: 'POST', body: data })
+  },
+
+  actualizar(id: number, data: RepartidorDatos): Promise<Repartidor> {
+    return requestData<Repartidor>(`/api/v1.0/repartidores/${id}`, { method: 'PUT', body: data })
+  },
+
+  async eliminar(id: number): Promise<void> {
+    await request(`/api/v1.0/repartidores/${id}`, { method: 'DELETE' })
+  },
+}
+
 export const clientesApi = {
+  historial(id: number, opts: Opts = {}): Promise<HistorialCliente> {
+    return requestData<HistorialCliente>(`/api/v1.0/clientes/${id}/historial`, opts)
+  },
+
+  /** Agrega al borrador lo mismo que el cliente pidió la última vez, con los precios de hoy. */
+  repetirUltimo(id: number, pedidoId: number): Promise<ResultadoRepetir> {
+    return requestData<ResultadoRepetir>(`/api/v1.0/clientes/${id}/repetir-ultimo`, {
+      method: 'POST',
+      body: { pedido_id: pedidoId },
+    })
+  },
+
   listar(opts: Opts = {}): Promise<Cliente[]> {
     return request<Cliente[]>('/api/v1.0/clientes/', opts)
   },

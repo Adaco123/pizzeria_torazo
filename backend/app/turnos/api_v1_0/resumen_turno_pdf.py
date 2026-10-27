@@ -394,8 +394,9 @@ def _recolectar_datos(turno):
                 if iid not in extras_ingredientes:
                     nombre = extra.ingrediente.nombre if extra.ingrediente else f"Ing.{iid}"
                     extras_ingredientes[iid] = {"nombre": nombre, "cantidad": 0, "ingreso": 0.0}
-                extras_ingredientes[iid]["cantidad"] += extra.cantidad
-                extras_ingredientes[iid]["ingreso"]  += round(extra.cantidad * extra.precio_extra, 2)
+                unidades = extra.cantidad * detalle.cantidad
+                extras_ingredientes[iid]["cantidad"] += unidades
+                extras_ingredientes[iid]["ingreso"]  += round(unidades * extra.precio_extra, 2)
 
     top_extras = sorted(extras_ingredientes.values(), key=lambda x: x["ingreso"], reverse=True)
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required
+from app.util.decorador_admin import admin_required
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from marshmallow import ValidationError
 
@@ -156,7 +157,7 @@ class FacturaResource(Resource):
 
 class FacturaAnularResource(Resource):
 
-    @jwt_required()
+    @admin_required
     def patch(self, factura_id):
         factura = Factura.query.get(factura_id)
         if not factura:

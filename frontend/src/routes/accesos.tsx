@@ -6,6 +6,7 @@ import { CocinaPage } from '../pages/CocinaPage.tsx'
 import { PedidoDetallePage } from '../pages/PedidoDetallePage.tsx'
 import { CuentaPage } from '../pages/CuentaPage.tsx'
 import { PedidosPage } from '../pages/PedidosPage.tsx'
+import { RepartidoresPage } from '../pages/RepartidoresPage.tsx'
 import { ReportesPage } from '../pages/ReportesPage.tsx'
 import { TurnosPage } from '../pages/TurnosPage.tsx'
 import { UsuariosPage } from '../pages/UsuariosPage.tsx'
@@ -38,6 +39,7 @@ export const ACCESOS: Acceso[] = [
     hijas: [
       { path: '/admin/catalogo', Page: CatalogoPage },
       { path: '/admin/usuarios', Page: UsuariosPage },
+      { path: '/admin/repartidores', Page: RepartidoresPage },
       { path: '/admin/reportes', Page: ReportesPage },
     ],
   },

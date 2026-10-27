@@ -5,6 +5,8 @@ import styles from './Pedidos.module.css'
 interface Props {
   detalles: DetallePedido[]
   total: number
+  /** Costo de envío (solo domicilio): se muestra antes del total. */
+  envio?: { costo: number; repartidor?: string | null }
   combos: Combo[]
   /** Si es true se pueden quitar extras. */
   editable: boolean
@@ -24,6 +26,7 @@ function tituloDe(detalle: DetallePedido, combos: Combo[]): string {
 export function DetalleItems({
   detalles,
   total,
+  envio,
   combos,
   editable,
   onQuitarExtra,
@@ -101,6 +104,13 @@ export function DetalleItems({
           </li>
         ))}
       </ul>
+
+      {envio && envio.costo > 0 && (
+        <div className={styles.totalRow}>
+          <span className={styles.muted}>Envío{envio.repartidor ? ` · ${envio.repartidor}` : ''}</span>
+          <span>{formatearMonto(envio.costo)}</span>
+        </div>
+      )}
 
       <div className={styles.totalRow}>
         <span>Total</span>

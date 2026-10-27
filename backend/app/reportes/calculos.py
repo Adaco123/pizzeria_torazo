@@ -13,6 +13,8 @@ from app.pedidos.servicio import estado_de
 DESFASE_BOLIVIA = timedelta(hours=4)
 MAX_DIAS = 366
 TOP_PRODUCTOS = 20
+TOP_CLIENTES = 10
+CLIENTE_MOSTRADOR = 1    # cliente anónimo por defecto: no entra al ranking
 
 
 class RangoInvalido(ValueError):
@@ -67,6 +69,8 @@ def reporte_de_ventas(inicio, fin):
              .order_by(Pago.fecha).all())
 
     por_dia, por_metodo, por_producto = {}, {}, {}
+    por_cliente, por_repartidor = {}, {}
+    envios_total, envios_pedidos = 0.0, 0
     pedidos_ids = set()
     cancelados = {}
     devuelto = 0.0
@@ -94,6 +98,25 @@ def reporte_de_ventas(inicio, fin):
         d = por_dia.setdefault(dia, {'fecha': dia, 'pedidos': 0, 'total': 0.0})
         d['pedidos'] += 1
         d['total'] += pedido.total
+        if pedido.envio_cobrado > 0:
+            envios_total += pedido.envio_cobrado
+            envios_pedidos += 1
+        if pedido.es_domicilio:
+            nombre_rep = pedido.repartidor.nombre if pedido.repartidor else 'Sin repartidor'
+            r = por_repartidor.setdefault(nombre_rep, {'repartidor': nombre_rep, 'entregas': 0, 'envios': 0.0})
+            r['entregas'] += 1
+            r['envios'] += pedido.envio_cobrado
+        if pedido.cliente_id != CLIENTE_MOSTRADOR:
+            c = por_cliente.setdefault(pedido.cliente_id, {
+                'cliente_id': pedido.cliente_id,
+                'cliente': pedido.cliente.nombre if pedido.cliente else f'Cliente #{pedido.cliente_id}',
+                'telefono': pedido.cliente.telefono if pedido.cliente else None,
+                'pedidos': 0, 'total': 0.0, 'ultima_compra': None})
+            c['pedidos'] += 1
+            c['total'] += pedido.total
+            momento = pago.fecha.isoformat()
+            if c['ultima_compra'] is None or momento > c['ultima_compra']:
+                c['ultima_compra'] = momento
         for nombre, cantidad, subtotal in _lineas(pedido):
             p = por_producto.setdefault(nombre, {'producto': nombre, 'cantidad': 0, 'total': 0.0})
             p['cantidad'] += cantidad
@@ -139,4 +162,8 @@ def reporte_de_ventas(inicio, fin):
         'por_producto': redondeado(
             sorted(por_producto.values(), key=lambda p: -p['total'])[:TOP_PRODUCTOS], 'cantidad', 'total'),
         'cancelaciones': cancelaciones,
+        'envios': {'pedidos': envios_pedidos, 'total': round(envios_total, 2)},
+        'por_repartidor': redondeado(sorted(por_repartidor.values(), key=lambda r: -r['entregas']), 'envios'),
+        'mejores_clientes': redondeado(
+            sorted(por_cliente.values(), key=lambda c: (-c['total'], -c['pedidos']))[:TOP_CLIENTES], 'total'),
     }

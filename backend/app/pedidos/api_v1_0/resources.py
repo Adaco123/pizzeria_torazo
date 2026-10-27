@@ -161,6 +161,8 @@ class PedidoListResource(Resource):
                 direccion_entrega = direccion,
             )
             db.session.add(pedido)
+            db.session.flush()
+            servicio.aplicar_envio(pedido, data)
             db.session.commit()
             return {
                 'success': True,
@@ -218,6 +220,9 @@ class PedidoDetailResource(Resource):
                 db.session.rollback()
                 return {'success': False, 'error': 'Escribe la dirección de entrega'}, 400
 
+            # Al cambiar a Local el envío se borra solo; si el cajero lo manda explícito, se valida.
+            servicio.aplicar_envio(pedido, {k: v for k, v in data.items()
+                                            if k in ('costo_envio', 'repartidor_id')})
             db.session.commit()
             return {
                 'success': True,
@@ -379,7 +384,7 @@ class DetalleMitadResource(Resource):
                     ).first()
                     extras_total += (it.precio_extra if it else 0.0) * int(extra.get('cantidad', 1))
 
-            precio_unitario = precio_base + extras_total
+            precio_unitario = precio_base   # los extras se suman por unidad al recalcular
 
             detalle = DetallePedido(
                 pedido_id       = pedido_id,
@@ -662,7 +667,26 @@ class DetallePedidoResource(Resource):
                 if not Tamano.query.get(tamano_id):
                     return {'success': False, 'error': 'Tamaño no existe'}, 404
 
-            precio_unitario = float(data.get('precio_unitario', producto.precio_base))
+            # El precio lo decide el servidor, nunca el navegador: si el producto tiene tamaños
+            # se cobra el precio de ese tamaño; una pizza sin tamaños cargados no se puede vender
+            # (saldría a Bs 0).
+            precio_unitario = float(producto.precio_base or 0)
+            if not servicio.es_bebida(producto):
+                tamanos = ProductoTamano.query.filter_by(producto_id=producto.id).all()
+                if tamanos:
+                    elegido = next((t for t in tamanos if str(t.tamano_id) == str(tamano_id)), None)
+                    if not elegido:
+                        return {
+                            'success': False,
+                            'error': f'Elige un tamaño válido para "{producto.nombre}"'
+                        }, 400
+                    precio_unitario = float(elegido.precio)
+                elif servicio.es_pizza(producto):
+                    return {
+                        'success': False,
+                        'error': f'"{producto.nombre}" no tiene tamaños ni precios cargados. '
+                                 'Cárgalos en el catálogo antes de venderla'
+                    }, 409
 
             detalle = DetallePedido(
                 pedido_id       = pedido_id,

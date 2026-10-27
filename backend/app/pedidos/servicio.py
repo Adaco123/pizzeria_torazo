@@ -148,9 +148,52 @@ def recalcular_total(pedido):
         else:
             detalle.calcular_subtotal()
         total += detalle.subtotal
+    total += pedido.envio_cobrado          # el envío es parte de lo que paga el cliente
     pedido.total = total
     db.session.flush()
     return total
+
+
+MAX_COSTO_ENVIO = 1000
+
+
+def aplicar_envio(pedido, data):
+    """Costo de envío y repartidor de un borrador, a partir de `costo_envio` / `repartidor_id`.
+
+    Solo los pedidos a domicilio llevan envío: si pasan a Local se borran los dos datos.
+    Debe llamarse después de fijar el tipo de entrega. No hace commit.
+    """
+    from app.repartidores.models import Repartidor
+
+    if 'costo_envio' in data:
+        crudo = data['costo_envio']
+        try:
+            costo = 0.0 if crudo in (None, '') else float(crudo)
+        except (TypeError, ValueError):
+            raise ReglaNegocio('El costo de envío no es un número válido', 400)
+        if isinstance(crudo, bool) or costo != costo or costo < 0 or costo > MAX_COSTO_ENVIO:
+            raise ReglaNegocio(f'El costo de envío debe estar entre 0 y {MAX_COSTO_ENVIO}', 400)
+        pedido.costo_envio = round(costo, 2)
+
+    if 'repartidor_id' in data:
+        if data['repartidor_id'] in (None, ''):
+            pedido.repartidor_id = None
+        else:
+            repartidor = Repartidor.query.get(data['repartidor_id'])
+            if not repartidor:
+                raise ReglaNegocio('Repartidor no existe', 404)
+            if not repartidor.activo:
+                raise ReglaNegocio(f'"{repartidor.nombre}" está desactivado', 400)
+            pedido.repartidor_id = repartidor.id
+
+    db.session.flush()
+    db.session.refresh(pedido)
+    if not pedido.es_domicilio:
+        if (data.get('costo_envio') not in (None, '', 0, 0.0, '0')) or data.get('repartidor_id'):
+            raise ReglaNegocio('El costo de envío y el repartidor solo aplican a pedidos a domicilio', 400)
+        pedido.costo_envio = 0
+        pedido.repartidor_id = None
+    recalcular_total(pedido)
 
 
 def cambiar_estado(pedido, nombre_estado):

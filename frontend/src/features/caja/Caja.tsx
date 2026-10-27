@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { pedidosApi } from '../../api.ts'
-import type { Cliente, CobroResultado, PagoCobro } from '../../api.ts'
+import { useEffect, useState } from 'react'
+import { pedidosApi, repartidoresApi } from '../../api.ts'
+import type { Cliente, CobroResultado, PagoCobro, Repartidor } from '../../api.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { AgregarItemPanel } from '../pedidos/AgregarItemPanel.tsx'
 import { TIPO_ENTREGA_ID, type TipoEntregaNombre } from '../pedidos/estados.ts'
@@ -11,7 +11,7 @@ import { FichaConfirmada } from './FichaConfirmada.tsx'
 import { PanelCobro } from './PanelCobro.tsx'
 import { TicketCaja } from './TicketCaja.tsx'
 import { esMostrador, useCaja, type CajaApi } from './useCaja.ts'
-import { formatearMonto } from '../../utils/formato.ts'
+import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import styles from './Caja.module.css'
 
 interface Props {
@@ -30,6 +30,25 @@ interface EnCursoProps {
   onCambio: () => void
 }
 
+const CLAVE_ULTIMO_ENVIO = 'pizzeria.ultimoEnvio'
+
+/** El último costo de envío que escribió el cajero: se ofrece como sugerencia (editable). */
+function ultimoEnvio(): string {
+  try {
+    return localStorage.getItem(CLAVE_ULTIMO_ENVIO) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function recordarEnvio(costo: number): void {
+  try {
+    if (costo > 0) localStorage.setItem(CLAVE_ULTIMO_ENVIO, String(costo))
+  } catch {
+    // Sin almacenamiento disponible: simplemente no se recuerda.
+  }
+}
+
 /** Un cliente sirve para domicilio si se le puede llamar. */
 function tieneTelefono(cliente: Cliente): boolean {
   const telefono = cliente.telefono.trim()
@@ -44,11 +63,28 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
     borrador.tipo_entrega?.nombre === 'Domicilio' ? 'Domicilio' : 'Local',
   )
   const [direccion, setDireccion] = useState(borrador.direccion_entrega ?? '')
+  const [costoEnvio, setCostoEnvio] = useState(borrador.costo_envio > 0 ? String(borrador.costo_envio) : '')
+  const [repartidorId, setRepartidorId] = useState<number | null>(borrador.repartidor_id)
+  const [repartidores, setRepartidores] = useState<Repartidor[]>([])
   const [cobrando, setCobrando] = useState(false)
   const [ocupado, setOcupado] = useState(false)
 
+  useEffect(() => {
+    const controller = new AbortController()
+    repartidoresApi
+      .listar(false, { signal: controller.signal })
+      .then(setRepartidores)
+      .catch(() => {
+        // Sin la lista el cajero igual puede cobrar: el repartidor es opcional.
+      })
+    return () => controller.abort()
+  }, [])
+
   const cliente = clientes.find((c) => c.id === borrador.cliente_id) ?? null
   const unidades = borrador.detalles.reduce((suma, d) => suma + d.cantidad, 0)
+  // El envío se guarda al cobrar; mientras tanto el total se muestra con lo escrito en pantalla.
+  const envioMostrado = tipo === 'Domicilio' ? (parseMonto(costoEnvio) ?? 0) : 0
+  const totalMostrado = borrador.detalles.reduce((suma, d) => suma + d.subtotal, 0) + envioMostrado
 
   /** La dirección del cliente se ofrece sola en domicilio, si todavía no escribieron una. */
   function sugerirDireccion(deCliente: Cliente | null, paraTipo: TipoEntregaNombre) {
@@ -60,6 +96,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
   function elegirTipo(siguiente: TipoEntregaNombre) {
     setTipo(siguiente)
     sugerirDireccion(cliente, siguiente)
+    if (siguiente === 'Domicilio' && costoEnvio.trim() === '') setCostoEnvio(ultimoEnvio())
   }
 
   async function elegirCliente(elegido: Cliente) {
@@ -111,15 +148,38 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
     }
   }
 
-  function iniciarCobro() {
+  async function iniciarCobro() {
     if (borrador.detalles.length === 0) return toast.error('Agrega productos al pedido antes de cobrar')
+    let envio = 0
     if (tipo === 'Domicilio') {
       if (direccion.trim() === '') return toast.error('Escribe la dirección de entrega')
       if (!cliente || !tieneTelefono(cliente)) {
         return toast.error('Para un domicilio elige un cliente con teléfono')
       }
+      const escrito = parseMonto(costoEnvio)
+      if (costoEnvio.trim() !== '' && escrito === null) {
+        return toast.error('El costo de envío no es un número válido')
+      }
+      envio = escrito ?? 0
     }
-    setCobrando(true)
+
+    // El servidor cobra lo que tiene guardado: se guarda la entrega y el envío antes de mostrar el total.
+    setOcupado(true)
+    try {
+      const guardado = await pedidosApi.actualizar(borrador.id, {
+        tipo_entrega_id: TIPO_ENTREGA_ID[tipo],
+        direccion_entrega: tipo === 'Domicilio' ? direccion.trim() : null,
+        ...(tipo === 'Domicilio' ? { costo_envio: envio, repartidor_id: repartidorId } : {}),
+      })
+      caja.actualizarBorrador(guardado)
+      recordarEnvio(envio)
+      setCobrando(true)
+    } catch (e) {
+      toast.error(e)
+      await refrescar()
+    } finally {
+      setOcupado(false)
+    }
   }
 
   async function confirmarCobro(pagos: PagoCobro[], minutosEspera?: number) {
@@ -187,10 +247,18 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
           mostrador={mostrador}
           tipo={tipo}
           direccion={direccion}
+          costoEnvio={costoEnvio}
+          repartidorId={repartidorId}
+          repartidores={repartidores}
+          totalMostrado={totalMostrado}
+          envioMostrado={envioMostrado}
           proximaFicha={proximaFicha}
           ocupado={ocupado}
           onTipo={elegirTipo}
           onDireccion={setDireccion}
+          onCostoEnvio={setCostoEnvio}
+          onRepartidor={setRepartidorId}
+          onRepetido={refrescar}
           onElegirCliente={elegirCliente}
           onClienteCreado={caja.agregarCliente}
           onQuitarDetalle={quitarDetalle}
@@ -202,7 +270,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
 
       <div className={styles.barraMovil}>
         <span>
-          {unidades} {unidades === 1 ? 'producto' : 'productos'} · <strong>{formatearMonto(borrador.total)}</strong>
+          {unidades} {unidades === 1 ? 'producto' : 'productos'} · <strong>{formatearMonto(totalMostrado)}</strong>
         </span>
         <button className={base.primary} type="button" disabled={ocupado} onClick={iniciarCobro}>
           Cobrar
