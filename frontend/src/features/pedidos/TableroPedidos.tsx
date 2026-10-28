@@ -1,3 +1,4 @@
+import { enlaceWhatsapp, mensajeDePedido } from '../../utils/whatsapp.ts'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { pedidosApi } from '../../api.ts'
@@ -49,10 +50,12 @@ interface Props {
   pedidos: Pedido[]
   /** cliente_id → nombre */
   nombres: Record<number, string>
+  /** cliente_id → teléfono, para el botón «Avisar» de WhatsApp. */
+  telefonos?: Record<number, string>
   onCambio: () => void
 }
 
-export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
+export function TableroPedidos({ pedidos, nombres, telefonos = {}, onCambio }: Props) {
   const toast = useToast()
   const ahora = useAhora()
   const [filtro, setFiltro] = useState<FiltroEntrega>('todos')
@@ -201,6 +204,15 @@ export function TableroPedidos({ pedidos, nombres, onCambio }: Props) {
                       >
                         Ticket
                       </button>
+                      {(() => {
+                        const mensaje = mensajeDePedido(pedido, nombres[pedido.cliente_id] ?? null)
+                        const enlace = mensaje ? enlaceWhatsapp(telefonos[pedido.cliente_id], mensaje) : null
+                        return enlace && id !== 'entregado' ? (
+                          <a className={styles.ver} href={enlace} target="_blank" rel="noreferrer">
+                            Avisar
+                          </a>
+                        ) : null
+                      })()}
                       <Link className={styles.ver} to={`/pedidos/${pedido.id}`}>
                         Ver
                       </Link>

@@ -145,6 +145,34 @@ export function ResumenTurnoPanel({ turnoId, onCerrar, completo = true }: Props)
 
           {completo && (
             <>
+          {resumen.gastos.lista.length > 0 && (
+            <div>
+              <h3>Gastos y retiros de caja</h3>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Detalle</th>
+                      <th>Quién</th>
+                      <th>Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resumen.gastos.lista.map((g) => (
+                      <tr key={g.id} className={g.anulado ? styles.inactiva : undefined}>
+                        <td>{g.categoria_nombre}</td>
+                        <td>{g.descripcion}{g.anulado ? ' (anulado)' : ''}</td>
+                        <td>{g.usuario ?? '—'}</td>
+                        <td>{formatearMonto(g.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {(resumen.envios.total > 0 || resumen.descuentos.total > 0) && (
             <div>
               <h3>Envíos y descuentos</h3>

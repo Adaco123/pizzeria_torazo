@@ -16,6 +16,7 @@ from reportlab.lib.styles import ParagraphStyle
 from app.db import db
 from app.turnos.models import Turno
 from app.pedidos.models import Pedido, DetallePedido
+from app.gastos.servicio import a_json as gasto_json, resumen_de_gastos
 from app.pedidos.servicio import (
     ReglaNegocio, cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, pedidos_vendidos, totales_de_ventas,
 )
@@ -415,6 +416,8 @@ def _recolectar_datos(turno):
         "top_extras":         top_extras,
         "pagos_por_metodo":   pagos_por_metodo,
         **envios_y_descuentos(pedidos_activos),
+        "gastos": {**resumen_de_gastos(turno),
+                   "lista": [gasto_json(g) for g in sorted(turno.gastos, key=lambda g: g.fecha)]},
     }
 
 def _generar_pdf(turno: Turno) -> bytes:
@@ -476,6 +479,16 @@ def _generar_pdf(turno: Turno) -> bytes:
         for fila in datos["por_repartidor"]:
             story.append(_fila_financiera(
                 f'{fila["repartidor"]} ({fila["entregas"]})', f'Bs {fila["envios"]:.2f}', est))
+
+    if datos["gastos"]["cantidad"] > 0:
+        story.append(_linea_punteada())
+        story.append(Paragraph("-- GASTOS Y RETIROS DE CAJA --", est["sec_titulo"]))
+        for g in datos["gastos"]["lista"]:
+            if g["anulado"]:
+                continue
+            story.append(_fila_financiera(
+                f'{g["categoria_nombre"]}: {g["descripcion"]}', f'Bs {g["monto"]:.2f}', est))
+        story.append(_fila_financiera("Total salido de caja", f'Bs {datos["gastos"]["total"]:.2f}', est, negrita=True))
 
     if turno.monto_cierre is not None:
         story.append(_linea_punteada())

@@ -541,6 +541,8 @@ export interface DetallePedido {
   tamano_nombre: string | null
 }
 
+export type TipoDescuento = 'porcentaje' | 'monto'
+
 export interface Pedido {
   id: number
   /** Ficha del pedido dentro del turno. Es null mientras es borrador: se asigna al cobrar. */
@@ -559,6 +561,11 @@ export interface Pedido {
   hora_prometida: string | null
   /** Solo domicilio: lo que se cobra por llevarlo (ya está dentro de `total`). */
   costo_envio: number
+  /** Bs que se descontaron de los productos (ya restados de `total`). */
+  descuento: number
+  descuento_tipo: TipoDescuento | null
+  descuento_valor: number
+  descuento_motivo: string | null
   repartidor_id: number | null
   repartidor: { id: number; nombre: string; tipo: TipoRepartidor; telefono: string | null } | null
   cliente_id: number
@@ -686,8 +693,14 @@ export interface ResumenTurno {
   total_vendido: number
   /** Cobrado por método de pago, neto de devoluciones. */
   pagos_por_metodo: Record<string, { cantidad: number; total: number }>
+  envios: { pedidos: number; total: number }
+  descuentos: { pedidos: number; total: number }
+  por_repartidor: { repartidor: string; entregas: number; envios: number }[]
   efectivo_cobrado: number
-  /** Monto inicial + efectivo cobrado: lo que debería haber en la caja. */
+  /** Lo que salió de la caja en gastos y retiros (ya descontado del efectivo esperado). */
+  gastos_caja: number
+  gastos: ResumenGastos & { lista: GastoCaja[] }
+  /** Monto inicial + efectivo cobrado - gastos: lo que debería haber en la caja. */
   efectivo_esperado: number
   /** Contado - esperado. Null mientras el turno no tenga monto de cierre. */
   diferencia: number | null
@@ -885,8 +898,10 @@ export interface ReporteVentas {
   /** Neto cobrado por método (cobros menos devoluciones). */
   por_metodo: { metodo: string; cantidad: number; total: number }[]
   por_producto: { producto: string; cantidad: number; total: number }[]
+  gastos: { total: number; por_categoria: { categoria: string; nombre: string; cantidad: number; total: number }[] }
   /** Envíos cobrados en el periodo. */
   envios: { pedidos: number; total: number }
+  descuentos: { pedidos: number; total: number }
   por_repartidor: { repartidor: string; entregas: number; envios: number }[]
   mejores_clientes: ClienteFrecuente[]
   cancelaciones: {
@@ -1313,6 +1328,15 @@ export const pedidosApi = {
     await request(`${basePedidos}/${id}`, { method: 'DELETE' })
   },
 
+  /** Descuento de un borrador. El cajero llega hasta 10 %; más, solo el administrador. */
+  ponerDescuento(id: number, data: { tipo: TipoDescuento; valor: number; motivo: string }): Promise<Pedido> {
+    return requestData<Pedido>(`${basePedidos}/${id}/descuento`, { method: 'PUT', body: data })
+  },
+
+  quitarDescuento(id: number): Promise<Pedido> {
+    return requestData<Pedido>(`${basePedidos}/${id}/descuento`, { method: 'DELETE' })
+  },
+
   /**
    * Cambia el estado por nombre (`en_preparacion`, `listo`, `entregado`, `cancelado`).
    * Pasar de pendiente a confirmado no se hace aquí: ocurre al cobrar. Cancelar un pedido
@@ -1393,6 +1417,47 @@ export const pedidosApi = {
 // turnos
 // ===========================================================================
 const baseTurnos = '/api/v1.0/turnos'
+
+export interface GastoCaja {
+  id: number
+  turno_id: number
+  fecha: string
+  monto: number
+  categoria: string
+  categoria_nombre: string
+  descripcion: string
+  usuario: string | null
+  anulado: boolean
+  anulado_por: string | null
+}
+
+export interface ResumenGastos {
+  total: number
+  cantidad: number
+  por_categoria: { categoria: string; nombre: string; cantidad: number; total: number }[]
+}
+
+export interface GastosDelTurno {
+  gastos: GastoCaja[]
+  resumen: ResumenGastos
+  /** Lo máximo que un cajero puede sacar de la caja en un turno (el administrador no tiene tope). */
+  tope_cajero: number
+  categorias: { id: string; nombre: string }[]
+}
+
+export const gastosApi = {
+  delTurno(turnoId: number, opts: Opts = {}): Promise<GastosDelTurno> {
+    return requestData<GastosDelTurno>(`/api/v1.0/turnos/${turnoId}/gastos`, opts)
+  },
+
+  registrar(turnoId: number, data: { categoria: string; monto: number; descripcion: string }): Promise<GastoCaja> {
+    return requestData<GastoCaja>(`/api/v1.0/turnos/${turnoId}/gastos`, { method: 'POST', body: data })
+  },
+
+  anular(gastoId: number): Promise<GastoCaja> {
+    return requestData<GastoCaja>(`/api/v1.0/gastos/${gastoId}/anular`, { method: 'PATCH' })
+  },
+}
 
 export const turnosApi = {
   listar(opts: Opts = {}): Promise<Turno[]> {

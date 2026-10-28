@@ -1,3 +1,4 @@
+import { enlaceWhatsapp, mensajeDePedido } from '../utils/whatsapp.ts'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { pedidosApi } from '../api.ts'
@@ -124,6 +125,9 @@ function PedidoDetalle({ id }: { id: number }) {
     }
   }
 
+  const mensajeWhatsapp = mensajeDePedido(pedido, cliente?.nombre ?? null)
+  const avisoWhatsapp = mensajeWhatsapp ? enlaceWhatsapp(cliente?.telefono, mensajeWhatsapp) : null
+
   async function descargarTicketCliente() {
     setOcupado(true)
     try {
@@ -203,6 +207,11 @@ function PedidoDetalle({ id }: { id: number }) {
             <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicketCliente}>
               Ticket del cliente (PDF)
             </button>
+          )}
+          {avisoWhatsapp && (
+            <a className={styles.secondary} href={avisoWhatsapp} target="_blank" rel="noreferrer">
+              Avisar por WhatsApp
+            </a>
           )}
           {!borrador && (
             <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicket}>

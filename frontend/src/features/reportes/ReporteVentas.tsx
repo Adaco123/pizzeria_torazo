@@ -263,6 +263,39 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
+            <h2>Gastos y retiros de caja</h2>
+            {reporte.gastos.por_categoria.length === 0 ? (
+              <p className={styles.muted}>No se anotaron gastos en este periodo.</p>
+            ) : (
+              <>
+                <p className={styles.muted}>
+                  Salió de la caja: <strong>{formatearMonto(reporte.gastos.total)}</strong>
+                </p>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th className={styles.num}>Veces</th>
+                        <th className={styles.num}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reporte.gastos.por_categoria.map((c) => (
+                        <tr key={c.categoria}>
+                          <td>{c.nombre}</td>
+                          <td className={styles.num}>{c.cantidad}</td>
+                          <td className={styles.num}>{formatearMonto(c.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className={styles.card}>
             <h2>Cancelaciones con devolución</h2>
             {reporte.cancelaciones.length === 0 ? (
               <p className={styles.muted}>No hubo cancelaciones en este periodo.</p>

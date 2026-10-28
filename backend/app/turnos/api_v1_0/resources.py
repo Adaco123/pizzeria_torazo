@@ -10,6 +10,7 @@ from .schemas import TurnoSchema
 from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
+from app.gastos.servicio import a_json as gasto_json, resumen_de_gastos
 from app.pedidos.servicio import (
     cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
 )
@@ -396,6 +397,8 @@ class TurnoResumenResource(Resource):
                 'total_vendido':  round(total_vendido,  2),
                 'pagos_por_metodo': totales['pagos_por_metodo'],
                 **envios_y_descuentos(pedidos_activos),
+                'gastos': {**resumen_de_gastos(turno),
+                           'lista': [gasto_json(g) for g in sorted(turno.gastos, key=lambda g: g.fecha)]},
                 **cuadre_de_caja(turno, totales['pagos_por_metodo']),
 
                 'pizzas':  pizzas,

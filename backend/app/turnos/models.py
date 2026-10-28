@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.gastos.models import GastoCaja  # noqa: F401  (relación de Turno)
 from app.db import db, BaseModelMixin
 class Turno(db.Model, BaseModelMixin):
     __tablename__ = "turnos"
@@ -12,6 +13,7 @@ class Turno(db.Model, BaseModelMixin):
 
     usuario = db.relationship("Usuario", back_populates="turnos")
     pedidos = db.relationship("Pedido",  back_populates="turno")
+    gastos  = db.relationship("GastoCaja", back_populates="turno")
 
     def __init__(self, usuario_id, monto_inicio=0):
         self.usuario_id   = usuario_id

@@ -9,6 +9,7 @@ import { INTERVALO_MS } from '../features/cocina/useCocina.ts'
 import { TableroPedidos } from '../features/pedidos/TableroPedidos.tsx'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
+import { PanelGastos } from '../features/turnos/PanelGastos.tsx'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
 import { useTurnos } from '../features/turnos/useTurnos.ts'
 
@@ -24,6 +25,7 @@ export function PedidosPage() {
   const sinTurno = !turnos.cargando && !turnos.error && miTurno === null
 
   const nombres = Object.fromEntries(clientes.map((c) => [c.id, c.nombre]))
+  const telefonos = Object.fromEntries(clientes.map((c) => [c.id, c.telefono]))
 
   // El cajero ve los pedidos de su turno abierto; el administrador, los de todos los turnos abiertos.
   const turnosAbiertos = new Set(turnos.turnos.filter((t) => t.abierto).map((t) => t.id))
@@ -77,6 +79,13 @@ export function PedidosPage() {
         </details>
       )}
 
+      {miTurno && (
+        <details className={cocinaStyles.agotados}>
+          <summary>Gastos y retiros de caja</summary>
+          <PanelGastos turnoId={miTurno.id} esAdmin={esAdmin} />
+        </details>
+      )}
+
       {error && (
         <div className={styles.errorRow}>
           <p className={styles.error} role="alert">
@@ -89,7 +98,7 @@ export function PedidosPage() {
       )}
       {cargando && <p className={styles.muted}>Cargando pedidos…</p>}
       {!cargando && (miTurno !== null || esAdmin) && (
-        <TableroPedidos pedidos={delAlcance} nombres={nombres} onCambio={alCambiar} />
+        <TableroPedidos pedidos={delAlcance} nombres={nombres} telefonos={telefonos} onCambio={alCambiar} />
       )}
     </section>
   )

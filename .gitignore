@@ -34,3 +34,7 @@ test-results/
 .DS_Store
 Thumbs.db
 *.swp
+
+# Bases de datos locales
+*.db
+*.sqlite3

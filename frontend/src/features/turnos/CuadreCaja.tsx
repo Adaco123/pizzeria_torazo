@@ -34,6 +34,12 @@ export function CuadreCaja({ resumen }: { resumen: ResumenTurno }) {
           <dt>+ Efectivo cobrado</dt>
           <dd>{formatearMonto(resumen.efectivo_cobrado)}</dd>
         </div>
+        {resumen.gastos_caja > 0 && (
+          <div>
+            <dt>− Gastos y retiros</dt>
+            <dd>{formatearMonto(resumen.gastos_caja)}</dd>
+          </div>
+        )}
         <div className={styles.statTotal}>
           <dt>Efectivo esperado</dt>
           <dd>{formatearMonto(resumen.efectivo_esperado)}</dd>

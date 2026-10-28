@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 
 from app.pagos.models import Pago
 from app.pedidos.models import Pedido
+from app.gastos.models import CATEGORIAS_GASTO, GastoCaja
 from app.pedidos.servicio import estado_de
 
 DESFASE_BOLIVIA = timedelta(hours=4)
@@ -151,6 +152,20 @@ def reporte_de_ventas(inicio, fin):
         })
     cancelaciones.sort(key=lambda c: c['fecha'], reverse=True)
 
+    gastos_cat = {}
+    gastos_total = 0.0
+    gastos = (GastoCaja.query.filter(GastoCaja.fecha >= desde_utc, GastoCaja.fecha < hasta_utc,
+                                     GastoCaja.anulado == False).all())  # noqa: E712
+    for g in gastos:
+        if not _en_rango(g.fecha, inicio, fin):
+            continue
+        fila = gastos_cat.setdefault(g.categoria, {
+            'categoria': g.categoria, 'nombre': CATEGORIAS_GASTO.get(g.categoria, g.categoria),
+            'cantidad': 0, 'total': 0.0})
+        fila['cantidad'] += 1
+        fila['total'] += g.monto
+        gastos_total += g.monto
+
     def redondeado(items, *claves):
         return [{**i, **{k: round(i[k], 2) for k in claves}} for i in items]
 
@@ -166,6 +181,8 @@ def reporte_de_ventas(inicio, fin):
         'por_producto': redondeado(
             sorted(por_producto.values(), key=lambda p: -p['total'])[:TOP_PRODUCTOS], 'cantidad', 'total'),
         'cancelaciones': cancelaciones,
+        'gastos': {'total': round(gastos_total, 2),
+                   'por_categoria': redondeado(sorted(gastos_cat.values(), key=lambda f: -f['total']), 'total')},
         'envios': {'pedidos': envios_pedidos, 'total': round(envios_total, 2)},
         'descuentos': {'pedidos': descuentos_pedidos, 'total': round(descuentos_total, 2)},
         'por_repartidor': redondeado(sorted(por_repartidor.values(), key=lambda r: -r['entregas']), 'envios'),

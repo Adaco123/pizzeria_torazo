@@ -639,15 +639,18 @@ def envios_y_descuentos(pedidos):
 
 def cuadre_de_caja(turno, pagos_por_metodo):
     """Efectivo que deberia haber en caja al cerrar: monto inicial + efectivo cobrado
-    (neto de devoluciones). El QR y otros metodos no pasan por la caja fisica."""
+    (neto de devoluciones) - lo que salio de la caja en gastos y retiros. El QR y otros
+    metodos no pasan por la caja fisica."""
     efectivo = sum(
         info['total'] for nombre, info in pagos_por_metodo.items()
         if nombre.strip().lower() == 'efectivo'
     )
-    esperado = round(turno.monto_inicio + efectivo, 2)
+    gastos = round(sum(g.monto for g in turno.gastos if not g.anulado), 2)
+    esperado = round(turno.monto_inicio + efectivo - gastos, 2)
     diferencia = None if turno.monto_cierre is None else round(turno.monto_cierre - esperado, 2)
     return {
         'efectivo_cobrado': round(efectivo, 2),
+        'gastos_caja': gastos,
         'efectivo_esperado': esperado,
         'diferencia': diferencia,
     }
