@@ -8,10 +8,12 @@ const ALIAS: Record<string, RolNombre> = {
   cajera: 'Cajero',
   pizzero: 'Pizzero',
   pizzera: 'Pizzero',
+  mesero: 'Mesero',
+  mesera: 'Mesero',
 }
 
 /**
- * Convierte el rol que manda el backend (texto libre de la base de datos) en uno de los tres
+ * Convierte el rol que manda el backend (texto libre de la base de datos) en uno de los
  * roles que conoce la interfaz. Devuelve null si no lo reconoce.
  */
 export function normalizarRol(valor: unknown): RolNombre | null {
@@ -26,7 +28,7 @@ export function normalizarRol(valor: unknown): RolNombre | null {
 
   if (rol === null) {
     console.warn(
-      `[auth] El rol «${valor}» no se reconoce. Roles válidos: Administrador, Cajero y Pizzero.`,
+      `[auth] El rol «${valor}» no se reconoce. Roles válidos: Administrador, Cajero, Pizzero y Mesero.`,
     )
   }
   return rol

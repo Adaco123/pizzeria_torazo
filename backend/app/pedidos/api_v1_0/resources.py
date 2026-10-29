@@ -9,12 +9,13 @@ from app.pedidos.models import (
     DetalleMitad, DetalleMitadExtra, TipoEntrega, EstadoPedido
 )
 from app.pedidos import servicio
+from app.mesas.models import CuentaMesa
 from app.pedidos.servicio import ReglaNegocio, manejar_reglas
 from app.productos.models import Producto, ProductoTamano
 from app.ingredientes.models import Ingrediente, IngredienteTamano
 from app.clientes.models import Cliente
 from app.turnos.models import Turno
-from app.users.models import Usuario, ROL_ADMINISTRADOR, ROL_CAJERO, ROL_PIZZERO
+from app.users.models import Usuario, ROL_ADMINISTRADOR, ROL_CAJERO, ROL_MESERO, ROL_PIZZERO
 from app.tamanos.models import Tamano
 from app.pedidos.api_v1_0.schemas import (
     PedidoSchema, DetallePedidoSchema, DetalleExtrasSchema,
@@ -73,8 +74,8 @@ def _obtener_pedido_editable(pedido_id):
     pedido = Pedido.query.get(pedido_id)
     if not pedido:
         raise ReglaNegocio('Pedido no encontrado', 404)
-    servicio.exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
-    servicio.exigir_acceso_pedido(pedido)
+    servicio.exigir_rol(ROL_CAJERO, ROL_MESERO, ROL_ADMINISTRADOR)
+    servicio.exigir_acceso_pedido(pedido)       # el mesero solo llega a rondas de mesas
     servicio.exigir_borrador(pedido)
     return pedido
 
@@ -88,7 +89,14 @@ class PedidoListResource(Resource):
             rol = servicio.rol_actual()
             query = Pedido.query
             if rol == ROL_CAJERO:
-                query = query.filter(Pedido.usuario_id == servicio.usuario_actual().id)
+                yo = servicio.usuario_actual().id
+                de_mis_mesas = Pedido.cuenta_id.in_(
+                    db.session.query(CuentaMesa.id).join(Turno, CuentaMesa.turno_id == Turno.id)
+                    .filter(Turno.usuario_id == yo))
+                query = query.filter(db.or_(Pedido.usuario_id == yo, de_mis_mesas))
+            elif rol == ROL_MESERO:
+                query = query.filter(Pedido.cuenta_id.in_(
+                    db.session.query(CuentaMesa.id).filter(CuentaMesa.estado == 'abierta')))
             elif rol == ROL_PIZZERO:
                 query = query.join(EstadoPedido, Pedido.estado_id == EstadoPedido.id) \
                              .filter(EstadoPedido.nombre != 'pendiente')

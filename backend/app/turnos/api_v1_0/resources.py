@@ -11,6 +11,7 @@ from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
 from app.gastos.servicio import a_json as gasto_json, resumen_de_gastos
+from app.mesas.servicio import cuentas_abiertas_del_turno
 from app.pedidos.servicio import (
     cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
 )
@@ -166,6 +167,11 @@ class TurnoCerrarResource(Resource):
         exigir_acceso_turno(turno)
         if not turno.abierto:
             return {"success": False, "message": "Turno ya está cerrado"}, 400
+
+        abiertas = cuentas_abiertas_del_turno(turno.id)
+        if abiertas:
+            return {"success": False,
+                    "message": f"Hay {abiertas} mesa(s) con la cuenta abierta: cóbralas antes de cerrar el turno"}, 409
 
         data = request.get_json() or {}
         monto_cierre = data.get("monto_cierre")

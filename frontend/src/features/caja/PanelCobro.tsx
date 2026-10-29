@@ -17,6 +17,9 @@ interface Props {
   /** `minutosEspera` solo viene si el cajero cambió la sugerencia. */
   onConfirmar: (pagos: PagoCobro[], minutosEspera?: number) => void
   onVolver: () => void
+  /** Cuenta de una mesa: la comida ya salió a cocina, no se promete hora. */
+  sinEspera?: boolean
+  textoVolver?: string
 }
 
 interface AtajosProps {
@@ -50,7 +53,16 @@ function AtajosDeRecibido({ total, recibido, onElegir }: AtajosProps) {
   )
 }
 
-export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolver }: Props) {
+export function PanelCobro({
+  total,
+  metodos,
+  ocupado,
+  tipo,
+  onConfirmar,
+  onVolver,
+  sinEspera = false,
+  textoVolver = 'Volver al pedido',
+}: Props) {
   const efectivo = metodos.find((m) => esEfectivo(m))
   const otros = metodos.filter((m) => !esEfectivo(m))
   const puedeDividir = efectivo !== undefined && otros.length > 0
@@ -93,7 +105,7 @@ export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolve
           No hay métodos de pago configurados.
         </p>
         <button className={base.secondary} type="button" onClick={onVolver}>
-          Volver al pedido
+          {textoVolver}
         </button>
       </section>
     )
@@ -206,6 +218,7 @@ export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolve
         </div>
       )}
 
+      {!sinEspera && (
       <div className={base.field}>
         <span>Se lo prometes en</span>
         <div className={base.chips} role="group" aria-label="Minutos de espera">
@@ -222,6 +235,7 @@ export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolve
           ))}
         </div>
       </div>
+      )}
 
       {resultado.ok && resultado.vuelto > 0 && (
         <p className={styles.vuelto}>
@@ -240,7 +254,7 @@ export function PanelCobro({ total, metodos, ocupado, tipo, onConfirmar, onVolve
           {ocupado ? 'Cobrando…' : `Confirmar cobro ${formatearMonto(total)}`}
         </button>
         <button className={base.secondary} type="button" disabled={ocupado} onClick={onVolver}>
-          Volver al pedido
+          {textoVolver}
         </button>
       </div>
     </section>

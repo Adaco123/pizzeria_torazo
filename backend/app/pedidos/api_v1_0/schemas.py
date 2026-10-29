@@ -134,6 +134,8 @@ class PedidoSchema(ma.Schema):
     descuento_valor   = fields.Float(dump_only=True)
     descuento_motivo  = fields.Str(dump_only=True, allow_none=True)
     repartidor_id     = fields.Int(dump_only=True, allow_none=True)
+    cuenta_id         = fields.Int(dump_only=True, allow_none=True)
+    mesa_numero       = fields.Method("get_mesa_numero", dump_only=True)
     repartidor        = fields.Method("get_repartidor", dump_only=True)
     cliente_id        = _id_positivo()
     usuario_id        = _id_positivo()
@@ -146,6 +148,9 @@ class PedidoSchema(ma.Schema):
     def get_estado(self, obj):
         return {"id": obj.estado.id, "nombre": obj.estado.nombre} \
                if obj.estado else None
+
+    def get_mesa_numero(self, obj):
+        return obj.cuenta.mesa.numero if obj.cuenta_id and obj.cuenta else None
 
     def get_repartidor(self, obj):
         r = obj.repartidor

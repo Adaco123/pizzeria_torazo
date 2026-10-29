@@ -28,6 +28,7 @@ from flask_cors import CORS
 from app.ia_telefono.webhook import ia_telefono_bp
 from app.repartidores.api_v1_0.resources import repartidores_v1_0_bp
 from app.gastos.api_v1_0.resources import gastos_v1_0_bp
+from app.mesas.api_v1_0.resources import mesas_v1_0_bp
 jwt=JWTManager()
 
 def create_app(settings_module):
@@ -91,6 +92,7 @@ def create_app(settings_module):
     app.register_blueprint(ia_telefono_bp)
     app.register_blueprint(repartidores_v1_0_bp)
     app.register_blueprint(gastos_v1_0_bp)
+    app.register_blueprint(mesas_v1_0_bp)
     register_error_handlers(app)
 
     return app

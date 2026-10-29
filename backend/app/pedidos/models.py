@@ -1,6 +1,7 @@
 from app.db import db, BaseModelMixin
 from datetime import datetime
 from app.repartidores.models import Repartidor  # noqa: F401  (relación de Pedido)
+from app.mesas.models import CuentaMesa  # noqa: F401  (relación de Pedido)
 
 
 class TipoEntrega(db.Model, BaseModelMixin):
@@ -64,6 +65,8 @@ class Pedido(db.Model, BaseModelMixin):
     descuento            = db.Column(db.Float, nullable=False, default=0, server_default='0')
     descuento_motivo     = db.Column(db.String(200), nullable=True)
     descuento_usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
+    # Ronda de una mesa: el pedido va a cocina sin pagar y se cobra junto con la cuenta de la mesa.
+    cuenta_id            = db.Column(db.Integer, db.ForeignKey("cuentas_mesa.id"), nullable=True)
 
     cliente      = db.relationship("Cliente",      back_populates="pedidos")
     usuario      = db.relationship("Usuario",      back_populates="pedidos",
@@ -79,6 +82,7 @@ class Pedido(db.Model, BaseModelMixin):
     pagos        = db.relationship("Pago",    back_populates="pedido")
     repartidor   = db.relationship("Repartidor")
     descuento_usuario = db.relationship("Usuario", foreign_keys=[descuento_usuario_id])
+    cuenta       = db.relationship("CuentaMesa", back_populates="pedidos")
 
     def __init__(self, tipo_entrega_id, usuario_id, turno_id,
                  cliente_id=1, direccion_entrega=None, estado_id=1):

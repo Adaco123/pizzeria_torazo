@@ -36,7 +36,10 @@ export function TarjetaPedido({ pedido, estado, ahora, nombresCombos, ocupado, o
   return (
     <article className={urgente ? `${styles.tarjeta} ${styles.tarjetaUrgente}` : styles.tarjeta}>
       <header className={styles.tarjetaCabecera}>
-        <h3 className={styles.numero}>N° {pedido.numero_turno}</h3>
+        <h3 className={styles.numero}>
+          N° {pedido.numero_turno}
+          {pedido.mesa_numero !== null && ` · Mesa ${pedido.mesa_numero}`}
+        </h3>
         <span className={styles.tipo}>{pedido.tipo_entrega?.nombre ?? '—'}</span>
         <span className={urgente ? styles.tiempoUrgente : styles.tiempo}>{textoTiempo(minutos)}</span>
       </header>

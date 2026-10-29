@@ -17,7 +17,7 @@ from app.pagos.models import MetodoPago, Pago
 from app.pedidos.models import EstadoPedido, Pedido, PedidoHistorialEstado
 from app.productos.models import Producto
 from app.turnos.models import Turno
-from app.users.models import ROL_ADMINISTRADOR, ROL_CAJERO, ROL_PIZZERO
+from app.users.models import ROL_ADMINISTRADOR, ROL_CAJERO, ROL_MESERO, ROL_PIZZERO
 
 TOLERANCIA = 0.005
 
@@ -29,7 +29,7 @@ ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion",
 TRANSICIONES = {
     ("confirmado", "en_preparacion"): {ROL_PIZZERO, ROL_CAJERO, ROL_ADMINISTRADOR},
     ("en_preparacion", "listo"):      {ROL_PIZZERO, ROL_CAJERO, ROL_ADMINISTRADOR},
-    ("listo", "entregado"):           {ROL_CAJERO, ROL_ADMINISTRADOR},
+    ("listo", "entregado"):           {ROL_CAJERO, ROL_MESERO, ROL_ADMINISTRADOR},
 }
 
 ESTADOS_CANCELABLES = {"pendiente", "confirmado", "en_preparacion", "listo"}
@@ -96,11 +96,16 @@ def exigir_rol(*roles):
 
 
 def exigir_acceso_pedido(pedido):
-    """El admin ve todo; el cajero solo sus pedidos; el pizzero solo lo que ya esta en cocina."""
+    """El admin ve todo; el cajero solo sus pedidos (y las rondas de las mesas de su turno); el
+    mesero solo las rondas de mesas; el pizzero solo lo que ya esta en cocina."""
     rol = rol_actual()
     if rol == ROL_ADMINISTRADOR:
         return
     if rol == ROL_CAJERO and pedido.usuario_id == usuario_actual().id:
+        return
+    if rol == ROL_CAJERO and pedido.cuenta_id and pedido.cuenta.turno.usuario_id == usuario_actual().id:
+        return
+    if rol == ROL_MESERO and pedido.cuenta_id:
         return
     if rol == ROL_PIZZERO and estado_de(pedido) != 'pendiente':
         return
@@ -442,6 +447,8 @@ def cobrar_pedido(pedido, pagos_data, minutos_espera=None):
     """
     exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
     exigir_acceso_pedido(pedido)
+    if pedido.cuenta_id:
+        raise ReglaNegocio('Este pedido es de una mesa: se cobra junto con la cuenta de la mesa', 409)
     if estado_de(pedido) != 'pendiente':
         raise ReglaNegocio('El pedido ya fue cobrado o cerrado', 409)
     exigir_turno_abierto(pedido.turno)

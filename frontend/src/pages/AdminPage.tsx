@@ -37,6 +37,16 @@ export function AdminPage() {
       </section>
 
       <section className={styles.card}>
+        <h2>Mesas</h2>
+        <p className={styles.muted}>
+          Las mesas del local. Los meseros las abren y toman los pedidos; la cuenta se cobra una sola vez en caja.
+        </p>
+        <div>
+          <Link to="/admin/mesas">Administrar mesas →</Link>
+        </div>
+      </section>
+
+      <section className={styles.card}>
         <h2>Reportes</h2>
         <p className={styles.muted}>
           Ventas por día, por método de pago y por producto, los mejores clientes, los envíos y las cancelaciones con devolución.

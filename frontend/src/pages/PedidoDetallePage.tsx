@@ -50,7 +50,7 @@ function PedidoDetalle({ id }: { id: number }) {
   }
 
   // El cajero solo puede abrir sus propios pedidos.
-  if (!esAdmin && pedido.usuario_id !== sesion?.id) {
+  if (!esAdmin && pedido.usuario_id !== sesion?.id && pedido.cuenta_id === null) {
     return (
       <section className={styles.page}>
         {volver}

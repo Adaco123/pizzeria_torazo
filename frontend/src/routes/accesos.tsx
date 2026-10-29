@@ -2,6 +2,9 @@ import type { ComponentType } from 'react'
 import type { RolNombre } from '../api.ts'
 import { AdminPage } from '../pages/AdminPage.tsx'
 import { CatalogoPage } from '../pages/CatalogoPage.tsx'
+import { CuentaMesaPage } from '../pages/CuentaMesaPage.tsx'
+import { MesasAdminPage } from '../pages/MesasAdminPage.tsx'
+import { MesasPage } from '../pages/MesasPage.tsx'
 import { CocinaPage } from '../pages/CocinaPage.tsx'
 import { PedidoDetallePage } from '../pages/PedidoDetallePage.tsx'
 import { CuentaPage } from '../pages/CuentaPage.tsx'
@@ -29,6 +32,13 @@ export const ACCESOS: Acceso[] = [
     Page: PedidosPage,
     hijas: [{ path: '/pedidos/:id', Page: PedidoDetallePage }],
   },
+  {
+    path: '/mesas',
+    label: 'Mesas',
+    roles: ['Administrador', 'Cajero', 'Mesero'],
+    Page: MesasPage,
+    hijas: [{ path: '/mesas/:id', Page: CuentaMesaPage }],
+  },
   { path: '/turnos', label: 'Turnos', roles: ['Administrador', 'Cajero'], Page: TurnosPage },
   { path: '/cocina', label: 'Cocina', roles: ['Administrador', 'Pizzero'], Page: CocinaPage },
   {
@@ -40,17 +50,19 @@ export const ACCESOS: Acceso[] = [
       { path: '/admin/catalogo', Page: CatalogoPage },
       { path: '/admin/usuarios', Page: UsuariosPage },
       { path: '/admin/repartidores', Page: RepartidoresPage },
+      { path: '/admin/mesas', Page: MesasAdminPage },
       { path: '/admin/reportes', Page: ReportesPage },
     ],
   },
   // Cada usuario cambia su propia contraseña, sea cual sea su rol.
-  { path: '/cuenta', label: 'Mi cuenta', roles: ['Administrador', 'Cajero', 'Pizzero'], Page: CuentaPage },
+  { path: '/cuenta', label: 'Mi cuenta', roles: ['Administrador', 'Cajero', 'Pizzero', 'Mesero'], Page: CuentaPage },
 ]
 
 const INICIO: Record<RolNombre, string> = {
   Administrador: '/admin',
   Cajero: '/pedidos',
   Pizzero: '/cocina',
+  Mesero: '/mesas',
 }
 
 /** Pantalla a la que entra cada rol después de iniciar sesión. */

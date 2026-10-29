@@ -149,7 +149,10 @@ export function TableroPedidos({ pedidos, nombres, telefonos = {}, onCambio }: P
                     className={id === 'listo' ? `${styles.tarjeta} ${styles.tarjetaListo}` : styles.tarjeta}
                   >
                     <header className={styles.tarjetaCabecera}>
-                      <span className={styles.ficha}>N° {pedido.numero_turno ?? '—'}</span>
+                      <span className={styles.ficha}>
+                        N° {pedido.numero_turno ?? '—'}
+                        {pedido.mesa_numero !== null && ` · Mesa ${pedido.mesa_numero}`}
+                      </span>
                       <span className={styles.tipo}>{pedido.tipo_entrega?.nombre ?? '—'}</span>
                     </header>
                     <p className={styles.cliente}>{nombres[pedido.cliente_id] ?? `Cliente #${pedido.cliente_id}`}</p>

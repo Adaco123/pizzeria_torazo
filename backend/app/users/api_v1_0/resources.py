@@ -20,8 +20,8 @@ cambiar_contrasena_schema = CambiarContrasenaSchema()
 resetear_contrasena_schema = ResetearContrasenaSchema()
 api = Api(usuarios_v1_0_bp)
 
-# Roles base (el orden fija el id autoincremental: Administrador=1, Cajero=2, Pizzero=3)
-ROLES_POR_DEFECTO = [ROL_ADMINISTRADOR, "Cajero", "Pizzero"]
+# Roles base (el orden fija el id autoincremental: Administrador=1, Cajero=2, Pizzero=3, Mesero=4)
+ROLES_POR_DEFECTO = [ROL_ADMINISTRADOR, "Cajero", "Pizzero", "Mesero"]
 
 
 def _asegurar_roles_por_defecto():

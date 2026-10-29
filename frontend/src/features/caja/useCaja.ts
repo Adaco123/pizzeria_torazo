@@ -37,7 +37,7 @@ async function cargarCaja(usuarioId: number, turnoId: number): Promise<EstadoCaj
 
   // Se retoma el borrador que ya había (por ejemplo tras recargar la página); si no hay, se abre uno.
   const borradorExistente = pedidos
-    .filter((p) => p.usuario_id === usuarioId && estadoDe(p) === 'pendiente')
+    .filter((p) => p.usuario_id === usuarioId && p.cuenta_id === null && estadoDe(p) === 'pendiente')
     .toSorted((a, b) => b.id - a.id)[0]
   const borrador =
     borradorExistente ??

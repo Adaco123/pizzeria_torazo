@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 ROL_ADMINISTRADOR = "Administrador"
 ROL_CAJERO = "Cajero"
 ROL_PIZZERO = "Pizzero"
+ROL_MESERO = "Mesero"
 
 class Usuario(db.Model, BaseModelMixin):
     __tablename__ = "usuarios"
