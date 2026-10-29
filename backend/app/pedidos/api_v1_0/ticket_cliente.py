@@ -12,13 +12,14 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from app.combos.models import Combo
 from app.factura.models import Factura
 from app.pedidos.api_v1_0.ticket_cocina import (
-    ANCHO_PAGINA, ANCHO_UTIL, MARGEN_H, _estilo, _estilos, _linea_fina, _linea_gruesa, _linea_punteada,
+    _estilo, _estilos, _linea_fina, _linea_gruesa, _linea_punteada,
 )
 from app.pedidos.models import Pedido
 from app.pedidos.servicio import (
     ROL_ADMINISTRADOR, ROL_CAJERO, ReglaNegocio, estado_de, exigir_acceso_pedido, exigir_rol,
 )
 from app.productos.models import Producto
+from app.util.pdf_ticket import ANCHO_UTIL, construir_pdf_ajustado
 
 ticket_cliente_bp = Blueprint("ticket_cliente_bp", __name__)
 
@@ -49,11 +50,6 @@ def _nombre_detalle(detalle):
 
 
 def _generar_pdf(pedido: Pedido) -> bytes:
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer, pagesize=(ANCHO_PAGINA, 999 * mm),
-        leftMargin=MARGEN_H, rightMargin=MARGEN_H, topMargin=3 * mm, bottomMargin=3 * mm,
-    )
     est = _estilos()
     texto = _estilo("tk_texto", size=8)
     detalle_txt = _estilo("tk_detalle", size=7, indent=3)
@@ -125,9 +121,7 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     story.append(_linea_gruesa())
     story.append(Paragraph("*** Gracias ***", est["pie"]))
     story.append(Spacer(1, 3 * mm))
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    return construir_pdf_ajustado(story)
 
 
 @ticket_cliente_bp.route("/api/v1.0/pedidos/<int:pedido_id>/ticket-cliente", methods=["GET"])

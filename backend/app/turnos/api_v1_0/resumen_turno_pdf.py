@@ -1,4 +1,3 @@
-
 from app.movimientos.models import MovimientoStock
 from flask import Blueprint, make_response
 from flask_jwt_extended import jwt_required
@@ -22,6 +21,7 @@ from app.pedidos.servicio import (
 )
 from app.pagos.models import Pago
 from app.productos.models import Producto
+from app.util.pdf_ticket import construir_pdf_ajustado
 
 resumen_turno_pdf_bp = Blueprint("resumen_turno_pdf_bp", __name__)
 
@@ -424,16 +424,6 @@ def _generar_pdf(turno: Turno) -> bytes:
     datos = _recolectar_datos(turno)
     est   = _estilos()
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(ANCHO_PAGINA, 999 * mm),
-        leftMargin=MARGEN_H,
-        rightMargin=MARGEN_H,
-        topMargin=3 * mm,
-        bottomMargin=3 * mm,
-    )
-
     story = []
 
     story.append(Paragraph("PIZZERIA EL TORAZO", est["empresa"]))
@@ -542,9 +532,9 @@ def _generar_pdf(turno: Turno) -> bytes:
     ))
     story.append(Paragraph("*** Gracias ***", est["pie"]))
     story.append(Spacer(1, 3 * mm))
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    return construir_pdf_ajustado(story)
+
+
 @resumen_turno_pdf_bp.route(
     "/api/v1.0/turnos/<int:turno_id>/resumen-pdf",
     methods=["GET"]

@@ -15,12 +15,10 @@ from app.db import db
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad, DetalleMitadExtra
 from app.productos.models import Producto
 from app.combos.models import Combo, ComboProducto
+from app.util.pdf_ticket import ANCHO_UTIL, construir_pdf_ajustado
 
 ticket_cocina_bp = Blueprint("ticket_cocina_bp", __name__)
 
-ANCHO_PAGINA = 58 * mm
-MARGEN_H     = 2 * mm
-ANCHO_UTIL   = ANCHO_PAGINA - 2 * MARGEN_H
 
 NEGRO = colors.black
 
@@ -150,16 +148,6 @@ def _bloque_combo(idx, detalle, est, story):
 
 
 def _generar_pdf(pedido: Pedido) -> bytes:
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(ANCHO_PAGINA, 999 * mm),
-        leftMargin=MARGEN_H,
-        rightMargin=MARGEN_H,
-        topMargin=3 * mm,
-        bottomMargin=3 * mm,
-    )
-
     est   = _estilos()
     story = []
 
@@ -191,9 +179,7 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     story.append(Paragraph(datetime.now().strftime("%d/%m/%Y %H:%M:%S"), est["pie"]))
     story.append(Spacer(1, 3 * mm))
 
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    return construir_pdf_ajustado(story)
 
 
 @ticket_cocina_bp.route(
