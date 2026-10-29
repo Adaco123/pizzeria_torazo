@@ -1,19 +1,24 @@
 from flask import Blueprint, request
+from flask_jwt_extended import jwt_required
 from flask_restful import Api, Resource
+from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from app.db import db
 from app.pedidos.models import (
     Pedido, DetallePedido, DetalleExtra,
     DetalleMitad, DetalleMitadExtra, TipoEntrega, EstadoPedido
 )
+from app.pedidos import servicio
+from app.pedidos.servicio import ReglaNegocio, manejar_reglas
 from app.productos.models import Producto, ProductoTamano
 from app.ingredientes.models import Ingrediente, IngredienteTamano
 from app.clientes.models import Cliente
-from app.users.models import Usuario
+from app.turnos.models import Turno
+from app.users.models import Usuario, ROL_ADMINISTRADOR, ROL_CAJERO, ROL_PIZZERO
 from app.tamanos.models import Tamano
 from app.pedidos.api_v1_0.schemas import (
     PedidoSchema, DetallePedidoSchema, DetalleExtrasSchema,
-    DetalleMitadSchema
+    DetalleMitadSchema, CobrarSchema, HoraPrometidaSchema
 )
 from app.combos.models import Combo, ComboProducto
 
@@ -27,6 +32,8 @@ detalles_schema = DetallePedidoSchema(many=True)
 extra_schema    = DetalleExtrasSchema()
 extras_schema   = DetalleExtrasSchema(many=True)
 mitad_schema    = DetalleMitadSchema()
+cobrar_schema   = CobrarSchema()
+hora_prometida_schema = HoraPrometidaSchema()
 
 
 # Tipos de entrega base (el orden fija el id autoincremental: Local=1, Domicilio=2).
@@ -47,41 +54,50 @@ def _asegurar_tipos_entrega_por_defecto():
 # Estados de pedido base. El orden fija el id autoincremental: pendiente TIENE que ser 1
 # (el pedido nace con estado_id=1). Los nombres los usan el PATCH de estado y los
 # resumenes de turno (que excluyen 'cancelado').
-ESTADOS_PEDIDO_POR_DEFECTO = ["pendiente", "confirmado", "en_preparacion",
-                              "listo", "entregado", "cancelado"]
+ESTADOS_PEDIDO_POR_DEFECTO = servicio.ESTADOS_PEDIDO
 
 
 def _asegurar_estados_pedido_por_defecto():
-    hay_nuevos = False
-    for nombre in ESTADOS_PEDIDO_POR_DEFECTO:
-        if not EstadoPedido.query.filter_by(nombre=nombre).first():
-            db.session.add(EstadoPedido(nombre=nombre))
-            hay_nuevos = True
-    if hay_nuevos:
-        db.session.commit()
+    servicio.asegurar_estados_por_defecto()
 
 
 def actualizar_total_pedido(pedido_id):
     pedido = Pedido.query.get(pedido_id)
     if not pedido:
         return
-    total = 0
-    for detalle in pedido.detalles:
-        if detalle.is_mitad:
-            detalle.calcular_subtotal_mitad()
-        else:
-            detalle.calcular_subtotal()
-        total += detalle.subtotal
-    pedido.total = total
-    db.session.flush()
+    servicio.recalcular_total(pedido)
 
+
+def _obtener_pedido_editable(pedido_id):
+    """Pedido que el usuario puede modificar: existe, es suyo y sigue siendo borrador."""
+    pedido = Pedido.query.get(pedido_id)
+    if not pedido:
+        raise ReglaNegocio('Pedido no encontrado', 404)
+    servicio.exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+    servicio.exigir_acceso_pedido(pedido)
+    servicio.exigir_borrador(pedido)
+    return pedido
 
 
 class PedidoListResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def get(self):
         try:
-            pedidos = Pedido.query.all()
+            rol = servicio.rol_actual()
+            query = Pedido.query
+            if rol == ROL_CAJERO:
+                query = query.filter(Pedido.usuario_id == servicio.usuario_actual().id)
+            elif rol == ROL_PIZZERO:
+                query = query.join(EstadoPedido, Pedido.estado_id == EstadoPedido.id) \
+                             .filter(EstadoPedido.nombre != 'pendiente')
+
+            turno_id = request.args.get('turno_id', type=int)
+            if turno_id:
+                query = query.filter(Pedido.turno_id == turno_id)
+
+            pedidos = query.all()
             return {
                 'success': True,
                 'data':    pedidos_schema.dump(pedidos),
@@ -90,38 +106,63 @@ class PedidoListResource(Resource):
         except SQLAlchemyError as e:
             return {'success': False, 'error': str(e)}, 500
 
+    @jwt_required()
+    @manejar_reglas
     def post(self):
         _asegurar_tipos_entrega_por_defecto()
         _asegurar_estados_pedido_por_defecto()
-        data = request.get_json()
+        data = request.get_json() or {}
 
-        campos_requeridos = ['cliente_id', 'usuario_id', 'tipo_entrega_id', 'turno_id']
+        servicio.exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
+        actual = servicio.usuario_actual()
+        es_admin = servicio.es_admin()
+
+        campos_requeridos = ['cliente_id', 'tipo_entrega_id', 'turno_id']
         faltantes = [c for c in campos_requeridos if data.get(c) is None]
         if faltantes:
             return {'success': False, 'error': f'Faltan campos: {faltantes}'}, 400
+
+        # Un cajero solo registra pedidos a su nombre; el admin puede hacerlo por otro usuario.
+        usuario_id = data.get('usuario_id') if es_admin else actual.id
+        if usuario_id is None:
+            usuario_id = actual.id
+        if not es_admin and data.get('usuario_id') not in (None, actual.id):
+            return {'success': False, 'error': 'Solo puedes crear pedidos a tu nombre'}, 403
 
         cliente = Cliente.query.get(data['cliente_id'])
         if not cliente:
             return {'success': False, 'error': 'Cliente no existe'}, 404
 
-        usuario = Usuario.query.get(data['usuario_id'])
+        usuario = Usuario.query.get(usuario_id)
         if not usuario:
             return {'success': False, 'error': 'Usuario no existe'}, 404
 
-        from app.pedidos.models import TipoEntrega
         tipo_entrega = TipoEntrega.query.get(data['tipo_entrega_id'])
         if not tipo_entrega:
             return {'success': False, 'error': 'Tipo de entrega no existe'}, 404
 
+        turno = Turno.query.get(data['turno_id'])
+        if not turno:
+            return {'success': False, 'error': 'Turno no existe'}, 404
+        servicio.exigir_turno_abierto(turno)
+        if not es_admin and turno.usuario_id != actual.id:
+            return {'success': False, 'error': 'Ese turno es de otro usuario'}, 403
+
+        direccion = (data.get('direccion_entrega') or '').strip() or None
+        if tipo_entrega.nombre == 'Domicilio' and not direccion:
+            return {'success': False, 'error': 'Escribe la dirección de entrega'}, 400
+
         try:
             pedido = Pedido(
                 cliente_id        = data['cliente_id'],
-                usuario_id        = data['usuario_id'],
+                usuario_id        = usuario_id,
                 turno_id          = data['turno_id'],
                 tipo_entrega_id   = data['tipo_entrega_id'],
-                direccion_entrega = data.get('direccion_entrega'),
+                direccion_entrega = direccion,
             )
             db.session.add(pedido)
+            db.session.flush()
+            servicio.aplicar_envio(pedido, data)
             db.session.commit()
             return {
                 'success': True,
@@ -135,29 +176,53 @@ class PedidoListResource(Resource):
 
 class PedidoDetailResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def get(self, pedido_id):
         try:
             pedido = Pedido.query.get(pedido_id)
             if not pedido:
                 return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            servicio.exigir_acceso_pedido(pedido)
             return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
         except SQLAlchemyError as e:
             return {'success': False, 'error': str(e)}, 500
 
+    @jwt_required()
+    @manejar_reglas
     def put(self, pedido_id):
+        """El cliente, la entrega y la dirección, y solo mientras el pedido es borrador.
+        El estado cambia únicamente por /cobrar y /estado."""
         try:
-            pedido = Pedido.query.get(pedido_id)
-            if not pedido:
-                return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            pedido = _obtener_pedido_editable(pedido_id)
 
-            data = request.get_json()
+            data = request.get_json() or {}
             if 'estado_id' in data:
-                pedido.estado_id = data['estado_id']
+                return {'success': False,
+                        'error': 'El estado no se cambia aquí: usa /cobrar o /estado'}, 400
+
+            if 'cliente_id' in data:
+                if not Cliente.query.get(data['cliente_id']):
+                    return {'success': False, 'error': 'Cliente no existe'}, 404
+                pedido.cliente_id = data['cliente_id']
+
             if 'tipo_entrega_id' in data:
+                if not TipoEntrega.query.get(data['tipo_entrega_id']):
+                    return {'success': False, 'error': 'Tipo de entrega no existe'}, 404
                 pedido.tipo_entrega_id = data['tipo_entrega_id']
             if 'direccion_entrega' in data:
-                pedido.direccion_entrega = data['direccion_entrega']
+                pedido.direccion_entrega = (data['direccion_entrega'] or '').strip() or None
 
+            db.session.flush()
+            db.session.refresh(pedido)
+            if pedido.tipo_entrega and pedido.tipo_entrega.nombre == 'Domicilio' \
+                    and not pedido.direccion_entrega:
+                db.session.rollback()
+                return {'success': False, 'error': 'Escribe la dirección de entrega'}, 400
+
+            # Al cambiar a Local el envío se borra solo; si el cajero lo manda explícito, se valida.
+            servicio.aplicar_envio(pedido, {k: v for k, v in data.items()
+                                            if k in ('costo_envio', 'repartidor_id')})
             db.session.commit()
             return {
                 'success': True,
@@ -168,11 +233,15 @@ class PedidoDetailResource(Resource):
             db.session.rollback()
             return {'success': False, 'error': str(e)}, 500
 
+    @jwt_required()
+    @manejar_reglas
     def delete(self, pedido_id):
+        """Descarta un borrador. Un pedido ya cobrado no se borra: se cancela."""
         try:
-            pedido = Pedido.query.get(pedido_id)
-            if not pedido:
-                return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            pedido = _obtener_pedido_editable(pedido_id)
+            if pedido.pagos:
+                return {'success': False,
+                        'error': 'El pedido tiene pagos: cancélalo en lugar de borrarlo'}, 409
             db.session.delete(pedido)
             db.session.commit()
             return {'success': True, 'message': 'Pedido eliminado'}, 200
@@ -181,8 +250,101 @@ class PedidoDetailResource(Resource):
             return {'success': False, 'error': str(e)}, 500
 
 
+class PedidoCobrarResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def post(self, pedido_id):
+        """
+        Cobra el pedido y lo manda a cocina en una sola transacción.
+
+        JSON esperado:
+        {
+            "pagos": [
+                { "metodo_id": 1, "monto": 100.0, "monto_recibido": 200.0 },
+                { "metodo_id": 2, "monto": 91.0 }
+            ]
+        }
+        La suma de los montos tiene que ser igual al total del pedido.
+        """
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+
+        try:
+            datos = cobrar_schema.load(request.get_json() or {})
+        except ValidationError as err:
+            return {'success': False, 'error': servicio.primer_mensaje(err.messages)}, 400
+
+        try:
+            vuelto = servicio.cobrar_pedido(pedido, datos['pagos'], datos.get('minutos_espera'))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return {'success': False, 'error': str(e)}, 500
+
+        return {
+            'success': True,
+            'message': f'Pedido cobrado. Ficha {pedido.numero_turno}',
+            'vuelto':  vuelto,
+            'data':    pedido_schema.dump(pedido)
+        }, 200
+
+
+class PedidoHoraPrometidaResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def patch(self, pedido_id):
+        """
+        Cambia la hora prometida de un pedido ya cobrado y todavía sin entregar.
+
+        JSON esperado: { "minutos_espera": 15 }   (minutos contados desde ahora)
+        """
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+
+        try:
+            datos = hora_prometida_schema.load(request.get_json() or {})
+        except ValidationError as err:
+            return {'success': False, 'error': servicio.primer_mensaje(err.messages)}, 400
+
+        servicio.ajustar_hora_prometida(pedido, datos['minutos_espera'])
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
+
+
+class PedidoDescuentoResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def put(self, pedido_id):
+        """Pone el descuento de un borrador.
+
+        JSON esperado: { "tipo": "porcentaje" | "monto", "valor": 10, "motivo": "cliente frecuente" }
+        """
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+        data = request.get_json() or {}
+        servicio.aplicar_descuento(pedido, data.get('tipo'), data.get('valor'), data.get('motivo'))
+        db.session.commit()
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
+
+    @jwt_required()
+    @manejar_reglas
+    def delete(self, pedido_id):
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return {'success': False, 'error': 'Pedido no encontrado'}, 404
+        servicio.quitar_descuento(pedido)
+        db.session.commit()
+        return {'success': True, 'data': pedido_schema.dump(pedido)}, 200
+
+
 class DetalleMitadResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def post(self, pedido_id):
         """
         JSON esperado:
@@ -197,11 +359,9 @@ class DetalleMitadResource(Resource):
         }
         """
         try:
-            pedido = Pedido.query.get(pedido_id)
-            if not pedido:
-                return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            _obtener_pedido_editable(pedido_id)
 
-            data = request.get_json()
+            data = request.get_json() or {}
 
             if not data.get('tamano_id'):
                 return {'success': False, 'error': 'tamano_id es requerido'}, 400
@@ -218,8 +378,16 @@ class DetalleMitadResource(Resource):
                     return {'success': False, 'error': 'Cada mitad necesita producto_id y mitad (1 o 2)'}, 400
                 if m['mitad'] not in (1, 2):
                     return {'success': False, 'error': 'mitad debe ser 1 o 2'}, 400
-                if not Producto.query.get(m['producto_id']):
+                producto = Producto.query.get(m['producto_id'])
+                if not producto:
                     return {'success': False, 'error': f'Producto {m["producto_id"]} no existe'}, 404
+                servicio.exigir_disponible(producto)
+                if not servicio.es_pizza(producto):
+                    return {
+                        'success': False,
+                        'error': f'"{producto.nombre}" no es una pizza: '
+                                 'solo las pizzas se pueden pedir mitad y mitad'
+                    }, 400
 
             precios = []
             for m in mitades_data:
@@ -244,7 +412,7 @@ class DetalleMitadResource(Resource):
                     ).first()
                     extras_total += (it.precio_extra if it else 0.0) * int(extra.get('cantidad', 1))
 
-            precio_unitario = precio_base + extras_total
+            precio_unitario = precio_base   # los extras se suman por unidad al recalcular
 
             detalle = DetallePedido(
                 pedido_id       = pedido_id,
@@ -293,11 +461,11 @@ class DetalleMitadResource(Resource):
 
 class DetalleExtrasResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def post(self, pedido_id, detalle_id):
         try:
-            pedido = Pedido.query.get(pedido_id)
-            if not pedido:
-                return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            _obtener_pedido_editable(pedido_id)
 
             detalle = DetallePedido.query.filter_by(
                 id=detalle_id, pedido_id=pedido_id
@@ -310,8 +478,10 @@ class DetalleExtrasResource(Resource):
                     'success': False,
                     'error': 'Esta pizza es mitad/mitad. Usa el endpoint de extras por mitad'
                 }, 400
+            if servicio.es_bebida(detalle.producto):
+                return {'success': False, 'error': 'Las bebidas no llevan extras'}, 400
 
-            data = request.get_json()
+            data = request.get_json() or {}
             if not data.get('ingrediente_id'):
                 return {'success': False, 'error': 'Faltan datos requeridos'}, 400
 
@@ -352,16 +522,23 @@ class DetalleExtrasResource(Resource):
             db.session.rollback()
             return {'success': False, 'error': str(e)}, 500
 
+    @jwt_required()
+    @manejar_reglas
     def delete(self, pedido_id, detalle_id, extra_id=None):
         if not extra_id:
             return {'success': False, 'error': 'ID del extra requerido'}, 400
 
         try:
+            _obtener_pedido_editable(pedido_id)
+
             extra = DetalleExtra.query.get(extra_id)
             if not extra or extra.detalle_id != detalle_id:
                 return {'success': False, 'error': 'Extra no encontrado'}, 404
 
             detalle = DetallePedido.query.get(detalle_id)
+            if detalle.pedido_id != pedido_id:
+                return {'success': False, 'error': 'Extra no encontrado'}, 404
+
             db.session.delete(extra)
             db.session.flush()
 
@@ -377,30 +554,23 @@ class DetalleExtrasResource(Resource):
 
 class PedidoEstadoResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def patch(self, pedido_id):
+        """
+        JSON esperado: { "estado": "listo" }
+        Para cancelar: { "estado": "cancelado", "motivo": "..." } (el motivo es obligatorio
+        si el pedido ya estaba cobrado). Pasar de pendiente a confirmado no se hace aquí:
+        ocurre al cobrar.
+        """
         try:
             _asegurar_estados_pedido_por_defecto()
             pedido = Pedido.query.get(pedido_id)
             if not pedido:
                 return {'success': False, 'error': 'Pedido no encontrado'}, 404
 
-            data = request.get_json()
-            estados_validos = ['pendiente', 'confirmado', 'en_preparacion',
-                               'listo', 'entregado', 'cancelado']
-
-            if not data.get('estado') or data['estado'] not in estados_validos:
-                return {
-                    'success': False,
-                    'error': f'Estado inválido. Debe ser uno de: {", ".join(estados_validos)}'
-                }, 400
-
-            from app.pedidos.models import EstadoPedido
-            estado = EstadoPedido.query.filter_by(nombre=data['estado']).first()
-            if not estado:
-                return {'success': False, 'error': f'Estado "{data["estado"]}" no existe en BD'}, 404
-
-            pedido.estado_id = estado.id
-            db.session.commit()
+            data = request.get_json() or {}
+            servicio.cambiar_estado_pedido(pedido, data.get('estado'), data.get('motivo'))
 
             return {
                 'success': True,
@@ -411,15 +581,49 @@ class PedidoEstadoResource(Resource):
         except SQLAlchemyError as e:
             db.session.rollback()
             return {'success': False, 'error': str(e)}, 500
+
+
+class DetallePedidoItemResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def delete(self, pedido_id, detalle_id):
+        """Quita un producto del borrador. Ya cobrado, el pedido no se modifica."""
+        try:
+            pedido = _obtener_pedido_editable(pedido_id)
+
+            detalle = DetallePedido.query.filter_by(
+                id=detalle_id, pedido_id=pedido_id
+            ).first()
+            if not detalle:
+                return {'success': False, 'error': 'Detalle no encontrado'}, 404
+
+            db.session.delete(detalle)
+            db.session.flush()
+            db.session.expire(pedido, ['detalles'])
+            actualizar_total_pedido(pedido_id)
+            db.session.commit()
+
+            return {
+                'success': True,
+                'message': 'Producto quitado del pedido',
+                'data':    pedido_schema.dump(pedido)
+            }, 200
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return {'success': False, 'error': str(e)}, 500
+
+
 class DetallePedidoResource(Resource):
 
+    @jwt_required()
+    @manejar_reglas
     def post(self, pedido_id):
         try:
-            pedido = Pedido.query.get(pedido_id)
-            if not pedido:
-                return {'success': False, 'error': 'Pedido no encontrado'}, 404
+            pedido = _obtener_pedido_editable(pedido_id)
 
-            data = request.get_json()
+            data = request.get_json() or {}
 
             combo_id   = data.get('combo_id')
             producto_id = data.get('producto_id')
@@ -437,7 +641,8 @@ class DetallePedidoResource(Resource):
                 if not combo.activo:
                     return {'success': False, 'error': f'El combo "{combo.nombre}" no está activo'}, 400
 
-                precio_unitario = float(data.get('precio_unitario', combo.precio))
+                servicio.exigir_combo_disponible(combo, cantidad, pedido)
+                precio_unitario = float(combo.precio)      # el precio lo decide el servidor
 
                 detalle = DetallePedido(
                     pedido_id       = pedido_id,
@@ -466,25 +671,51 @@ class DetallePedidoResource(Resource):
             producto = Producto.query.get(producto_id)
             if not producto:
                 return {'success': False, 'error': 'Producto no existe'}, 404
+            servicio.exigir_disponible(producto)
 
             tamano_id = data.get('tamano_id')
 
-            if producto.categoria.nombre.lower() == 'bebidas':
-                if not producto.stock or producto.stock <= 0:
+            # El stock se valida aquí (contando lo que ya hay en el pedido) pero se descuenta
+            # recién al cobrar: un borrador que se abandona no consume bebidas.
+            if servicio.es_bebida(producto):
+                if tamano_id:
+                    return {'success': False, 'error': f'"{producto.nombre}" es una bebida: no tiene tamaños'}, 400
+                disponible = producto.stock or 0
+                if disponible <= 0:
                     return {'success': False, 'error': f'"{producto.nombre}" está agotado'}, 400
-                if producto.stock < cantidad:
+                ya_en_pedido = servicio.cantidades_de_bebidas(pedido).get(producto.id, 0)
+                if disponible < ya_en_pedido + cantidad:
                     return {
                         'success': False,
                         'error': f'Stock insuficiente para "{producto.nombre}". '
-                                 f'Disponible: {producto.stock}, solicitado: {cantidad}'
+                                 f'Disponible: {disponible}, en el pedido: {ya_en_pedido}, '
+                                 f'solicitado: {cantidad}'
                     }, 400
-                producto.stock -= cantidad
 
             if tamano_id:
                 if not Tamano.query.get(tamano_id):
                     return {'success': False, 'error': 'Tamaño no existe'}, 404
 
-            precio_unitario = float(data.get('precio_unitario', producto.precio_base))
+            # El precio lo decide el servidor, nunca el navegador: si el producto tiene tamaños
+            # se cobra el precio de ese tamaño; una pizza sin tamaños cargados no se puede vender
+            # (saldría a Bs 0).
+            precio_unitario = float(producto.precio_base or 0)
+            if not servicio.es_bebida(producto):
+                tamanos = ProductoTamano.query.filter_by(producto_id=producto.id).all()
+                if tamanos:
+                    elegido = next((t for t in tamanos if str(t.tamano_id) == str(tamano_id)), None)
+                    if not elegido:
+                        return {
+                            'success': False,
+                            'error': f'Elige un tamaño válido para "{producto.nombre}"'
+                        }, 400
+                    precio_unitario = float(elegido.precio)
+                elif servicio.es_pizza(producto):
+                    return {
+                        'success': False,
+                        'error': f'"{producto.nombre}" no tiene tamaños ni precios cargados. '
+                                 'Cárgalos en el catálogo antes de venderla'
+                    }, 409
 
             detalle = DetallePedido(
                 pedido_id       = pedido_id,
@@ -517,9 +748,25 @@ api.add_resource(PedidoDetailResource,
     '/api/v1.0/pedidos/<int:pedido_id>',
     endpoint='pedido_detail')
 
+api.add_resource(PedidoCobrarResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/cobrar',
+    endpoint='pedido_cobrar')
+
+api.add_resource(PedidoHoraPrometidaResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/hora-prometida',
+    endpoint='pedido_hora_prometida')
+
+api.add_resource(PedidoDescuentoResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/descuento',
+    endpoint='pedido_descuento')
+
 api.add_resource(DetallePedidoResource,
     '/api/v1.0/pedidos/<int:pedido_id>/detalles',
     endpoint='pedido_detalles')
+
+api.add_resource(DetallePedidoItemResource,
+    '/api/v1.0/pedidos/<int:pedido_id>/detalles/<int:detalle_id>',
+    endpoint='pedido_detalle_item')
 
 api.add_resource(DetalleMitadResource,
     '/api/v1.0/pedidos/<int:pedido_id>/detalles/mitad',

@@ -1,6 +1,5 @@
-
-
 from flask import Blueprint, make_response
+from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import SQLAlchemyError
 from io import BytesIO
 from datetime import datetime
@@ -16,12 +15,10 @@ from app.db import db
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad, DetalleMitadExtra
 from app.productos.models import Producto
 from app.combos.models import Combo, ComboProducto
+from app.util.pdf_ticket import ANCHO_UTIL, construir_pdf_ajustado
 
 ticket_cocina_bp = Blueprint("ticket_cocina_bp", __name__)
 
-ANCHO_PAGINA = 58 * mm
-MARGEN_H     = 2 * mm
-ANCHO_UTIL   = ANCHO_PAGINA - 2 * MARGEN_H
 
 NEGRO = colors.black
 
@@ -151,16 +148,6 @@ def _bloque_combo(idx, detalle, est, story):
 
 
 def _generar_pdf(pedido: Pedido) -> bytes:
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(ANCHO_PAGINA, 999 * mm),
-        leftMargin=MARGEN_H,
-        rightMargin=MARGEN_H,
-        topMargin=3 * mm,
-        bottomMargin=3 * mm,
-    )
-
     est   = _estilos()
     story = []
 
@@ -176,6 +163,8 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     if pedido.direccion_entrega and pedido.direccion_entrega.strip():
         story.append(Paragraph("[ NOTA DEL PEDIDO ]", est["label_sec"]))
         story.append(Paragraph(pedido.direccion_entrega.strip(), est["nota_txt"]))
+        if pedido.es_domicilio and pedido.repartidor:
+            story.append(Paragraph(f"Reparte: {pedido.repartidor.nombre}", est["nota_txt"]))
         story.append(_linea_fina())
     for idx, detalle in enumerate(pedido.detalles, start=1):
         story.append(_linea_punteada())
@@ -190,15 +179,14 @@ def _generar_pdf(pedido: Pedido) -> bytes:
     story.append(Paragraph(datetime.now().strftime("%d/%m/%Y %H:%M:%S"), est["pie"]))
     story.append(Spacer(1, 3 * mm))
 
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    return construir_pdf_ajustado(story)
 
 
 @ticket_cocina_bp.route(
     "/api/v1.0/pedidos/<int:pedido_id>/ticket-cocina",
     methods=["GET"]
 )
+@jwt_required()
 def ticket_cocina(pedido_id: int):
     try:
         pedido = Pedido.query.get(pedido_id)

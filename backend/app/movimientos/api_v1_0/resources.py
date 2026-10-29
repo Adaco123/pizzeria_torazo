@@ -1,64 +1,48 @@
 from flask import request
 from flask_restful import Resource, Api
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
+from app.movimientos import servicio
+from app.pedidos.servicio import manejar_reglas
 from flask import Blueprint
+from marshmallow import ValidationError
 from app.db import db
 from app.movimientos.models import MovimientoStock
 from app.productos.models import Producto
 from app.turnos.models import Turno
-from app.movimientos.api_v1_0.schemas import movimiento_stock_schema, movimientos_stock_schema
+from app.movimientos.api_v1_0.schemas import (
+    movimiento_stock_schema, movimientos_stock_schema, ajuste_stock_schema,
+    list_query_schema, producto_query_schema,
+)
 
 movimientos_v1_0_bp = Blueprint('movimientos_v1_0_bp', __name__)
 api = Api(movimientos_v1_0_bp)
 
+
+def _cargar(schema, data):
+    """Valida con el schema. Devuelve (datos_limpios, None) o (None, (respuesta, 400))."""
+    try:
+        return schema.load(data or {}), None
+    except ValidationError as err:
+        return None, ({'errors': err.messages}, 400)
+
+
 class MovimientoStockListResource(Resource):
 
     @jwt_required()
+    @manejar_reglas
     def post(self):
         """
-        Añade stock a un producto y registra el movimiento.
+        Registra una entrada de stock (llegó mercadería). Cajero o administrador; solo bebidas.
         Body: { "producto_id": int, "cantidad": int }
         """
-        usuario_id = get_jwt_identity()
-        data = request.get_json()
-
-        errors = movimiento_stock_schema.validate(data)
-        if errors:
-            return {'errors': errors}, 400
-        producto_id = data['producto_id']
-        cantidad    = data['cantidad']
-
-        producto = Producto.query.get(producto_id)
+        data, error = _cargar(movimiento_stock_schema, request.get_json())
+        if error:
+            return error
+        producto = Producto.query.get(data['producto_id'])
         if not producto:
             return {'message': 'Producto no encontrado'}, 404
 
-
-        turno_activo = Turno.query.filter_by(
-            usuario_id=usuario_id,
-            cierre=None
-        ).order_by(Turno.apertura.desc()).first()
-
-        turno_id = turno_activo.id if turno_activo else None
-
-        stock_anterior = producto.stock if producto.stock is not None else 0
-        stock_nuevo    = stock_anterior + cantidad
-
-        producto.stock = stock_nuevo
-        db.session.flush()
-
-
-        movimiento = MovimientoStock(
-            producto_id    = producto_id,
-            usuario_id     = usuario_id,
-            turno_id       = turno_id,
-            cantidad       = cantidad,
-            stock_anterior = stock_anterior,
-            stock_nuevo    = stock_nuevo,
-        )
-
-        db.session.add(movimiento)
-        db.session.commit()
-
+        movimiento = servicio.registrar_entrada(producto, data['cantidad'])
         return movimiento_stock_schema.dump(movimiento), 201
 
     @jwt_required()
@@ -67,8 +51,11 @@ class MovimientoStockListResource(Resource):
         Lista todos los movimientos de stock (para admin/reporte).
         Query params opcionales: ?producto_id=X&limit=20
         """
-        producto_id = request.args.get('producto_id', type=int)
-        limit       = request.args.get('limit', default=50, type=int)
+        params, error = _cargar(list_query_schema, request.args.to_dict())
+        if error:
+            return error
+        producto_id = params.get('producto_id')
+        limit       = params['limit']
 
         query = MovimientoStock.query.order_by(MovimientoStock.fecha.desc())
 
@@ -79,6 +66,26 @@ class MovimientoStockListResource(Resource):
         return movimientos_stock_schema.dump(movimientos), 200
 
 
+class AjusteStockResource(Resource):
+
+    @jwt_required()
+    @manejar_reglas
+    def post(self):
+        """
+        Corrige el stock de una bebida (botella rota, error al contar). Solo el administrador.
+        Body: { "producto_id": int, "cantidad": int (con signo, no 0), "motivo": str }
+        """
+        data, error = _cargar(ajuste_stock_schema, request.get_json())
+        if error:
+            return error
+        producto = Producto.query.get(data['producto_id'])
+        if not producto:
+            return {'message': 'Producto no encontrado'}, 404
+
+        movimiento = servicio.ajustar_stock(producto, data['cantidad'], data['motivo'])
+        return movimiento_stock_schema.dump(movimiento), 201
+
+
 class MovimientoStockProductoResource(Resource):
 
     @jwt_required()
@@ -87,7 +94,10 @@ class MovimientoStockProductoResource(Resource):
         Devuelve los últimos movimientos de stock de un producto específico.
         Query param opcional: ?limit=10
         """
-        limit = request.args.get('limit', default=10, type=int)
+        params, error = _cargar(producto_query_schema, request.args.to_dict())
+        if error:
+            return error
+        limit = params['limit']
 
         producto = Producto.query.get(producto_id)
         if not producto:
@@ -104,4 +114,5 @@ class MovimientoStockProductoResource(Resource):
         return movimientos_stock_schema.dump(movimientos), 200
     
 api.add_resource(MovimientoStockListResource,     '/api/stock/movimientos')
+api.add_resource(AjusteStockResource,             '/api/stock/movimientos/ajuste')
 api.add_resource(MovimientoStockProductoResource, '/api/stock/movimientos/<int:producto_id>')

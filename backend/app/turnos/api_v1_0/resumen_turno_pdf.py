@@ -1,4 +1,3 @@
-
 from app.movimientos.models import MovimientoStock
 from flask import Blueprint, make_response
 from flask_jwt_extended import jwt_required
@@ -16,9 +15,13 @@ from reportlab.lib.styles import ParagraphStyle
 from app.db import db
 from app.turnos.models import Turno
 from app.pedidos.models import Pedido, DetallePedido
-from app.factura.models import Factura
+from app.gastos.servicio import a_json as gasto_json, resumen_de_gastos
+from app.pedidos.servicio import (
+    ReglaNegocio, cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, pedidos_vendidos, totales_de_ventas,
+)
 from app.pagos.models import Pago
 from app.productos.models import Producto
+from app.util.pdf_ticket import construir_pdf_ajustado
 
 resumen_turno_pdf_bp = Blueprint("resumen_turno_pdf_bp", __name__)
 
@@ -286,26 +289,13 @@ def _tabla_metodos_pago(pagos_por_metodo, est):
 
 
 def _recolectar_datos(turno):
-    pedidos = Pedido.query.filter_by(turno_id=turno.id).all()
-    pedidos_activos = [p for p in pedidos if p.estado.nombre != 'cancelado']
+    pedidos_activos = pedidos_vendidos(turno.id)
+    totales = totales_de_ventas(pedidos_activos)
 
-    facturas = Factura.query.filter(
-        Factura.pedido_id.in_([p.id for p in pedidos_activos]),
-        Factura.anulada == False
-    ).all()
-
-    total_vendido  = sum(f.total    for f in facturas)
-    total_subtotal = sum(f.subtotal for f in facturas)
-    total_impuesto = sum(f.impuesto for f in facturas)
-
-    pagos_por_metodo = {}
-    for f in facturas:
-        for pago in f.pagos:
-            metodo = pago.metodo.nombre if pago.metodo else "Sin especificar"
-            if metodo not in pagos_por_metodo:
-                pagos_por_metodo[metodo] = {"cantidad": 0, "total": 0.0}
-            pagos_por_metodo[metodo]["cantidad"] += 1
-            pagos_por_metodo[metodo]["total"]    += pago.monto
+    total_vendido    = totales["total_vendido"]
+    total_subtotal   = totales["total_subtotal"]
+    total_impuesto   = totales["total_impuesto"]
+    pagos_por_metodo = totales["pagos_por_metodo"]
 
     ventas_productos = {}
     combos_vendidos  = {}
@@ -405,14 +395,15 @@ def _recolectar_datos(turno):
                 if iid not in extras_ingredientes:
                     nombre = extra.ingrediente.nombre if extra.ingrediente else f"Ing.{iid}"
                     extras_ingredientes[iid] = {"nombre": nombre, "cantidad": 0, "ingreso": 0.0}
-                extras_ingredientes[iid]["cantidad"] += extra.cantidad
-                extras_ingredientes[iid]["ingreso"]  += round(extra.cantidad * extra.precio_extra, 2)
+                unidades = extra.cantidad * detalle.cantidad
+                extras_ingredientes[iid]["cantidad"] += unidades
+                extras_ingredientes[iid]["ingreso"]  += round(unidades * extra.precio_extra, 2)
 
     top_extras = sorted(extras_ingredientes.values(), key=lambda x: x["ingreso"], reverse=True)
 
     return {
         "total_pedidos":      len(pedidos_activos),
-        "total_facturas":     len(facturas),
+        "total_facturas":     totales["total_facturas"],
         "total_subtotal":     round(total_subtotal, 2),
         "total_impuesto":     round(total_impuesto, 2),
         "total_vendido":      round(total_vendido,  2),
@@ -423,22 +414,15 @@ def _recolectar_datos(turno):
         "inventario_bebidas": inventario_bebidas,
         "movimientos_stock":  movimientos_lista,
         "top_extras":         top_extras,
-        "pagos_por_metodo":   pagos_por_metodo,   # ← NUEVO
+        "pagos_por_metodo":   pagos_por_metodo,
+        **envios_y_descuentos(pedidos_activos),
+        "gastos": {**resumen_de_gastos(turno),
+                   "lista": [gasto_json(g) for g in sorted(turno.gastos, key=lambda g: g.fecha)]},
     }
 
 def _generar_pdf(turno: Turno) -> bytes:
     datos = _recolectar_datos(turno)
     est   = _estilos()
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(ANCHO_PAGINA, 999 * mm),
-        leftMargin=MARGEN_H,
-        rightMargin=MARGEN_H,
-        topMargin=3 * mm,
-        bottomMargin=3 * mm,
-    )
 
     story = []
 
@@ -465,6 +449,12 @@ def _generar_pdf(turno: Turno) -> bytes:
     story.append(_fila_financiera("Facturas emitidas", str(datos["total_facturas"]),           est))
     story.append(_fila_financiera("Subtotal",          f'Bs {datos["total_subtotal"]:.2f}',   est))
     story.append(_fila_financiera("IVA (16%)",         f'Bs {datos["total_impuesto"]:.2f}',   est))
+    if datos["descuentos"]["total"] > 0:
+        story.append(_fila_financiera(
+            f'Descuentos (ya restados) ({datos["descuentos"]["pedidos"]})', f'Bs {datos["descuentos"]["total"]:.2f}', est))
+    if datos["envios"]["total"] > 0:
+        story.append(_fila_financiera(
+            f'Envíos (ya incluidos) ({datos["envios"]["pedidos"]})', f'Bs {datos["envios"]["total"]:.2f}', est))
     story.append(_linea_punteada())
     story.append(_fila_financiera("TOTAL VENDIDO",     f'Bs {datos["total_vendido"]:.2f}',    est, negrita=True))
 
@@ -473,11 +463,29 @@ def _generar_pdf(turno: Turno) -> bytes:
         story.append(Paragraph("-- METODOS DE PAGO --", est["sec_titulo"]))
         story.append(_tabla_metodos_pago(datos["pagos_por_metodo"], est))
 
+    if datos["por_repartidor"]:
+        story.append(_linea_punteada())
+        story.append(Paragraph("-- DOMICILIOS POR REPARTIDOR --", est["sec_titulo"]))
+        for fila in datos["por_repartidor"]:
+            story.append(_fila_financiera(
+                f'{fila["repartidor"]} ({fila["entregas"]})', f'Bs {fila["envios"]:.2f}', est))
+
+    if datos["gastos"]["cantidad"] > 0:
+        story.append(_linea_punteada())
+        story.append(Paragraph("-- GASTOS Y RETIROS DE CAJA --", est["sec_titulo"]))
+        for g in datos["gastos"]["lista"]:
+            if g["anulado"]:
+                continue
+            story.append(_fila_financiera(
+                f'{g["categoria_nombre"]}: {g["descripcion"]}', f'Bs {g["monto"]:.2f}', est))
+        story.append(_fila_financiera("Total salido de caja", f'Bs {datos["gastos"]["total"]:.2f}', est, negrita=True))
+
     if turno.monto_cierre is not None:
         story.append(_linea_punteada())
-        diferencia = turno.monto_cierre - turno.monto_inicio - datos["total_vendido"]
-        story.append(_fila_financiera("Monto cierre", f'Bs {turno.monto_cierre:.2f}', est))
-        story.append(_fila_financiera("Diferencia",   f'Bs {diferencia:.2f}',         est, negrita=True))
+        cuadre = cuadre_de_caja(turno, datos["pagos_por_metodo"])
+        story.append(_fila_financiera("Efectivo esperado", f'Bs {cuadre["efectivo_esperado"]:.2f}', est))
+        story.append(_fila_financiera("Efectivo contado",  f'Bs {turno.monto_cierre:.2f}',          est))
+        story.append(_fila_financiera("Diferencia",        f'Bs {cuadre["diferencia"]:.2f}',        est, negrita=True))
 
     story.append(_linea_fina())
 
@@ -524,19 +532,23 @@ def _generar_pdf(turno: Turno) -> bytes:
     ))
     story.append(Paragraph("*** Gracias ***", est["pie"]))
     story.append(Spacer(1, 3 * mm))
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.read()
+    return construir_pdf_ajustado(story)
+
+
 @resumen_turno_pdf_bp.route(
     "/api/v1.0/turnos/<int:turno_id>/resumen-pdf",
     methods=["GET"]
 )
 @jwt_required()
 def resumen_turno_pdf(turno_id: int):
+    turno = Turno.query.get(turno_id)
+    if not turno:
+        return {"success": False, "error": "Turno no encontrado"}, 404
     try:
-        turno = Turno.query.get(turno_id)
-        if not turno:
-            return {"success": False, "error": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno, para_resumen=True)
+    except ReglaNegocio as error:
+        return {"success": False, "error": error.mensaje}, error.status
+    try:
 
         pdf_bytes = _generar_pdf(turno)
         response  = make_response(pdf_bytes)

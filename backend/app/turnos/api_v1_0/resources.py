@@ -10,7 +10,10 @@ from .schemas import TurnoSchema
 from sqlalchemy import func
 from app.pedidos.models import Pedido, DetallePedido, DetalleMitad
 from app.productos.models import Producto
-from app.factura.models import Factura
+from app.gastos.servicio import a_json as gasto_json, resumen_de_gastos
+from app.pedidos.servicio import (
+    cuadre_de_caja, envios_y_descuentos, exigir_acceso_turno, manejar_reglas, pedidos_vendidos, totales_de_ventas,
+)
 from app.movimientos.models import MovimientoStock
 turnos_v1_0_bp = Blueprint('turnos_v1_0_bp', __name__)
 api = Api(turnos_v1_0_bp)
@@ -115,10 +118,12 @@ class TurnoResource(Resource):
         return {"success": True, "data": turno_schema.dump(turno)}, 200
 
     @jwt_required()
+    @manejar_reglas
     def put(self, turno_id):
         turno = Turno.query.get(turno_id)
         if not turno:
             return {"success": False, "message": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno)
 
         data, error = _cargar_turno(request.get_json(), partial=True)
         if error:
@@ -153,10 +158,12 @@ class TurnoResource(Resource):
 class TurnoCerrarResource(Resource):
 
     @jwt_required()
+    @manejar_reglas
     def post(self, turno_id):
         turno = Turno.query.get(turno_id)
         if not turno:
             return {"success": False, "message": "Turno no encontrado"}, 404
+        exigir_acceso_turno(turno)
         if not turno.abierto:
             return {"success": False, "message": "Turno ya está cerrado"}, 400
 
@@ -198,25 +205,22 @@ class TurnoResumenResource(Resource):
    
 
     @jwt_required()
+    @manejar_reglas
     def get(self, turno_id):
         _cerrar_turnos_vencidos()
         turno = Turno.query.get(turno_id)
         if not turno:
             return {'success': False, 'error': 'Turno no encontrado'}, 404
+        exigir_acceso_turno(turno, para_resumen=True)
 
         
-        pedidos = Pedido.query.filter_by(turno_id=turno_id).all()
-        pedidos_activos = [p for p in pedidos if p.estado.nombre != 'cancelado']
+        # Ventas = pedidos cobrados y no cancelados; el dinero sale de los pagos, no de las facturas.
+        pedidos_activos = pedidos_vendidos(turno_id)
+        totales = totales_de_ventas(pedidos_activos)
 
-        
-        facturas = Factura.query.filter(
-            Factura.pedido_id.in_([p.id for p in pedidos_activos]),
-            Factura.anulada == False
-        ).all()
-
-        total_vendido  = sum(f.total    for f in facturas)
-        total_subtotal = sum(f.subtotal for f in facturas)
-        total_impuesto = sum(f.impuesto for f in facturas)
+        total_vendido  = totales['total_vendido']
+        total_subtotal = totales['total_subtotal']
+        total_impuesto = totales['total_impuesto']
 
         
         ventas_productos = {}
@@ -348,9 +352,10 @@ class TurnoResumenResource(Resource):
                             'cantidad':       0,
                             'ingreso':        0.0,
                         }
-                    extras_ingredientes[iid]['cantidad'] += extra.cantidad
+                    unidades = extra.cantidad * detalle.cantidad
+                    extras_ingredientes[iid]['cantidad'] += unidades
                     extras_ingredientes[iid]['ingreso']  += round(
-                        extra.cantidad * extra.precio_extra, 2
+                        unidades * extra.precio_extra, 2
                     )
 
         top_extras = sorted(
@@ -386,10 +391,15 @@ class TurnoResumenResource(Resource):
                 'monto_cierre': turno.monto_cierre,
 
                 'total_pedidos':  len(pedidos_activos),
-                'total_facturas': len(facturas),
+                'total_facturas': totales['total_facturas'],
                 'total_subtotal': round(total_subtotal, 2),
                 'total_impuesto': round(total_impuesto, 2),
                 'total_vendido':  round(total_vendido,  2),
+                'pagos_por_metodo': totales['pagos_por_metodo'],
+                **envios_y_descuentos(pedidos_activos),
+                'gastos': {**resumen_de_gastos(turno),
+                           'lista': [gasto_json(g) for g in sorted(turno.gastos, key=lambda g: g.fecha)]},
+                **cuadre_de_caja(turno, totales['pagos_por_metodo']),
 
                 'pizzas':  pizzas,
                 'bebidas': bebidas,

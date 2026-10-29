@@ -1,0 +1,75 @@
+.container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: var(--color-white);
+  font-size: 14px;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: entrar 180ms ease-out;
+}
+
+.error {
+  background: var(--color-error);
+}
+
+.exito {
+  background: var(--color-success);
+}
+
+.mensaje {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.cerrar {
+  padding: 0 4px;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.cerrar:hover {
+  opacity: 1;
+}
+
+.cerrar:focus-visible {
+  outline-color: var(--color-white);
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

@@ -1,18 +1,56 @@
-from marshmallow import fields, validates, ValidationError
+from marshmallow import fields, pre_load, validate, validates, validates_schema, ValidationError
 from app.ext import ma
+
+
+# ---------------------------------------------------------------------------
+# Validacion de entrada
+# Aqui va todo lo que valida el formato o la existencia del dato (responde 400).
+# Se queda en el resource: el conflicto de numero_factura repetido (409).
+# ---------------------------------------------------------------------------
+def _mensajes(campo, requerido='requerido'):
+    """Mensajes de error en español para un campo obligatorio."""
+    return {
+        'required': f'{campo} es {requerido}',
+        'null':     f'{campo} es {requerido}',
+        'invalid':  f'{campo} no es válido',
+    }
+
+
+def _id_positivo(campo):
+    """Id de otra tabla: obligatorio y entero positivo."""
+    return fields.Int(
+        required=True,
+        error_messages=_mensajes(campo),
+        validate=validate.Range(min=1, error=f'{campo} no es válido'))
+
+
+def _monto_opcional(campo, **kwargs):
+    return fields.Float(
+        error_messages={
+            'invalid': f'{campo} no es válido',
+            'null':    f'{campo} no puede ser nulo',
+        },
+        **kwargs)
 
 
 class FacturaSchema(ma.Schema):
     id             = fields.Int(dump_only=True)
-    numero_factura = fields.Str(required=True)
-    pedido_id      = fields.Int(required=True)
-    cliente_id     = fields.Int(required=True)
-    usuario_id     = fields.Int(required=True)
+    numero_factura = fields.Str(
+        required=True,
+        error_messages=_mensajes('numero_factura'),
+        validate=validate.Length(
+            min=1,
+            max=20,
+            error='numero_factura debe tener entre 1 y 20 caracteres'))
+    pedido_id      = _id_positivo('pedido_id')
+    cliente_id     = _id_positivo('cliente_id')
+    usuario_id     = _id_positivo('usuario_id')
 
     fecha    = fields.DateTime(dump_only=True)
-    subtotal = fields.Float(allow_none=True)
-    descuento = fields.Float(load_default=0)
-    impuesto  = fields.Float(load_default=0)
+    # subtotal null en un POST = "calcularlo desde el pedido"
+    subtotal = fields.Float(allow_none=True, error_messages={'invalid': 'subtotal no es válido'})
+    descuento = _monto_opcional('descuento', load_default=0)
+    impuesto  = _monto_opcional('impuesto',  load_default=0)
     total     = fields.Float(dump_only=True)
     anulada   = fields.Boolean(dump_only=True)
 
@@ -47,6 +85,18 @@ class FacturaSchema(ma.Schema):
             pass
         return None
 
+
+    @pre_load
+    def limpiar_numero_factura(self, data, **kwargs):
+        if isinstance(data, dict) and isinstance(data.get('numero_factura'), str):
+            data = {**data, 'numero_factura': data['numero_factura'].strip()}
+        return data
+
+    @validates_schema
+    def validar_subtotal_en_actualizacion(self, data, partial=None, **kwargs):
+        # En un PUT (partial) subtotal no puede ser null: no hay pedido del que calcularlo.
+        if partial and 'subtotal' in data and data['subtotal'] is None:
+            raise ValidationError('subtotal no puede ser nulo', field_name='subtotal')
 
     @validates('pedido_id')
     def validate_pedido_id(self, value, **kwargs):

@@ -18,8 +18,8 @@ class Factura(db.Model, BaseModelMixin):
     pedido  = db.relationship("Pedido",   back_populates="facturas")
     cliente = db.relationship("Cliente",  back_populates="facturas")
     usuario = db.relationship("Usuario",  back_populates="facturas")
-    pagos   = db.relationship("Pago",     back_populates="factura",
-                              cascade="all, delete-orphan")
+    # Los pagos pertenecen al pedido; la factura solo los referencia (no los borra con ella).
+    pagos   = db.relationship("Pago",     back_populates="factura")
 
     def __init__(self, numero_factura, pedido_id, cliente_id, usuario_id,
                  subtotal, descuento=0, impuesto=0):

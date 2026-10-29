@@ -1,27 +1,11 @@
-import { fileURLToPath, URL } from 'node:url'
-
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
 
-
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
-    vueJsx(),
-    vueDevTools(),
+    react(),
+    babel({ presets: [reactCompilerPreset()] })
   ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    },
-  },
-  preview: {
-    host: '0.0.0.0',
-    allowedHosts: [
-      'balanced-contentment-production-b0f7.up.railway.app',
-      'localhost',
-    ],
-  },
 })

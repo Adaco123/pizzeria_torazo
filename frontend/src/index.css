@@ -1,0 +1,99 @@
+/* ==========================================================================
+   Tema global — Pizzería Torazo (rojo y blanco)
+   Todos los módulos CSS (*.module.css) heredan estas variables con var(--...).
+   Para cambiar la paleta de toda la app, edita solo este bloque.
+   ========================================================================== */
+:root {
+  /* Marca */
+  --color-primary: #c8102e;
+  --color-primary-hover: #a50d25;
+  --color-primary-soft: #fdecee;
+  --color-on-primary: #ffffff;
+
+  /* Superficies */
+  --color-white: #ffffff;
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-alt: #faf5f5;
+
+  /* Texto y bordes */
+  --color-text: #3d3538;
+  --color-heading: #1f1517;
+  --color-muted: #7a6d70;
+  --color-border: #ead9db;
+
+  /* Estados */
+  --color-error: #b42318;
+  --color-error-bg: #fef3f2;
+  --color-success: #1a7f37;
+  --color-success-bg: #e8f5ec;
+
+  /* Forma */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --shadow: rgba(31, 21, 23, 0.08) 0 10px 15px -3px, rgba(31, 21, 23, 0.04) 0 4px 6px -2px;
+
+  /* Tipografía */
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+
+  font: 16px/150% var(--font-sans);
+  color-scheme: light;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+h1 {
+  font-size: 28px;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

@@ -9,7 +9,8 @@ class UsuariosSchema(ma.Schema):
     nombre = fields.Str(required=True)
     correo = fields.Email(required=True)
     rol = fields.Str()
-    active = fields.Boolean()
+    activo = fields.Boolean()
+    rol_id = fields.Int()
     cedula = fields.Str()
     codigo = fields.Str(allow_none=True)
     created_at = fields.DateTime(dump_only=True)
@@ -21,8 +22,9 @@ class UsuariosSchema(ma.Schema):
 # Se quedan en el resource: conflictos de estado (correo ya usado, 409),
 # permisos (403) y credenciales (401).
 # ---------------------------------------------------------------------------
-REGEX_NOMBRE = r'^[A-Za-z\s]+$'
+REGEX_NOMBRE = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]+$'
 REGEX_CODIGO = r'^[0-9]{5,10}$'
+MIN_CONTRASENA = 6
 
 
 def _limpiar(data, campos):
@@ -40,6 +42,11 @@ def _no_vacio(mensaje):
     return validar
 
 
+def _contrasena_valida(valor):
+    if not isinstance(valor, str) or len(valor) < MIN_CONTRASENA:
+        raise ValidationError(f'La contraseña debe tener al menos {MIN_CONTRASENA} caracteres')
+
+
 def _rol_existe(value):
     if not Role.query.get(value):
         raise ValidationError('Rol no encontrado')
@@ -53,10 +60,11 @@ class RegistroSchema(ma.Schema):
         required=True,
         validate=validate.Regexp(REGEX_NOMBRE, error='El nombre completo debe contener solo letras'),
         error_messages={'required': 'Faltan Datos'})
-    correo = fields.Str(required=True, error_messages={'required': 'Faltan Datos'})
+    correo = fields.Email(required=True, error_messages={'required': 'Faltan Datos',
+                                                         'invalid': 'El correo no es válido'})
     contra = fields.Str(
         required=True,
-        validate=_no_vacio('La contraseña es requerida y no puede estar vacía'),
+        validate=_contrasena_valida,
         error_messages={'required': 'Faltan Datos',
                         'null': 'La contraseña es requerida y no puede estar vacía',
                         'invalid': 'La contraseña es requerida y no puede estar vacía'})
@@ -96,10 +104,13 @@ class UsuarioEditSchema(ma.Schema):
     codigo = fields.Str(
         validate=validate.Regexp(REGEX_CODIGO, error='Código debe contener solo números, menor a 10 dígitos y mayor a 4'))
     activo = fields.Raw(error_messages={'null': 'activo debe ser true o false'})
+    # Solo el administrador puede cambiar estos dos (lo controla el resource).
+    correo = fields.Email(error_messages={'invalid': 'El correo no es válido'})
+    cedula = fields.Str(validate=validate.Length(min=1, max=20, error='La cédula debe tener entre 1 y 20 caracteres'))
 
     @pre_load
     def limpiar(self, data, **kwargs):
-        return _limpiar(data, ('nombre', 'codigo'))
+        return _limpiar(data, ('nombre', 'codigo', 'correo', 'cedula'))
 
     @validates('activo')
     def validar_activo(self, value, **kwargs):
@@ -116,7 +127,20 @@ class CambiarContrasenaSchema(ma.Schema):
         error_messages={'required': 'Faltan datos: contra_actual y contra_nueva'})
     contra_nueva = fields.Str(
         required=True,
-        validate=_no_vacio('La nueva contraseña no puede estar vacía'),
+        validate=_contrasena_valida,
         error_messages={'required': 'Faltan datos: contra_actual y contra_nueva',
+                        'null': 'La nueva contraseña no puede estar vacía',
+                        'invalid': 'La nueva contraseña no puede estar vacía'})
+
+
+class ResetearContrasenaSchema(ma.Schema):
+    """El administrador le pone una contraseña nueva a otro usuario."""
+    class Meta:
+        unknown = EXCLUDE
+
+    contra_nueva = fields.Str(
+        required=True,
+        validate=_contrasena_valida,
+        error_messages={'required': 'contra_nueva es requerida',
                         'null': 'La nueva contraseña no puede estar vacía',
                         'invalid': 'La nueva contraseña no puede estar vacía'})

@@ -2,6 +2,9 @@ from marshmallow import EXCLUDE, ValidationError, fields, validate, validates, v
 from app.ext import ma
 
 
+MAX_MINUTOS_ESPERA = 240
+
+
 def _id_positivo():
     return fields.Int(strict=True, validate=validate.Range(min=1, error='Debe ser un ID mayor a 0'))
 
@@ -122,6 +125,16 @@ class PedidoSchema(ma.Schema):
     tipo_entrega_id   = _id_positivo()
     direccion_entrega = fields.Str(allow_none=True, validate=validate.Length(max=200))
     total             = fields.Float(dump_only=True)
+    pagado            = fields.Float(dump_only=True)
+    motivo_cancelacion = fields.Str(dump_only=True, allow_none=True)
+    hora_prometida    = fields.DateTime(dump_only=True, allow_none=True)
+    costo_envio       = fields.Float(dump_only=True)
+    descuento         = fields.Float(dump_only=True)
+    descuento_tipo    = fields.Str(dump_only=True, allow_none=True)
+    descuento_valor   = fields.Float(dump_only=True)
+    descuento_motivo  = fields.Str(dump_only=True, allow_none=True)
+    repartidor_id     = fields.Int(dump_only=True, allow_none=True)
+    repartidor        = fields.Method("get_repartidor", dump_only=True)
     cliente_id        = _id_positivo()
     usuario_id        = _id_positivo()
     turno_id          = _id_positivo()
@@ -133,6 +146,10 @@ class PedidoSchema(ma.Schema):
     def get_estado(self, obj):
         return {"id": obj.estado.id, "nombre": obj.estado.nombre} \
                if obj.estado else None
+
+    def get_repartidor(self, obj):
+        r = obj.repartidor
+        return {"id": r.id, "nombre": r.nombre, "tipo": r.tipo, "telefono": r.telefono} if r else None
 
     def get_tipo_entrega(self, obj):
         return {"id": obj.tipo_entrega.id, "nombre": obj.tipo_entrega.nombre} \
@@ -173,3 +190,55 @@ class PedidoEstadoSchema(ma.Schema):
     estado = fields.Str(required=True, validate=validate.OneOf([
         'pendiente', 'confirmado', 'en_preparacion', 'listo', 'entregado', 'cancelado'
     ], error='Estado de pedido inválido'))
+
+
+class PagoCobroSchema(ma.Schema):
+    """Un pago dentro de POST /pedidos/<id>/cobrar."""
+    class Meta:
+        unknown = EXCLUDE
+
+    metodo_id      = fields.Int(strict=True, required=True,
+                                validate=validate.Range(min=1, error='Debe ser un ID mayor a 0'),
+                                error_messages={'required': 'metodo_id es requerido'})
+    monto          = fields.Float(required=True,
+                                  validate=validate.Range(min=0, min_inclusive=False,
+                                                          error='El monto debe ser mayor a 0'),
+                                  error_messages={'required': 'monto es requerido',
+                                                  'invalid': 'monto no es válido'})
+    monto_recibido = fields.Float(load_default=None, allow_none=True,
+                                  error_messages={'invalid': 'monto_recibido no es válido'})
+
+
+class CobrarSchema(ma.Schema):
+    class Meta:
+        unknown = EXCLUDE
+
+    pagos = fields.List(
+        fields.Nested(PagoCobroSchema),
+        required=True,
+        validate=validate.Length(min=1, error='Registra al menos un pago'),
+        error_messages={'required': 'pagos es requerido'})
+
+    minutos_espera = fields.Int(
+        strict=True, load_default=None, allow_none=True,
+        validate=validate.Range(min=1, max=MAX_MINUTOS_ESPERA,
+                                error=f'Los minutos de espera deben estar entre 1 y {MAX_MINUTOS_ESPERA}'))
+
+
+class HoraPrometidaSchema(ma.Schema):
+    """PATCH /pedidos/<id>/hora-prometida: nueva espera, contada desde ahora."""
+    class Meta:
+        unknown = EXCLUDE
+
+    minutos_espera = fields.Int(
+        strict=True, required=True,
+        validate=validate.Range(min=1, max=MAX_MINUTOS_ESPERA,
+                                error=f'Los minutos de espera deben estar entre 1 y {MAX_MINUTOS_ESPERA}'),
+        error_messages={'required': 'minutos_espera es requerido'})
+
+
+class AgotadoSchema(ma.Schema):
+    class Meta:
+        unknown = EXCLUDE
+
+    agotado = fields.Bool(required=True, error_messages={'required': 'agotado es requerido'})

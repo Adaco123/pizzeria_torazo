@@ -1,0 +1,187 @@
+/* ---------- Pantalla de caja: menú a la izquierda, ticket a la derecha ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.menu {
+  min-width: 0;
+}
+
+.ticket {
+  position: sticky;
+  top: 16px;
+}
+
+.ficha {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.ficha strong {
+  font-size: 24px;
+  color: var(--color-primary);
+}
+
+.cliente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: 14px;
+}
+
+.selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cobrar {
+  padding: 14px 16px;
+  font-size: 18px;
+}
+
+/* Barra fija con el total y el botón de cobro: solo en pantallas chicas. */
+.barraMovil {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ticket {
+    position: static;
+  }
+
+  .barraMovil {
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+  }
+
+  .barraMovil strong {
+    font-size: 18px;
+  }
+}
+
+/* ---------- Cobro ---------- */
+.cobro {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.totalGrande {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+
+.atajos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vuelto {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 18px;
+}
+
+.vuelto strong {
+  font-size: 24px;
+}
+
+.confirmar {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 18px;
+}
+
+/* ---------- Ficha confirmada ---------- */
+.confirmada {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  align-items: center;
+  text-align: center;
+}
+
+.exito {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.fichaGrande {
+  margin: 0;
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-heading);
+}
+
+.accionesFicha {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.frecuente {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historial {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historial li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: 0.9rem;
+}
+
+.envio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.descuento {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.95rem;
+}
