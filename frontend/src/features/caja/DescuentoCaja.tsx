@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { pedidosApi } from '../../api.ts'
-import type { Pedido, TipoDescuento } from '../../api.ts'
+import { pedidosApi } from '../../apis/pedidos.ts'
+import type { Pedido, TipoDescuento } from '../../apis/pedidos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import base from '../pedidos/Pedidos.module.css'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { productosApi } from '../../api.ts'
-import type { Producto } from '../../api.ts'
+import { productosApi } from '../../apis/productos.ts'
+import type { Producto } from '../../apis/productos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import styles from './Cocina.module.css'

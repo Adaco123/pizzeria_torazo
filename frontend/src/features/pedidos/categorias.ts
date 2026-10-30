@@ -1,4 +1,4 @@
-import type { Categoria } from '../../api.ts'
+import type { Categoria } from '../../apis/categorias.ts'
 
 /**
  * La categoría de las pizzas. Solo sus productos se pueden pedir mitad y mitad.

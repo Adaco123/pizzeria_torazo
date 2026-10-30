@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { RolNombre } from '../api.ts'
+import type { RolNombre } from '../apis/auth.ts'
 import { useAuth } from './auth-context.ts'
 
 /**

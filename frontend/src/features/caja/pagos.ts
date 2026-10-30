@@ -1,4 +1,5 @@
-import type { MetodoPago, PagoCobro } from '../../api.ts'
+import type { MetodoPago } from '../../apis/pagos.ts'
+import type { PagoCobro } from '../../apis/pedidos.ts'
 import { parseMonto } from '../../utils/formato.ts'
 import { redondear, TOLERANCIA } from '../cobro/facturacion.ts'
 

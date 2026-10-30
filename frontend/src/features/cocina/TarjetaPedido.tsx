@@ -1,4 +1,4 @@
-import type { EstadoPedidoNombre, Pedido } from '../../api.ts'
+import type { EstadoPedidoNombre, Pedido } from '../../apis/pedidos.ts'
 import { ItemsCocina } from './ItemsCocina.tsx'
 import {
   MINUTOS_URGENTE,

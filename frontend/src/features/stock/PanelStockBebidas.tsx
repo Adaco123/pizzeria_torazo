@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
-import { stockApi } from '../../api.ts'
-import type { MovimientoStock, StockBebidaResumen } from '../../api.ts'
+import { stockApi } from '../../apis/stock.ts'
+import type { MovimientoStock, StockBebidaResumen } from '../../apis/stock.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearFecha, mensajeDeError } from '../../utils/formato.ts'
 import styles from '../catalogo/Catalogo.module.css'

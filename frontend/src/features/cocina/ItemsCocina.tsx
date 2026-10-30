@@ -1,4 +1,4 @@
-import type { DetallePedido } from '../../api.ts'
+import type { DetallePedido } from '../../apis/pedidos.ts'
 import styles from './Cocina.module.css'
 
 interface Props {

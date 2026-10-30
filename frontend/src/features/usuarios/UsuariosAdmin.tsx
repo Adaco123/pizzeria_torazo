@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { authApi } from '../../api.ts'
-import type { RolInfo, UsuarioAdmin } from '../../api.ts'
+import { authApi } from '../../apis/auth.ts'
+import type { RolInfo, UsuarioAdmin } from '../../apis/auth.ts'
 import { useAuth } from '../../auth/auth-context.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'

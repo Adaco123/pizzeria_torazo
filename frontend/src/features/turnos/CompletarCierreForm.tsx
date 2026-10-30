@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { turnosApi } from '../../api.ts'
-import type { Turno } from '../../api.ts'
+import { turnosApi } from '../../apis/turnos.ts'
+import type { Turno } from '../../apis/turnos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, parseMonto } from '../../utils/formato.ts'
 import styles from './Turnos.module.css'

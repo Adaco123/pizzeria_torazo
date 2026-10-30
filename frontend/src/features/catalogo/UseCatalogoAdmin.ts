@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
-import {
-  categoriasApi,
-  combosApi,
-  ingredientesApi,
-  productosApi,
-  tamanosApi,
-} from '../../api.ts'
-import type {
-  Categoria,
-  Combo,
-  Ingrediente,
-  IngredienteTamano,
-  Producto,
-  Tamano,
-} from '../../api.ts'
+import { categoriasApi } from '../../apis/categorias.ts'
+import { combosApi } from '../../apis/combos.ts'
+import { ingredientesApi } from '../../apis/ingredientes.ts'
+import { productosApi } from '../../apis/productos.ts'
+import { tamanosApi } from '../../apis/tamanos.ts'
+import type { Categoria } from '../../apis/categorias.ts'
+import type { Combo } from '../../apis/combos.ts'
+import type { Ingrediente, IngredienteTamano } from '../../apis/ingredientes.ts'
+import type { Producto } from '../../apis/productos.ts'
+import type { Tamano } from '../../apis/tamanos.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
 export interface DatosCatalogo {

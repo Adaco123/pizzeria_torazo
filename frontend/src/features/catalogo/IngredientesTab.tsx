@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { ingredientesApi } from '../../api.ts'
-import type { Ingrediente } from '../../api.ts'
+import { ingredientesApi } from '../../apis/ingredientes.ts'
+import type { Ingrediente } from '../../apis/ingredientes.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import type { DatosCatalogo } from './useCatalogoAdmin.ts'

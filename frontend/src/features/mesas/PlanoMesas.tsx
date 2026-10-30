@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { mesasApi } from '../../api.ts'
-import type { Mesa } from '../../api.ts'
+import { mesasApi } from '../../apis/mesas.ts'
+import type { Mesa } from '../../apis/mesas.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import base from '../pedidos/Pedidos.module.css'
@@ -22,6 +22,7 @@ function Nota({ mesa }: { mesa: Mesa }) {
   return (
     <>
       <span className={styles.total}>{formatearMonto(c.total)}</span>
+      {c.turno_cerrado && <span className={styles.nota}>Del turno anterior</span>}
       {c.pidio_cuenta && <span className={styles.nota}>Pidió la cuenta</span>}
       {c.rondas_listas > 0 && <span className={styles.nota}>{c.rondas_listas} lista(s) para llevar</span>}
       {c.rondas_en_cocina > 0 && <span className={styles.nota}>{c.rondas_en_cocina} en cocina</span>}

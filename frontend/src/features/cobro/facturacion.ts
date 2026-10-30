@@ -1,5 +1,6 @@
-import { facturasApi, isApiError } from '../../api.ts'
-import type { Factura, FacturaCreate } from '../../api.ts'
+import { isApiError } from '../../api.ts'
+import { facturasApi } from '../../apis/facturas.ts'
+import type { Factura, FacturaCreate } from '../../apis/facturas.ts'
 
 /** Redondea a 2 decimales para evitar restos de coma flotante (0.1 + 0.2). */
 export function redondear(valor: number): number {

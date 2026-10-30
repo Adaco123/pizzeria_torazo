@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { reportesApi } from '../../api.ts'
-import type { ReporteVentas as Reporte } from '../../api.ts'
+import { reportesApi } from '../../apis/reportes.ts'
+import type { ReporteVentas as Reporte } from '../../apis/reportes.ts'
 import { esAbort, formatearFecha, formatearMonto, mensajeDeError } from '../../utils/formato.ts'
 import styles from '../catalogo/Catalogo.module.css'
 import { diaDeBolivia, etiquetaDia } from './fechas.ts'

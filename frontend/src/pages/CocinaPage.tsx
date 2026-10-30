@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { pedidosApi } from '../api.ts'
-import type { EstadoPedidoNombre, Pedido } from '../api.ts'
+import { pedidosApi } from '../apis/pedidos.ts'
+import type { EstadoPedidoNombre, Pedido } from '../apis/pedidos.ts'
 import { BotonSonido } from '../features/cocina/BotonSonido.tsx'
 import styles from '../features/cocina/Cocina.module.css'
 import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'

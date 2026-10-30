@@ -12,7 +12,11 @@ htmlcov/
 venv/
 env/
 *.egg-info/
-
+migrations/
+tests/__pycache__/
+tests/
+railway-tmp/
+__pycache__/
 # Variables de entorno y secretos
 .env
 .env.*

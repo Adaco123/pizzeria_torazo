@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { clientesApi, pedidosApi } from '../../api.ts'
-import type { Cliente, Pedido } from '../../api.ts'
+import { clientesApi } from '../../apis/clientes.ts'
+import { pedidosApi } from '../../apis/pedidos.ts'
+import type { Cliente } from '../../apis/clientes.ts'
+import type { Pedido } from '../../apis/pedidos.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
 /** Todos los pedidos. Llama a `recargar()` tras cambiar algo. */

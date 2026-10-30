@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { RolNombre } from '../api.ts'
+import type { RolNombre } from '../apis/auth.ts'
 import { AdminPage } from '../pages/AdminPage.tsx'
 import { CatalogoPage } from '../pages/CatalogoPage.tsx'
 import { CuentaMesaPage } from '../pages/CuentaMesaPage.tsx'

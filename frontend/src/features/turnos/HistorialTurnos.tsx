@@ -1,4 +1,4 @@
-import type { Turno } from '../../api.ts'
+import type { Turno } from '../../apis/turnos.ts'
 import { formatearFecha, formatearMonto } from '../../utils/formato.ts'
 import styles from './Turnos.module.css'
 

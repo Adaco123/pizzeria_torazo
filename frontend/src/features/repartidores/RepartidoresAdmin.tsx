@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
-import { repartidoresApi } from '../../api.ts'
-import type { Repartidor, TipoRepartidor } from '../../api.ts'
+import { repartidoresApi } from '../../apis/repartidores.ts'
+import type { Repartidor, TipoRepartidor } from '../../apis/repartidores.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import styles from '../catalogo/Catalogo.module.css'

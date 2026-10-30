@@ -1,4 +1,4 @@
-import type { RolNombre } from '../api.ts'
+import type { RolNombre } from '../apis/auth.ts'
 
 /** Nombres con los que puede venir un rol desde la base de datos, ya sin mayúsculas ni tildes. */
 const ALIAS: Record<string, RolNombre> = {

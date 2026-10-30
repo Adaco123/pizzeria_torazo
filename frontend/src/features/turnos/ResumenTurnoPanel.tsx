@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { turnosApi } from '../../api.ts'
-import type { ResumenTurno, VentaProducto } from '../../api.ts'
+import { turnosApi } from '../../apis/turnos.ts'
+import type { ResumenTurno, VentaProducto } from '../../apis/turnos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { descargarBlob } from '../../utils/archivos.ts'
 import {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { MetodoPago, PagoCobro } from '../../api.ts'
+import type { MetodoPago } from '../../apis/pagos.ts'
+import type { PagoCobro } from '../../apis/pedidos.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import { redondear } from '../cobro/facturacion.ts'
 import base from '../pedidos/Pedidos.module.css'

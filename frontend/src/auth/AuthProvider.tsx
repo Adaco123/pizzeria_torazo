@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ApiError, authApi, setUnauthorizedHandler, tokenStorage } from '../api.ts'
-import type { RolNombre } from '../api.ts'
+import { ApiError, setUnauthorizedHandler, tokenStorage } from '../api.ts'
+import { authApi } from '../apis/auth.ts'
+import type { RolNombre } from '../apis/auth.ts'
 import { AuthContext, type AuthStatus, type Sesion } from './auth-context.ts'
 import { normalizarRol } from './roles.ts'
 

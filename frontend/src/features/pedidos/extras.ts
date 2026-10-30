@@ -1,4 +1,4 @@
-import type { Ingrediente, IngredienteTamano } from '../../api.ts'
+import type { Ingrediente, IngredienteTamano } from '../../apis/ingredientes.ts'
 
 /**
  * Lo que cuesta una porción extra del ingrediente en ese tamaño.

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { combosApi, pedidosApi, turnosApi } from '../../api.ts'
-import type { EstadoPedidoNombre, Pedido } from '../../api.ts'
+import { combosApi } from '../../apis/combos.ts'
+import { pedidosApi } from '../../apis/pedidos.ts'
+import { turnosApi } from '../../apis/turnos.ts'
+import type { EstadoPedidoNombre, Pedido } from '../../apis/pedidos.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import { estadoDe } from '../pedidos/estados.ts'
 

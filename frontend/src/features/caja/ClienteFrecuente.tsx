@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { clientesApi } from '../../api.ts'
-import type { Cliente, HistorialCliente } from '../../api.ts'
+import { clientesApi } from '../../apis/clientes.ts'
+import type { Cliente, HistorialCliente } from '../../apis/clientes.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto } from '../../utils/formato.ts'
 import base from '../pedidos/Pedidos.module.css'

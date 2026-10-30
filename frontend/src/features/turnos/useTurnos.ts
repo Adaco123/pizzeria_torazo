@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { authApi, turnosApi } from '../../api.ts'
-import type { Turno } from '../../api.ts'
+import { authApi } from '../../apis/auth.ts'
+import { turnosApi } from '../../apis/turnos.ts'
+import type { Turno } from '../../apis/turnos.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
 /** Carga la lista de turnos (más recientes primero). Llama a `recargar()` tras cambiar algo. */

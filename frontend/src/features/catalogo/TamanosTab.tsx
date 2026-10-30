@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { tamanosApi } from '../../api.ts'
-import type { Tamano } from '../../api.ts'
+import { tamanosApi } from '../../apis/tamanos.ts'
+import type { Tamano } from '../../apis/tamanos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { mensajeEliminar } from './errores.ts'
 import { useAccion } from './useAccion.ts'

@@ -1,7 +1,11 @@
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { mesasApi, metodosPagoApi, pedidosApi } from '../../api.ts'
-import type { CuentaMesa, MetodoPago, Pedido, PagoCobro, TipoDescuento } from '../../api.ts'
+import { mesasApi } from '../../apis/mesas.ts'
+import { metodosPagoApi } from '../../apis/pagos.ts'
+import { pedidosApi } from '../../apis/pedidos.ts'
+import type { CuentaMesa } from '../../apis/mesas.ts'
+import type { MetodoPago } from '../../apis/pagos.ts'
+import type { Pedido, PagoCobro, TipoDescuento } from '../../apis/pedidos.ts'
 import { useAuth } from '../../auth/auth-context.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto, parseMonto } from '../../utils/formato.ts'
@@ -253,6 +257,13 @@ export function CuentaMesaView({ cuentaId }: Props) {
           )}
         </div>
       </section>
+
+      {cuenta.turno_cerrado && (
+        <p className={base.aviso} role="status">
+          Esta mesa quedó abierta de un turno anterior. Al cobrarla (o al pedir algo más) pasa a tu turno de hoy,
+          así que necesitas tener un turno abierto.
+        </p>
+      )}
 
       {enviadas.length > 0 && (
         <section className={base.card}>

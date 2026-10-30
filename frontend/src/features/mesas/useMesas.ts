@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { mesasApi } from '../../api.ts'
-import type { CuentaMesa, Mesa } from '../../api.ts'
+import { mesasApi } from '../../apis/mesas.ts'
+import type { CuentaMesa, Mesa } from '../../apis/mesas.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
 const REFRESCO_MS = 10_000

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
-import { gastosApi } from '../../api.ts'
-import type { GastosDelTurno } from '../../api.ts'
+import { gastosApi } from '../../apis/gastos.ts'
+import type { GastosDelTurno } from '../../apis/gastos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearFecha, formatearMonto, mensajeDeError, parseMonto } from '../../utils/formato.ts'
 import styles from '../catalogo/Catalogo.module.css'

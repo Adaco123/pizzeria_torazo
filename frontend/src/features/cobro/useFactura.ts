@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { facturasApi } from '../../api.ts'
-import type { Factura } from '../../api.ts'
+import { facturasApi } from '../../apis/facturas.ts'
+import type { Factura } from '../../apis/facturas.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 
 /**

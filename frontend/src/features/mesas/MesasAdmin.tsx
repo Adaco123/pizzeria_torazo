@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
-import { mesasApi } from '../../api.ts'
-import type { Mesa } from '../../api.ts'
+import { mesasApi } from '../../apis/mesas.ts'
+import type { Mesa } from '../../apis/mesas.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import styles from '../catalogo/Catalogo.module.css'

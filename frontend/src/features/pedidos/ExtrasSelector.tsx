@@ -1,4 +1,4 @@
-import type { Ingrediente, IngredienteTamano } from '../../api.ts'
+import type { Ingrediente, IngredienteTamano } from '../../apis/ingredientes.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import { precioExtra } from './extras.ts'
 import styles from './Pedidos.module.css'

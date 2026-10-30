@@ -1,4 +1,5 @@
-import type { Combo, DetallePedido } from '../../api.ts'
+import type { Combo } from '../../apis/combos.ts'
+import type { DetallePedido } from '../../apis/pedidos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import styles from './Pedidos.module.css'
 

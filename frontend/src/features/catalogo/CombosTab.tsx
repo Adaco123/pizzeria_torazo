@@ -1,6 +1,6 @@
 import { Fragment, useState, type SubmitEvent } from 'react'
-import { combosApi } from '../../api.ts'
-import type { Combo } from '../../api.ts'
+import { combosApi } from '../../apis/combos.ts'
+import type { Combo } from '../../apis/combos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import type { DatosCatalogo } from './useCatalogoAdmin.ts'

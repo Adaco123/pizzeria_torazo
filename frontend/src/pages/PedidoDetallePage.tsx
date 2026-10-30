@@ -1,7 +1,7 @@
 import { enlaceWhatsapp, mensajeDePedido } from '../utils/whatsapp.ts'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { pedidosApi } from '../api.ts'
+import { pedidosApi } from '../apis/pedidos.ts'
 import { useAuth } from '../auth/auth-context.ts'
 import { minutosParaPromesa, textoHoraPrometida, textoPromesa } from '../features/cocina/tiempo.ts'
 import { useAhora } from '../features/cocina/useCocina.ts'

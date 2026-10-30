@@ -1,5 +1,5 @@
-import { ESTADOS_PEDIDO } from '../../api.ts'
-import type { EstadoPedidoNombre, Pedido } from '../../api.ts'
+import { ESTADOS_PEDIDO } from '../../apis/pedidos.ts'
+import type { EstadoPedidoNombre, Pedido } from '../../apis/pedidos.ts'
 
 export const ETIQUETA_ESTADO: Record<EstadoPedidoNombre, string> = {
   pendiente: 'Pendiente',

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { RolNombre } from '../api.ts'
+import type { RolNombre } from '../apis/auth.ts'
 
 /** Datos de la sesión. El rol viene limpio del login ("Administrador" | "Cajero" | "Pizzero"). */
 export interface Sesion {

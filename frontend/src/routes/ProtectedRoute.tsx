@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
-import type { RolNombre } from '../api.ts'
+import type { RolNombre } from '../apis/auth.ts'
 import { useAuth } from '../auth/auth-context.ts'
 
 /**

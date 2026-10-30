@@ -1,4 +1,4 @@
-import type { EstadoPedidoNombre } from '../../api.ts'
+import type { EstadoPedidoNombre } from '../../apis/pedidos.ts'
 import { ETIQUETA_ESTADO } from './estados.ts'
 import styles from './Pedidos.module.css'
 

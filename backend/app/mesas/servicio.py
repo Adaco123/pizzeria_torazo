@@ -49,7 +49,7 @@ def turno_para_abrir():
         consulta = consulta.filter(Turno.usuario_id == usuario.id)
     turno = consulta.order_by(Turno.apertura.desc()).first()
     if turno is None:
-        raise ReglaNegocio('No hay un turno abierto: abre el turno de caja antes de abrir mesas', 409)
+        raise ReglaNegocio('No hay un turno abierto: abre el turno de caja primero (las mesas pendientes pasan a tu turno)', 409)
     return turno
 
 
@@ -63,6 +63,20 @@ def abrir_cuenta(mesa):
     db.session.add(cuenta)
     db.session.commit()
     return cuenta
+
+
+def asegurar_turno_vigente(cuenta):
+    """Si el turno de la cuenta ya se cerró (por ejemplo, cerró solo a la 1:00 con la mesa abierta),
+    la cuenta pasa al turno abierto de quien la atiende. Así el efectivo cobrado hoy cae en la caja
+    de hoy y la mesa no queda atrapada en un turno cerrado."""
+    if cuenta.turno is not None and cuenta.turno.cierre is None:
+        return
+    destino = turno_para_abrir()
+    cuenta.turno_id = destino.id
+    for ronda in cuenta.pedidos:
+        ronda.turno_id = destino.id
+    db.session.flush()
+    db.session.refresh(cuenta)
 
 
 def exigir_cuenta_abierta(cuenta):
@@ -87,7 +101,7 @@ def nueva_ronda(cuenta):
     """Borrador para ir armando lo que pide la mesa. Si ya hay uno vacío o a medias, se reutiliza."""
     pedidos.exigir_rol(*ROLES_DE_SALA)
     exigir_cuenta_abierta(cuenta)
-    pedidos.exigir_turno_abierto(cuenta.turno)
+    asegurar_turno_vigente(cuenta)
     usuario = pedidos.usuario_actual()
     for p in cuenta.pedidos:
         if pedidos.estado_de(p) == 'pendiente' and p.usuario_id == usuario.id:
@@ -115,7 +129,7 @@ def enviar_a_cocina(pedido):
     exigir_cuenta_abierta(pedido.cuenta)
     if pedidos.estado_de(pedido) != 'pendiente':
         raise ReglaNegocio('Esta ronda ya fue enviada a cocina', 409)
-    pedidos.exigir_turno_abierto(pedido.turno)
+    asegurar_turno_vigente(pedido.cuenta)
     if not pedido.detalles:
         raise ReglaNegocio('Agrega productos a la ronda antes de enviarla', 400)
     pedidos.recalcular_total(pedido)
@@ -139,7 +153,9 @@ def pedir_cuenta(cuenta, pidio=True):
 
 def _exigir_puede_cobrar(cuenta):
     pedidos.exigir_rol(ROL_CAJERO, ROL_ADMINISTRADOR)
-    if not pedidos.es_admin() and cuenta.turno.usuario_id != pedidos.usuario_actual().id:
+    turno_vigente = cuenta.turno is not None and cuenta.turno.cierre is None
+    # Una mesa de un turno ya cerrado la cobra cualquier cajero con su turno abierto.
+    if turno_vigente and not pedidos.es_admin() and cuenta.turno.usuario_id != pedidos.usuario_actual().id:
         raise ReglaNegocio('Esta mesa se abrió en el turno de otro cajero', 403)
 
 
@@ -206,7 +222,7 @@ def cobrar_cuenta(cuenta, pagos_data, descuento=None):
     """
     _exigir_puede_cobrar(cuenta)
     exigir_cuenta_abierta(cuenta)
-    pedidos.exigir_turno_abierto(cuenta.turno)
+    asegurar_turno_vigente(cuenta)
     _descartar_borradores_vacios(cuenta)
 
     rondas = rondas_enviadas(cuenta)
@@ -311,6 +327,7 @@ def resumen_de_cuenta(cuenta):
         'abierta_por': cuenta.abierta_por.nombre if cuenta.abierta_por else None,
         'cajero': cuenta.turno.usuario.nombre if cuenta.turno and cuenta.turno.usuario else None,
         'turno_id': cuenta.turno_id,
+        'turno_cerrado': cuenta.turno is not None and cuenta.turno.cierre is not None,
         'pidio_cuenta': cuenta.pidio_cuenta,
         'rondas': len(estados),
         'rondas_en_cocina': sum(1 for e in estados if e in ('confirmado', 'en_preparacion')),

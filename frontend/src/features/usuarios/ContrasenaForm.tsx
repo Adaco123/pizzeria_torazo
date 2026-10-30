@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import { authApi } from '../../api.ts'
+import { authApi } from '../../apis/auth.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import styles from '../catalogo/Catalogo.module.css'
 

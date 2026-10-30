@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { clientesApi, metodosPagoApi, pedidosApi } from '../../api.ts'
-import type { Cliente, MetodoPago, Pedido } from '../../api.ts'
+import { clientesApi } from '../../apis/clientes.ts'
+import { metodosPagoApi } from '../../apis/pagos.ts'
+import { pedidosApi } from '../../apis/pedidos.ts'
+import type { Cliente } from '../../apis/clientes.ts'
+import type { MetodoPago } from '../../apis/pagos.ts'
+import type { Pedido } from '../../apis/pedidos.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import { estadoDe, TIPO_ENTREGA_ID } from '../pedidos/estados.ts'
 

@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { clientesApi } from '../../api.ts'
-import type { Cliente } from '../../api.ts'
+import { clientesApi } from '../../apis/clientes.ts'
+import type { Cliente } from '../../apis/clientes.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import styles from '../pedidos/Pedidos.module.css'
 

@@ -1,4 +1,4 @@
-import type { Pedido } from '../api.ts'
+import type { Pedido } from '../apis/pedidos.ts'
 import { aFecha } from './formato.ts'
 
 const NOMBRE_NEGOCIO = 'El Torazo'

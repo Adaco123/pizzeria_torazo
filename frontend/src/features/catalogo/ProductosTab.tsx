@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
-import { productosApi } from '../../api.ts'
-import type { Producto } from '../../api.ts'
+import { productosApi } from '../../apis/productos.ts'
+import type { Producto } from '../../apis/productos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import type { DatosCatalogo } from './useCatalogoAdmin.ts'
 import { mensajeEliminar } from './errores.ts'
