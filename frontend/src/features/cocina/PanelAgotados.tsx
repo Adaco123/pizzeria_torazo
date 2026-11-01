@@ -9,7 +9,7 @@ import styles from './Cocina.module.css'
  * Lista de productos activos para marcar cuáles se agotaron. Un producto agotado deja de
  * poder venderse en caja hasta que se desmarque. Cocina, caja y administrador pueden usarlo.
  */
-export function PanelAgotados() {
+export function PanelAgotados({ abierto = false }: { abierto?: boolean }) {
   const toast = useToast()
   const [productos, setProductos] = useState<Producto[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +42,7 @@ export function PanelAgotados() {
   const agotados = productos?.filter((p) => p.agotado).length ?? 0
 
   return (
-    <details className={styles.agotados}>
+    <details className={styles.agotados} open={abierto || undefined}>
       <summary>
         Productos agotados
         {agotados > 0 && <span className={styles.contadorAgotados}>{agotados}</span>}

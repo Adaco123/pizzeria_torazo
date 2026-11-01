@@ -1,15 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../auth/auth-context.ts'
-import cocinaStyles from '../features/cocina/Cocina.module.css'
+import { BarraCaja } from '../features/caja/barra/BarraCaja.tsx'
+import { Hoja } from '../features/caja/Hoja.tsx'
+import { ResumenTurnoPanel } from '../features/turnos/ResumenTurnoPanel.tsx'
 import { Caja } from '../features/caja/Caja.tsx'
-import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'
-import { PanelStockBebidas } from '../features/stock/PanelStockBebidas.tsx'
 import { INTERVALO_MS } from '../features/cocina/useCocina.ts'
 import { TableroPedidos } from '../features/pedidos/TableroPedidos.tsx'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
-import { PanelGastos } from '../features/turnos/PanelGastos.tsx'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
 import { useTurnos } from '../features/turnos/useTurnos.ts'
 
@@ -18,6 +17,7 @@ export function PedidosPage() {
   const esAdmin = hasRole('Administrador')
 
   const turnos = useTurnos()
+  const [resumenId, setResumenId] = useState<number | null>(null)
   const { pedidos, cargando, error, recargar } = usePedidos()
   const { clientes, recargar: recargarClientes } = useClientes()
 
@@ -47,10 +47,21 @@ export function PedidosPage() {
   }
 
   return (
-    <section className={styles.page}>
-      <div className={styles.headerRow}>
-        <h1>Pedidos</h1>
-      </div>
+    <section className={miTurno ? `${styles.page} ${styles.pageAncha}` : styles.page}>
+      {miTurno && sesion ? (
+        <BarraCaja
+          turno={miTurno}
+          usuarioId={sesion.id}
+          esAdmin={esAdmin}
+          version={pedidos.length}
+          onCambio={turnos.recargar}
+          onVerResumen={setResumenId}
+        />
+      ) : (
+        <div className={styles.headerRow}>
+          <h1>Pedidos</h1>
+        </div>
+      )}
 
       {turnos.error && (
         <p className={styles.error} role="alert">
@@ -71,19 +82,10 @@ export function PedidosPage() {
 
       {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} esAdmin={esAdmin} pedidos={delAlcance} onCambio={alCambiar} />}
 
-      {miTurno && <PanelAgotados />}
-      {miTurno && (
-        <details className={cocinaStyles.agotados}>
-          <summary>Stock de bebidas (llegó mercadería)</summary>
-          <PanelStockBebidas esAdmin={esAdmin} />
-        </details>
-      )}
-
-      {miTurno && (
-        <details className={cocinaStyles.agotados}>
-          <summary>Gastos y retiros de caja</summary>
-          <PanelGastos turnoId={miTurno.id} esAdmin={esAdmin} />
-        </details>
+      {resumenId !== null && (
+        <Hoja titulo="Resumen del turno" onCerrar={() => setResumenId(null)}>
+          <ResumenTurnoPanel key={resumenId} turnoId={resumenId} completo={esAdmin} onCerrar={() => setResumenId(null)} />
+        </Hoja>
       )}
 
       {error && (
