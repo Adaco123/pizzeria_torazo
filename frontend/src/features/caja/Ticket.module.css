@@ -1,0 +1,678 @@
+/* ==========================================================================
+   Carrito del cajero (columna derecha) y las ventanas que salen de él.
+   En celular el carrito es un cajón que sube desde abajo.
+   ========================================================================== */
+.ticket {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: min(620px, calc(100dvh - 130px));
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+:where(.ticket button) {
+  font: inherit;
+  cursor: pointer;
+}
+
+.agarre {
+  display: none;
+}
+
+.cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cabeza h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.cabeza h2 b {
+  color: var(--color-primary);
+}
+
+.segmento {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+}
+
+.segmento button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.segmento button[aria-pressed='true'] {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: var(--shadow);
+}
+
+.datos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.cliente {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  font-size: 13px;
+}
+
+.cliente div {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.cliente b,
+.cliente small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cliente small {
+  color: var(--color-muted);
+}
+
+.cliente > button {
+  padding: 6px;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.frecuente {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.frecuente button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.frecuente button:disabled {
+  opacity: 0.6;
+}
+
+.domicilio {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.domicilio input,
+.domicilio select,
+.campo input,
+.buscador input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  font: inherit;
+  color: var(--color-heading);
+  outline: 0;
+}
+
+.domicilio input:focus,
+.domicilio select:focus,
+.campo input:focus,
+.buscador input:focus {
+  border-color: var(--color-primary);
+}
+
+.direccion {
+  grid-column: 1 / -1;
+}
+
+.envio {
+  position: relative;
+}
+
+.envio span {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.envio input {
+  padding-left: 32px;
+}
+
+.aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #fef3e2;
+  font-size: 12px;
+  color: #b45309;
+}
+
+/* ---------- Líneas del pedido ---------- */
+.items {
+  flex: 1;
+  min-height: 90px;
+  padding: 4px 16px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lineas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linea {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+}
+
+.linea + .linea {
+  border-top: 1px solid var(--color-border);
+}
+
+.lineaTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.lineaTexto b {
+  color: var(--color-heading);
+}
+
+.tamano {
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.lineaTexto small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.extra button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+.nota {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #fef3e2;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.lineaPrecio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.lineaPrecio b {
+  color: var(--color-heading);
+}
+
+.lineaPrecio button {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-muted);
+}
+
+.lineaPrecio button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 28px 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.vacio p {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+/* ---------- Totales ---------- */
+.pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+}
+
+.fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  color: var(--color-muted);
+}
+
+.descuentoFila {
+  align-items: flex-start;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.descuentoFila span:last-child {
+  white-space: nowrap;
+}
+
+.total {
+  padding: 6px 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.descuentoFila .enlace {
+  margin-left: 8px;
+  padding: 2px;
+  font-size: 12.5px;
+}
+
+.cobrar {
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-primary);
+  box-shadow: 0 8px 18px -6px var(--color-primary);
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.cobrar:hover {
+  background: var(--color-primary-hover);
+}
+
+.cobrar:disabled {
+  background: #d9c9cb;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.descartar {
+  align-self: center;
+  margin-top: 4px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  text-decoration: underline;
+}
+
+/* ---------- Ventanas (cliente, descuento, historial) ---------- */
+.fondoHoja {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(31, 21, 23, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+:where(.fondoHoja button) {
+  font: inherit;
+  cursor: pointer;
+}
+
+.hoja {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  border-radius: 18px;
+  background: var(--color-white);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: subir 0.2s ease-out;
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.hojaCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hojaCabecera h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.hojaCabecera button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.hojaCuerpo {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.buscador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+}
+
+.buscador svg {
+  position: absolute;
+  margin-left: 10px;
+  pointer-events: none;
+}
+
+.buscador input {
+  padding-left: 36px;
+}
+
+.listaClientes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listaClientes button {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-white);
+  text-align: left;
+  line-height: 1.25;
+}
+
+.listaClientes button:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.listaClientes small,
+.sinResultados,
+.ayuda {
+  color: var(--color-muted);
+}
+
+.sinResultados {
+  padding: 8px 0;
+  text-align: center;
+}
+
+.ayuda,
+.errorTexto {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.errorTexto {
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.principal,
+.secundario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.principal {
+  border: 0;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.principal:disabled {
+  background: #d9c9cb;
+  cursor: not-allowed;
+}
+
+.secundario {
+  border: 1.5px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-heading);
+}
+
+.atajos {
+  display: flex;
+  gap: 6px;
+}
+
+.atajos button {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-weight: 700;
+}
+
+.resumenCliente {
+  margin: 0 0 8px;
+}
+
+.historial {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historial li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.historial small {
+  color: var(--color-muted);
+}
+
+/* ---------- Celular: el carrito es un cajón ---------- */
+@media (max-width: 760px) {
+  .ticket {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    min-height: 0;
+    max-height: 88vh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(105%);
+    transition: transform 0.25s;
+  }
+
+  .abierto {
+    transform: none;
+  }
+
+  .agarre {
+    display: grid;
+    place-items: center;
+    padding: 6px 0 0;
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+  }
+
+  .fondoHoja {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .hoja {
+    max-width: none;
+    border-radius: 20px 20px 0 0;
+  }
+}

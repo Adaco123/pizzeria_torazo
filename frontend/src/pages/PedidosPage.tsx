@@ -69,7 +69,7 @@ export function PedidosPage() {
         </div>
       )}
 
-      {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} onCambio={alCambiar} />}
+      {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} esAdmin={esAdmin} pedidos={delAlcance} onCambio={alCambiar} />}
 
       {miTurno && <PanelAgotados />}
       {miTurno && (
@@ -97,7 +97,7 @@ export function PedidosPage() {
         </div>
       )}
       {cargando && <p className={styles.muted}>Cargando pedidos…</p>}
-      {!cargando && (miTurno !== null || esAdmin) && (
+      {!cargando && miTurno === null && esAdmin && (
         <TableroPedidos pedidos={delAlcance} nombres={nombres} telefonos={telefonos} onCambio={alCambiar} />
       )}
     </section>

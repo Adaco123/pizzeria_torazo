@@ -1,16 +1,20 @@
+import { ClipboardList } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { pedidosApi } from '../../apis/pedidos.ts'
 import { repartidoresApi } from '../../apis/repartidores.ts'
 import type { Cliente } from '../../apis/clientes.ts'
+import type { Pedido } from '../../apis/pedidos.ts'
 import type { CobroResultado, PagoCobro } from '../../apis/pedidos.ts'
 import type { Repartidor } from '../../apis/repartidores.ts'
 import { useToast } from '../../toast/toast-context.ts'
-import { AgregarItemPanel } from '../pedidos/AgregarItemPanel.tsx'
 import { TIPO_ENTREGA_ID, type TipoEntregaNombre } from '../pedidos/estados.ts'
 import base from '../pedidos/Pedidos.module.css'
 import type { Catalogo } from '../pedidos/useCatalogo.ts'
 import { useCatalogo } from '../pedidos/useCatalogo.ts'
 import { FichaConfirmada } from './FichaConfirmada.tsx'
+import { MenuCaja } from './menu/MenuCaja.tsx'
+import { RielPedidos } from './riel/RielPedidos.tsx'
+import { estadoDe } from '../pedidos/estados.ts'
 import { PanelCobro } from './PanelCobro.tsx'
 import { TicketCaja } from './TicketCaja.tsx'
 import { esMostrador, useCaja, type CajaApi } from './useCaja.ts'
@@ -20,6 +24,9 @@ import styles from './Caja.module.css'
 interface Props {
   usuarioId: number
   turnoId: number
+  esAdmin?: boolean
+  /** Pedidos del turno (los muestra el riel de la izquierda). */
+  pedidos?: Pedido[]
   /** Se llama cuando cambia algo que otras pantallas muestran (cobrar, descartar). */
   onCambio: () => void
 }
@@ -31,6 +38,9 @@ interface EnCursoProps {
   errorCatalogo: string | null
   onCobrado: (resultado: CobroResultado) => void
   onCambio: () => void
+  usuarioId: number
+  esAdmin: boolean
+  pedidos: Pedido[]
 }
 
 const CLAVE_ULTIMO_ENVIO = 'pizzeria.ultimoEnvio'
@@ -58,7 +68,7 @@ function tieneTelefono(cliente: Cliente): boolean {
   return !esMostrador(cliente) && telefono !== '' && telefono !== '0'
 }
 
-function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCambio }: EnCursoProps) {
+function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCambio, usuarioId, esAdmin, pedidos }: EnCursoProps) {
   const toast = useToast()
   const { borrador, clientes, mostrador, metodos, proximaFicha } = estado
 
@@ -71,6 +81,10 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
   const [repartidores, setRepartidores] = useState<Repartidor[]>([])
   const [cobrando, setCobrando] = useState(false)
   const [ocupado, setOcupado] = useState(false)
+  /** Celular: el carrito es un cajón que se abre desde la barra de abajo. */
+  const [cajonAbierto, setCajonAbierto] = useState(false)
+  /** Tablet y celular: el riel de pedidos es un cajón por la izquierda. */
+  const [rielAbierto, setRielAbierto] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -178,6 +192,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
       caja.actualizarBorrador(guardado)
       recordarEnvio(envio)
       setCobrando(true)
+      setCajonAbierto(false)
     } catch (e) {
       toast.error(e)
       await refrescar()
@@ -226,14 +241,25 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
   return (
     <>
       <div className={styles.layout}>
+        <RielPedidos
+          pedidos={pedidos}
+          clientes={clientes}
+          combos={catalogo?.combos ?? []}
+          usuarioId={usuarioId}
+          esAdmin={esAdmin}
+          abierto={rielAbierto}
+          onCerrar={() => setRielAbierto(false)}
+          onCambio={onCambio}
+        />
+
         <div className={styles.menu}>
+          <button type="button" className={styles.abrirRiel} onClick={() => setRielAbierto(true)}>
+            <ClipboardList size={18} aria-hidden="true" />
+            Pedidos
+            {pedidos.some((p) => estadoDe(p) === 'listo') && <i>{pedidos.filter((p) => estadoDe(p) === 'listo').length}</i>}
+          </button>
           {catalogo && (
-            <AgregarItemPanel
-              pedidoId={borrador.id}
-              catalogo={catalogo}
-              onAgregado={refrescar}
-              silencioso
-            />
+            <MenuCaja pedidoId={borrador.id} catalogo={catalogo} onAgregado={refrescar} />
           )}
           {!catalogo && !errorCatalogo && <p className={base.muted}>Cargando el menú…</p>}
           {errorCatalogo && (
@@ -258,6 +284,8 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
           envioMostrado={envioMostrado}
           proximaFicha={proximaFicha}
           ocupado={ocupado}
+          abierto={cajonAbierto}
+          onCerrarCajon={() => setCajonAbierto(false)}
           onTipo={elegirTipo}
           onDireccion={setDireccion}
           onCostoEnvio={setCostoEnvio}
@@ -273,11 +301,14 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
         />
       </div>
 
+      {cajonAbierto && <div className={styles.cortina} onClick={() => setCajonAbierto(false)} aria-hidden="true" />}
+
       <div className={styles.barraMovil}>
-        <span>
-          {unidades} {unidades === 1 ? 'producto' : 'productos'} · <strong>{formatearMonto(totalMostrado)}</strong>
-        </span>
-        <button className={base.primary} type="button" disabled={ocupado} onClick={iniciarCobro}>
+        <button type="button" className={styles.resumenMovil} onClick={() => setCajonAbierto(true)}>
+          <small>{unidades === 0 ? 'Sin productos' : `${unidades} ${unidades === 1 ? 'producto' : 'productos'}`}</small>
+          <b>{formatearMonto(totalMostrado)}</b>
+        </button>
+        <button className={styles.cobrarMovil} type="button" disabled={ocupado || unidades === 0} onClick={iniciarCobro}>
           Cobrar
         </button>
       </div>
@@ -285,7 +316,7 @@ function PedidoEnCurso({ estado, caja, catalogo, errorCatalogo, onCobrado, onCam
   )
 }
 
-export function Caja({ usuarioId, turnoId, onCambio }: Props) {
+export function Caja({ usuarioId, turnoId, esAdmin = false, pedidos = [], onCambio }: Props) {
   const caja = useCaja(usuarioId, turnoId)
   const { catalogo, error: errorCatalogo } = useCatalogo()
   const [cobrado, setCobrado] = useState<CobroResultado | null>(null)
@@ -324,6 +355,9 @@ export function Caja({ usuarioId, turnoId, onCambio }: Props) {
       caja={caja}
       catalogo={catalogo}
       errorCatalogo={errorCatalogo}
+      usuarioId={usuarioId}
+      esAdmin={esAdmin}
+      pedidos={pedidos}
       onCobrado={(resultado) => {
         setCobrado(resultado)
         onCambio()

@@ -1,17 +1,18 @@
+import { Bike, ChevronDown, UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
 import type { Cliente } from '../../apis/clientes.ts'
 import type { Combo } from '../../apis/combos.ts'
 import type { Pedido } from '../../apis/pedidos.ts'
 import type { Repartidor } from '../../apis/repartidores.ts'
 import { formatearMonto } from '../../utils/formato.ts'
-import { DetalleItems } from '../pedidos/DetalleItems.tsx'
-import { TIPO_ENTREGA_ID, type TipoEntregaNombre } from '../pedidos/estados.ts'
-import base from '../pedidos/Pedidos.module.css'
-import { DescuentoCaja } from './DescuentoCaja.tsx'
+import type { TipoEntregaNombre } from '../pedidos/estados.ts'
+import { CarritoItems } from './CarritoItems.tsx'
 import { ClienteFrecuente } from './ClienteFrecuente.tsx'
+import { DescuentoCaja } from './DescuentoCaja.tsx'
+import { Hoja } from './Hoja.tsx'
 import { SelectorCliente } from './SelectorCliente.tsx'
 import { esMostrador } from './useCaja.ts'
-import styles from './Caja.module.css'
+import styles from './Ticket.module.css'
 
 interface Props {
   pedido: Pedido
@@ -30,6 +31,9 @@ interface Props {
   envioMostrado: number
   proximaFicha: number
   ocupado: boolean
+  /** Celular: el carrito es un cajón que sube desde abajo. */
+  abierto: boolean
+  onCerrarCajon: () => void
   onTipo: (tipo: TipoEntregaNombre) => void
   onDireccion: (direccion: string) => void
   onCostoEnvio: (costo: string) => void
@@ -42,6 +46,13 @@ interface Props {
   onQuitarExtra: (detalleId: number, extraId: number) => void
   onCobrar: () => void
   onDescartar: () => void
+}
+
+/** Un cliente sirve para domicilio si se le puede llamar. */
+function sePuedeLlamar(cliente: Cliente | null): boolean {
+  if (!cliente || esMostrador(cliente)) return false
+  const telefono = cliente.telefono.trim()
+  return telefono !== '' && telefono !== '0'
 }
 
 export function TicketCaja({
@@ -59,6 +70,8 @@ export function TicketCaja({
   envioMostrado,
   proximaFicha,
   ocupado,
+  abierto,
+  onCerrarCajon,
   onTipo,
   onDireccion,
   onCostoEnvio,
@@ -75,6 +88,9 @@ export function TicketCaja({
   const [eligiendo, setEligiendo] = useState(false)
   const vacio = pedido.detalles.length === 0
   const esDomicilio = tipo === 'Domicilio'
+  const subtotal = pedido.detalles.reduce((s, d) => s + d.subtotal, 0)
+  const nombreCliente = cliente?.nombre ?? '—'
+  const real = cliente !== null && !esMostrador(cliente)
 
   function elegir(elegido: Cliente) {
     onElegirCliente(elegido)
@@ -82,139 +98,137 @@ export function TicketCaja({
   }
 
   return (
-    <section className={`${base.card} ${styles.ticket}`} aria-label="Pedido en curso">
-      <div className={base.headerRow}>
-        <h2>Pedido nuevo</h2>
-        <span className={styles.ficha}>
-          Ficha <strong>{proximaFicha}</strong>
-        </span>
-      </div>
+    <aside className={`${styles.ticket} ${abierto ? styles.abierto : ''}`} aria-label="Pedido en curso">
+      <button type="button" className={styles.agarre} aria-label="Cerrar el pedido" onClick={onCerrarCajon}>
+        <ChevronDown size={22} aria-hidden="true" />
+      </button>
 
-      <div className={base.chips} role="group" aria-label="Tipo de entrega">
-        {(Object.keys(TIPO_ENTREGA_ID) as TipoEntregaNombre[]).map((nombre) => (
-          <button
-            key={nombre}
-            type="button"
-            className={nombre === tipo ? base.chipActive : base.chip}
-            aria-pressed={nombre === tipo}
-            onClick={() => onTipo(nombre)}
-          >
-            {nombre}
+      <div className={styles.cabeza}>
+        <h2>
+          Pedido <b>#{proximaFicha}</b>
+        </h2>
+        <div className={styles.segmento} role="group" aria-label="Tipo de entrega">
+          <button type="button" aria-pressed={!esDomicilio} onClick={() => onTipo('Local')}>
+            <UtensilsCrossed size={15} aria-hidden="true" /> Local
           </button>
-        ))}
+          <button type="button" aria-pressed={esDomicilio} onClick={() => onTipo('Domicilio')}>
+            <Bike size={15} aria-hidden="true" /> Domicilio
+          </button>
+        </div>
       </div>
 
-      {esDomicilio && (
-        <>
-          <label className={base.field}>
-            <span>Dirección de entrega</span>
+      <div className={styles.datos}>
+        <div className={styles.cliente}>
+          <span className={styles.avatar} aria-hidden="true">
+            {nombreCliente.charAt(0).toUpperCase()}
+          </span>
+          <div>
+            <b>{nombreCliente}</b>
+            <small>{real && cliente.telefono ? `Tel. ${cliente.telefono}` : 'Venta rápida'}</small>
+          </div>
+          <button type="button" onClick={() => setEligiendo(true)}>
+            Cambiar
+          </button>
+        </div>
+
+        {real && (
+          <ClienteFrecuente
+            key={cliente.id}
+            cliente={cliente}
+            pedidoId={pedido.id}
+            hayProductos={!vacio}
+            ocupado={ocupado}
+            onRepetido={onRepetido}
+          />
+        )}
+
+        {esDomicilio && (
+          <div className={styles.domicilio}>
             <input
-              type="text"
+              className={styles.direccion}
               value={direccion}
-              placeholder="Calle, número, zona"
+              placeholder="Dirección de entrega"
+              aria-label="Dirección de entrega"
+              autoComplete="off"
               onChange={(e) => onDireccion(e.target.value)}
             />
-          </label>
-          <div className={styles.envio}>
-            <label className={base.field}>
-              <span>Costo de envío (Bs)</span>
+            <label className={styles.envio}>
+              <span>Bs</span>
               <input
-                type="text"
                 inputMode="decimal"
                 value={costoEnvio}
-                placeholder="0"
+                placeholder="Envío"
                 aria-label="Costo de envío"
                 onChange={(e) => onCostoEnvio(e.target.value)}
               />
             </label>
-            <label className={`${base.field} ${base.grow}`}>
-              <span>Repartidor</span>
-              <select
-                value={repartidorId ?? ''}
-                aria-label="Repartidor"
-                onChange={(e) => onRepartidor(e.target.value === '' ? null : Number(e.target.value))}
-              >
-                <option value="">Sin asignar</option>
-                {repartidores.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.nombre}
-                    {r.tipo === 'empresa' ? ' (empresa)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <select
+              value={repartidorId ?? ''}
+              aria-label="Repartidor"
+              onChange={(e) => onRepartidor(e.target.value === '' ? null : Number(e.target.value))}
+            >
+              <option value="">Repartidor</option>
+              {repartidores.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre}
+                  {r.tipo === 'empresa' ? ' (empresa)' : ''}
+                </option>
+              ))}
+            </select>
+            {!sePuedeLlamar(cliente) && (
+              <p className={styles.aviso}>Para domicilio elige un cliente con teléfono.</p>
+            )}
           </div>
-        </>
-      )}
-
-      <div className={styles.cliente}>
-        <span className={base.muted}>Cliente</span>
-        <span>
-          <strong>{cliente?.nombre ?? '—'}</strong>
-          {cliente && !esMostrador(cliente) && cliente.telefono ? (
-            <span className={base.muted}> · Tel. {cliente.telefono}</span>
-          ) : null}
-          <button className={base.link} type="button" onClick={() => setEligiendo((v) => !v)}>
-            {eligiendo ? 'cerrar' : 'cambiar'}
-          </button>
-        </span>
+        )}
       </div>
 
-      {cliente && !esMostrador(cliente) && (
-        <ClienteFrecuente
-          key={cliente.id}
-          cliente={cliente}
-          pedidoId={pedido.id}
-          hayProductos={!vacio}
-          ocupado={ocupado}
-          onRepetido={onRepetido}
+      <div className={styles.items}>
+        <CarritoItems
+          detalles={pedido.detalles}
+          combos={combos}
+          onQuitarDetalle={onQuitarDetalle}
+          onQuitarExtra={onQuitarExtra}
         />
-      )}
+      </div>
+
+      <div className={styles.pie}>
+        <div className={styles.fila}>
+          <span>Subtotal</span>
+          <span>{formatearMonto(subtotal)}</span>
+        </div>
+        <DescuentoCaja pedido={pedido} ocupado={ocupado} onCambio={onPedidoCambiado} />
+        {esDomicilio && envioMostrado > 0 && (
+          <div className={styles.fila}>
+            <span>Envío{repartidores.find((r) => r.id === repartidorId)?.nombre ? ` · ${repartidores.find((r) => r.id === repartidorId)?.nombre}` : ''}</span>
+            <span>{formatearMonto(envioMostrado)}</span>
+          </div>
+        )}
+        <div className={`${styles.fila} ${styles.total}`}>
+          <span>Total</span>
+          <span>{formatearMonto(totalMostrado)}</span>
+        </div>
+        <button type="button" className={styles.cobrar} disabled={ocupado || vacio} onClick={onCobrar}>
+          {vacio ? 'Cobrar' : `Cobrar ${formatearMonto(totalMostrado)}`}
+        </button>
+        {!vacio && (
+          <button type="button" className={styles.descartar} disabled={ocupado} onClick={onDescartar}>
+            Descartar este pedido
+          </button>
+        )}
+      </div>
 
       {eligiendo && (
-        <div className={styles.selector}>
-          {cliente && !esMostrador(cliente) && (
-            <button className={base.secondary} type="button" onClick={() => elegir(mostrador)}>
-              Volver a Mostrador
-            </button>
-          )}
+        <Hoja titulo="Cliente" onCerrar={() => setEligiendo(false)}>
           <SelectorCliente
             clientes={clientes}
             requiereTelefono={esDomicilio}
+            puedeVolverAMostrador={real}
             onElegir={elegir}
+            onMostrador={() => elegir(mostrador)}
             onCreado={onClienteCreado}
-            onCerrar={() => setEligiendo(false)}
           />
-        </div>
+        </Hoja>
       )}
-
-      <DetalleItems
-        detalles={pedido.detalles}
-        total={totalMostrado}
-        descuento={pedido.descuento}
-        envio={esDomicilio ? { costo: envioMostrado, repartidor: repartidores.find((r) => r.id === repartidorId)?.nombre } : undefined}
-        combos={combos}
-        editable
-        onQuitarExtra={onQuitarExtra}
-        onQuitarDetalle={onQuitarDetalle}
-      />
-
-      <DescuentoCaja pedido={pedido} ocupado={ocupado} onCambio={onPedidoCambiado} />
-
-      <button
-        className={`${base.primary} ${styles.cobrar}`}
-        type="button"
-        disabled={ocupado}
-        onClick={onCobrar}
-      >
-        {vacio ? 'Cobrar' : `Cobrar ${formatearMonto(totalMostrado)} y enviar a cocina`}
-      </button>
-
-      {!vacio && (
-        <button className={base.link} type="button" disabled={ocupado} onClick={onDescartar}>
-          Descartar este pedido
-        </button>
-      )}
-    </section>
+    </aside>
   )
 }

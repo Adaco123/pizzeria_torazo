@@ -6,6 +6,11 @@
   max-width: 1000px;
 }
 
+.pageAncha {
+  max-width: 1680px;
+  margin-inline: auto;
+}
+
 .headerRow {
   display: flex;
   flex-wrap: wrap;

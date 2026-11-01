@@ -34,7 +34,7 @@
   --shadow: rgba(31, 21, 23, 0.08) 0 10px 15px -3px, rgba(31, 21, 23, 0.04) 0 4px 6px -2px;
 
   /* Tipografía */
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, monospace;
 
   font: 16px/150% var(--font-sans);

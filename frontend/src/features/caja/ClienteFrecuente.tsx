@@ -1,10 +1,11 @@
+import { History, Repeat } from 'lucide-react'
 import { useState } from 'react'
 import { clientesApi } from '../../apis/clientes.ts'
 import type { Cliente, HistorialCliente } from '../../apis/clientes.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto } from '../../utils/formato.ts'
-import base from '../pedidos/Pedidos.module.css'
-import styles from './Caja.module.css'
+import { Hoja } from './Hoja.tsx'
+import styles from './Ticket.module.css'
 
 interface Props {
   cliente: Cliente
@@ -24,24 +25,16 @@ export function ClienteFrecuente({ cliente, pedidoId, hayProductos, ocupado, onR
   const [cargando, setCargando] = useState(false)
   const [repitiendo, setRepitiendo] = useState(false)
 
-  async function cargar(): Promise<HistorialCliente | null> {
+  async function abrirHistorial() {
+    setAbierto(true)
     setCargando(true)
     try {
-      const datos = await clientesApi.historial(cliente.id)
-      setHistorial(datos)
-      return datos
+      setHistorial(await clientesApi.historial(cliente.id))
     } catch (e) {
       toast.error(e)
-      return null
     } finally {
       setCargando(false)
     }
-  }
-
-  async function alternar() {
-    const siguiente = !abierto
-    setAbierto(siguiente)
-    if (siguiente) await cargar()
   }
 
   async function repetir() {
@@ -69,43 +62,42 @@ export function ClienteFrecuente({ cliente, pedidoId, hayProductos, ocupado, onR
   }
 
   return (
-    <div className={styles.frecuente}>
-      <div className={base.formRow}>
-        <button className={base.secondary} type="button" disabled={ocupado || repitiendo} onClick={repetir}>
-          {repitiendo ? 'Repitiendo…' : 'Repetir último pedido'}
+    <>
+      <div className={styles.frecuente}>
+        <button type="button" disabled={ocupado || repitiendo} onClick={repetir}>
+          <Repeat size={14} aria-hidden="true" /> {repitiendo ? 'Repitiendo…' : 'Repetir último pedido'}
         </button>
-        <button className={base.link} type="button" onClick={alternar}>
-          {abierto ? 'ocultar historial' : 'ver historial'}
+        <button type="button" onClick={abrirHistorial}>
+          <History size={14} aria-hidden="true" /> Historial
         </button>
       </div>
 
       {abierto && (
-        <div className={base.subCard}>
-          {cargando && !historial && <p className={base.muted}>Cargando historial…</p>}
+        <Hoja titulo={`Historial de ${cliente.nombre}`} onCerrar={() => setAbierto(false)}>
+          {cargando && !historial && <p className={styles.ayuda}>Cargando historial…</p>}
           {historial && historial.num_pedidos === 0 && (
-            <p className={base.muted}>{cliente.nombre} todavía no tiene pedidos cobrados.</p>
+            <p className={styles.ayuda}>{cliente.nombre} todavía no tiene pedidos cobrados.</p>
           )}
           {historial && historial.num_pedidos > 0 && (
             <>
-              <p>
-                <strong>{historial.num_pedidos}</strong> {historial.num_pedidos === 1 ? 'pedido' : 'pedidos'} ·
-                gastó <strong>{formatearMonto(historial.total_gastado)}</strong> · última compra{' '}
-                {formatearFecha(historial.ultima_compra)}
+              <p className={styles.resumenCliente}>
+                <b>{historial.num_pedidos}</b> {historial.num_pedidos === 1 ? 'pedido' : 'pedidos'} · gastó{' '}
+                <b>{formatearMonto(historial.total_gastado)}</b> · última compra {formatearFecha(historial.ultima_compra)}
               </p>
               <ul className={styles.historial}>
                 {historial.pedidos.slice(0, 5).map((p) => (
                   <li key={p.id}>
                     <span>
-                      {formatearFecha(p.fecha)} · {p.tipo_entrega ?? 'Local'} · <strong>{formatearMonto(p.total)}</strong>
+                      {formatearFecha(p.fecha)} · {p.tipo_entrega ?? 'Local'} · <b>{formatearMonto(p.total)}</b>
                     </span>
-                    <span className={base.muted}>{p.resumen}</span>
+                    <small>{p.resumen}</small>
                   </li>
                 ))}
               </ul>
             </>
           )}
-        </div>
+        </Hoja>
       )}
-    </div>
+    </>
   )
 }

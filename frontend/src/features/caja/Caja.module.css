@@ -1,13 +1,50 @@
 /* ---------- Pantalla de caja: menú a la izquierda, ticket a la derecha ---------- */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  grid-template-columns: 290px minmax(0, 1fr) 380px;
   gap: 20px;
   align-items: start;
 }
 
 .menu {
   min-width: 0;
+}
+
+/* Botón que abre el riel de pedidos: solo cuando el riel es un cajón. */
+.abrirRiel {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-heading);
+  cursor: pointer;
+}
+
+.abrirRiel i {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--color-success);
+  font-size: 12px;
+  font-style: normal;
+  text-align: center;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  .abrirRiel {
+    display: inline-flex;
+  }
 }
 
 .ticket {
@@ -50,31 +87,75 @@
   display: none;
 }
 
-@media (max-width: 900px) {
+.cortina {
+  display: none;
+}
+
+@media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 84px;
   }
 
-  .ticket {
-    position: static;
+  .cortina {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(31, 21, 23, 0.45);
   }
 
   .barraMovil {
     display: flex;
-    position: sticky;
+    position: fixed;
+    right: 0;
     bottom: 0;
+    left: 0;
+    z-index: 30;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 8px;
-    padding: 12px 16px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--color-border);
     background: var(--color-surface);
-    box-shadow: var(--shadow);
+    box-shadow: 0 -6px 18px rgba(31, 21, 23, 0.08);
   }
 
-  .barraMovil strong {
-    font-size: 18px;
+  .resumenMovil {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .resumenMovil small {
+    color: var(--color-muted);
+  }
+
+  .resumenMovil b {
+    font-size: 20px;
+    color: var(--color-heading);
+  }
+
+  .cobrarMovil {
+    padding: 14px 28px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--color-primary);
+    font: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .cobrarMovil:disabled {
+    background: #d9c9cb;
   }
 }
 
