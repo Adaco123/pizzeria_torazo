@@ -8,6 +8,7 @@ import { Caja } from '../features/caja/Caja.tsx'
 import { INTERVALO_MS } from '../features/cocina/useCocina.ts'
 import { TableroPedidos } from '../features/pedidos/TableroPedidos.tsx'
 import styles from '../features/pedidos/Pedidos.module.css'
+import { estadoDe } from '../features/pedidos/estados.ts'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
 import { useTurnos } from '../features/turnos/useTurnos.ts'
@@ -51,9 +52,9 @@ export function PedidosPage() {
       {miTurno && sesion ? (
         <BarraCaja
           turno={miTurno}
-          usuarioId={sesion.id}
           esAdmin={esAdmin}
           version={pedidos.length}
+          sinEntregar={delAlcance.filter((p) => ['confirmado', 'en_preparacion', 'listo'].includes(estadoDe(p) ?? '')).length}
           onCambio={turnos.recargar}
           onVerResumen={setResumenId}
         />

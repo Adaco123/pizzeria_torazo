@@ -1,0 +1,53 @@
+.anillo {
+  --c: var(--color-success);
+  --tam: 54px;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--tam);
+  height: var(--tam);
+  border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--color-border) 0);
+}
+
+.anillo::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--tam) * 0.12);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.anillo span {
+  position: relative;
+  z-index: 1;
+  font-size: calc(var(--tam) * 0.28);
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.apurado {
+  --c: var(--color-primary);
+}
+
+.atrasado {
+  --c: var(--color-error);
+  animation: latir 1.4s ease-in-out infinite;
+}
+
+.grande {
+  --tam: 92px;
+}
+
+@keyframes latir {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atrasado {
+    animation: none;
+  }
+}

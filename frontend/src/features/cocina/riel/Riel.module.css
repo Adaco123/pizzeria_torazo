@@ -1,0 +1,120 @@
+/* Lista de pedidos de cocina (izquierda). Mismo marco que el riel de caja. */
+.riel {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+
+.riel h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.contador {
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vacio {
+  margin: 0;
+  padding: 6px 2px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.fila {
+  --c: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid var(--c);
+  border-radius: 14px;
+  background: var(--color-surface);
+  text-align: left;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.fila:hover {
+  transform: translateX(3px);
+}
+
+.urgente {
+  --c: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.elegida {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.datos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.datos b {
+  font-size: 18px;
+  color: var(--color-heading);
+}
+
+.datos small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.datos small.atrasado {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fila {
+    transition: none;
+  }
+}

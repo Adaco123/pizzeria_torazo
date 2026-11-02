@@ -2,27 +2,27 @@ import { ArrowDownToLine, Ban, Eye, EyeOff, GlassWater, MoreHorizontal, PowerOff
 import { useEffect, useRef, useState } from 'react'
 import { turnosApi } from '../../../apis/turnos.ts'
 import type { Turno } from '../../../apis/turnos.ts'
-import { aFecha, formatearMonto } from '../../../utils/formato.ts'
-import { PanelAgotados } from '../../cocina/PanelAgotados.tsx'
-import { PanelStockBebidas } from '../../stock/PanelStockBebidas.tsx'
-import { MiTurnoPanel } from '../../turnos/MiTurnoPanel.tsx'
-import { PanelGastos } from '../../turnos/PanelGastos.tsx'
+import { formatearMonto } from '../../../utils/formato.ts'
 import { Hoja } from '../Hoja.tsx'
+import { HojaAgotados } from './HojaAgotados.tsx'
+import { HojaCierre } from './HojaCierre.tsx'
+import { HojaGastos } from './HojaGastos.tsx'
+import { HojaStock } from './HojaStock.tsx'
+import { horaCorta } from './hora.ts'
 import styles from './Barra.module.css'
 
 type Herramienta = 'gastos' | 'agotados' | 'stock' | 'cierre'
 
 interface Props {
   turno: Turno
-  usuarioId: number
   esAdmin: boolean
   /** Cambia cuando hay ventas nuevas: se vuelve a leer el monto de caja si está visible. */
   version: number
+  /** Pedidos ya cobrados que todavía no se entregan: se avisa al cerrar el turno. */
+  sinEntregar: number
   onCambio: () => void
   onVerResumen: (turnoId: number) => void
 }
-
-const hora = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/La_Paz' })
 
 const ACCIONES: { id: Herramienta; texto: string; icono: typeof Ban; peligro?: boolean }[] = [
   { id: 'gastos', texto: 'Gastos', icono: ArrowDownToLine },
@@ -42,7 +42,7 @@ const TITULOS: Record<Herramienta, string> = {
  * Barra superior de la caja: estado del turno y herramientas (gastos, agotados, stock, cierre).
  * El cajero cierra «a ciegas», así que el monto esperado en caja solo lo ve el administrador.
  */
-export function BarraCaja({ turno, usuarioId, esAdmin, version, onCambio, onVerResumen }: Props) {
+export function BarraCaja({ turno, esAdmin, version, sinEntregar, onCambio, onVerResumen }: Props) {
   const [abierta, setAbierta] = useState<Herramienta | null>(null)
   const [menu, setMenu] = useState(false)
   const [verCaja, setVerCaja] = useState(false)
@@ -78,7 +78,7 @@ export function BarraCaja({ turno, usuarioId, esAdmin, version, onCambio, onVerR
       <div className={styles.turno}>
         <span className={styles.punto} aria-hidden="true" />
         <span>
-          Turno abierto<span className={styles.desde}> · desde {hora.format(aFecha(turno.apertura))}</span>
+          Turno abierto<span className={styles.desde}> · desde {horaCorta(turno.apertura)}</span>
           {esAdmin && verCaja && (
             <>
               {' · '}Caja {efectivo === null ? '…' : formatearMonto(efectivo)}
@@ -126,20 +126,20 @@ export function BarraCaja({ turno, usuarioId, esAdmin, version, onCambio, onVerR
       </div>
 
       {abierta && (
-        <Hoja titulo={TITULOS[abierta]} onCerrar={() => setAbierta(null)}>
-          {abierta === 'gastos' && <PanelGastos turnoId={turno.id} esAdmin={esAdmin} />}
-          {abierta === 'agotados' && <PanelAgotados abierto />}
-          {abierta === 'stock' && <PanelStockBebidas esAdmin={esAdmin} />}
+        <Hoja titulo={TITULOS[abierta]} ancha={abierta !== 'cierre'} onCerrar={() => setAbierta(null)}>
+          {abierta === 'gastos' && <HojaGastos turnoId={turno.id} esAdmin={esAdmin} />}
+          {abierta === 'agotados' && <HojaAgotados />}
+          {abierta === 'stock' && <HojaStock esAdmin={esAdmin} />}
           {abierta === 'cierre' && (
-            <MiTurnoPanel
+            <HojaCierre
               turno={turno}
-              usuarioId={usuarioId}
-              onCambio={() => {
+              esAdmin={esAdmin}
+              sinEntregar={sinEntregar}
+              onCerrado={() => {
                 setAbierta(null)
                 onCambio()
               }}
               onVerResumen={onVerResumen}
-              puedeVerResumenAbierto={esAdmin}
             />
           )}
         </Hoja>

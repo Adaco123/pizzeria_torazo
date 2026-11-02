@@ -1,23 +1,18 @@
+import { Pizza } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { pedidosApi } from '../apis/pedidos.ts'
 import type { EstadoPedidoNombre, Pedido } from '../apis/pedidos.ts'
-import { BotonSonido } from '../features/cocina/BotonSonido.tsx'
+import { BarraCocina } from '../features/cocina/barra/BarraCocina.tsx'
 import styles from '../features/cocina/Cocina.module.css'
+import { PedidoFoco } from '../features/cocina/foco/PedidoFoco.tsx'
+import { PanelListos } from '../features/cocina/listos/PanelListos.tsx'
 import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'
-import { TarjetaPedido } from '../features/cocina/TarjetaPedido.tsx'
+import { RielCocina } from '../features/cocina/riel/RielCocina.tsx'
 import { useAhora, useCocina, useNombresCombos } from '../features/cocina/useCocina.ts'
 import { useAvisoSonoro } from '../features/cocina/useSonido.ts'
 import { estadoDe, ETIQUETA_ESTADO } from '../features/pedidos/estados.ts'
 import { useToast } from '../toast/toast-context.ts'
 import { descargarBlob } from '../utils/archivos.ts'
-
-const COLUMNAS: { estado: EstadoPedidoNombre; titulo: string }[] = [
-  { estado: 'confirmado', titulo: 'Por preparar' },
-  { estado: 'en_preparacion', titulo: 'En preparación' },
-  { estado: 'listo', titulo: 'Listos' },
-]
-
-const hora = new Intl.DateTimeFormat('es-BO', { timeStyle: 'medium', timeZone: 'America/La_Paz' })
 
 export function CocinaPage() {
   const toast = useToast()
@@ -25,6 +20,9 @@ export function CocinaPage() {
   const nombresCombos = useNombresCombos()
   const ahora = useAhora()
   const [ocupadoId, setOcupadoId] = useState<number | null>(null)
+  const [elegidoId, setElegidoId] = useState<number | null>(null)
+  /** Unidades que ya salieron del horno por línea de pedido. Solo es una ayuda en pantalla: no se guarda. */
+  const [hechos, setHechos] = useState<Record<number, number>>({})
 
   // Suena cuando entra un pedido nuevo por preparar (no al abrir la pantalla).
   const idsPorPreparar = useMemo(
@@ -65,26 +63,35 @@ export function CocinaPage() {
     }
   }
 
+  /** Cada toque suma una unidad lista; al llegar a la cantidad del pedido, el siguiente toque la desmarca. */
+  function marcarUnidad(detalleId: number, cantidad: number) {
+    setHechos((actuales) => ({ ...actuales, [detalleId]: ((actuales[detalleId] ?? 0) + 1) % (cantidad + 1) }))
+  }
+
   // Los más antiguos primero: son los que llevan más tiempo esperando.
   const porEstado = (estado: EstadoPedidoNombre) =>
     pedidos
       .filter((p) => estadoDe(p) === estado)
       .toSorted((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id)
 
-  return (
-    <section className={styles.page}>
-      <div className={styles.cabecera}>
-        <h1>Cocina</h1>
-        <div className={styles.estado}>
-          <BotonSonido activo={sonido.activo} onAlternar={sonido.alternar} />
-          {actualizadoEn !== null && <span>Actualizado a las {hora.format(actualizadoEn)}</span>}
-          <button className={styles.secundario} type="button" onClick={recargar}>
-            Actualizar
-          </button>
-        </div>
-      </div>
+  const porPreparar = porEstado('confirmado')
+  const enPreparacion = porEstado('en_preparacion')
+  const listos = porEstado('listo')
 
-      <PanelAgotados />
+  // Al centro va el pedido elegido; si no hay (o ya salió de cocina), el que está en el horno o el más antiguo.
+  const enFoco = [...enPreparacion, ...porPreparar].find((p) => p.id === elegidoId) ?? enPreparacion[0] ?? porPreparar[0] ?? null
+
+  return (
+    <section className={`${styles.page} ${styles.paginaAncha}`}>
+      <BarraCocina
+        porPreparar={porPreparar.length}
+        enPreparacion={enPreparacion.length}
+        listos={listos.length}
+        sonidoActivo={sonido.activo}
+        onSonido={sonido.alternar}
+        actualizadoEn={actualizadoEn}
+        onActualizar={recargar}
+      />
 
       {error && (
         <p className={styles.aviso} role="alert">
@@ -94,36 +101,41 @@ export function CocinaPage() {
       {cargando && <p className={styles.vacio}>Cargando pedidos…</p>}
 
       {!cargando && (
-        <div className={styles.tablero}>
-          {COLUMNAS.map(({ estado, titulo }) => {
-            const lista = porEstado(estado)
-            return (
-              <section key={estado} className={styles.columna} aria-label={titulo}>
-                <h2 className={styles.columnaTitulo}>
-                  {titulo}
-                  <span className={estado === 'listo' ? `${styles.contador} ${styles.contadorListo}` : styles.contador}>
-                    {lista.length}
-                  </span>
-                </h2>
-                {lista.length === 0 ? (
-                  <p className={styles.columnaVacia}>Sin pedidos</p>
-                ) : (
-                  lista.map((pedido) => (
-                    <TarjetaPedido
-                      key={pedido.id}
-                      pedido={pedido}
-                      estado={estado}
-                      ahora={ahora}
-                      nombresCombos={nombresCombos}
-                      ocupado={ocupadoId === pedido.id}
-                      onAvanzar={avanzar}
-                      onTicket={ticket}
-                    />
-                  ))
-                )}
-              </section>
-            )
-          })}
+        <div className={styles.layout}>
+          <RielCocina
+            porPreparar={porPreparar}
+            enPreparacion={enPreparacion}
+            elegidoId={enFoco?.id ?? null}
+            ahora={ahora}
+            onElegir={setElegidoId}
+          />
+
+          {enFoco ? (
+            <PedidoFoco
+              key={enFoco.id}
+              pedido={enFoco}
+              ahora={ahora}
+              nombresCombos={nombresCombos}
+              hechos={hechos}
+              ocupado={ocupadoId === enFoco.id}
+              onTocarDetalle={marcarUnidad}
+              onAvanzar={(desde, hacia) => void avanzar(enFoco, desde, hacia)}
+              onTicket={() => void ticket(enFoco)}
+            />
+          ) : (
+            <div className={styles.sinPedido}>
+              <span className={styles.circuloVacio} aria-hidden="true">
+                <Pizza size={56} />
+              </span>
+              <strong>Todo al día</strong>
+              <p>No hay pedidos por preparar. Cuando entre uno, aparece aquí.</p>
+            </div>
+          )}
+
+          <div className={styles.lateral}>
+            <PanelListos pedidos={listos} ahora={ahora} ocupadoId={ocupadoId} onTicket={(p) => void ticket(p)} />
+            <PanelAgotados abierto />
+          </div>
         </div>
       )}
     </section>

@@ -1,0 +1,44 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo {
+  margin: 0 6px 0 0;
+}
+
+.conteo {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  background: var(--color-surface-alt);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.conteo b {
+  margin-right: 3px;
+  color: var(--color-primary);
+}
+
+.conteoListo b {
+  color: var(--color-success);
+}
+
+.espacio {
+  flex: 1;
+}
+
+.hora {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.barra button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
