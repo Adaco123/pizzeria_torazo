@@ -1,18 +1,18 @@
-import { useAuth } from '../auth/auth-context.ts'
-import styles from '../features/catalogo/Catalogo.module.css'
+import { BarraCuenta } from '../features/usuarios/BarraCuenta.tsx'
 import { ContrasenaForm } from '../features/usuarios/ContrasenaForm.tsx'
+import cuenta from '../features/usuarios/Cuenta.module.css'
+import { MisPantallas } from '../features/usuarios/MisPantallas.tsx'
+import base from '../features/pedidos/Pedidos.module.css'
 
-/** Pantalla de cada usuario, sea cual sea su rol. */
+/** Pantalla de cada usuario, sea cual sea su rol. Mismo esquema que Pedidos (caja). */
 export function CuentaPage() {
-  const { sesion } = useAuth()
-
   return (
-    <section className={styles.page}>
-      <h1>Mi cuenta</h1>
-      <p className={styles.muted}>
-        {sesion?.nombre} · {sesion?.rol ?? 'sin rol'}
-      </p>
-      <ContrasenaForm modo="propia" />
+    <section className={`${base.page} ${base.pageAncha}`}>
+      <BarraCuenta />
+      <div className={cuenta.layout}>
+        <MisPantallas />
+        <ContrasenaForm modo="propia" />
+      </div>
     </section>
   )
 }

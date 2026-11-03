@@ -9,10 +9,10 @@ import type { Pedido, PagoCobro, TipoDescuento } from '../../apis/pedidos.ts'
 import { useAuth } from '../../auth/auth-context.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto, parseMonto } from '../../utils/formato.ts'
+import { MenuCaja } from '../caja/menu/MenuCaja.tsx'
 import { PanelCobro } from '../caja/PanelCobro.tsx'
 import cajaStyles from '../caja/Caja.module.css'
 import { redondear } from '../cobro/facturacion.ts'
-import { AgregarItemPanel } from '../pedidos/AgregarItemPanel.tsx'
 import { DetalleItems } from '../pedidos/DetalleItems.tsx'
 import { EstadoBadge } from '../pedidos/EstadoBadge.tsx'
 import { estadoDe } from '../pedidos/estados.ts'
@@ -46,9 +46,15 @@ function descuentoEnBs(form: DescuentoForm, productos: number): number {
 
 interface Props {
   cuentaId: number
+  /** Dentro de otra pantalla (panel o ventana): sin enlace de volver y sin navegar al terminar. */
+  embebido?: boolean
+  /** Se llama después de cada cambio en la cuenta, para que quien la muestra refresque. */
+  onCambio?: () => void
+  /** Se llama al cobrar o cerrar la cuenta. Sin esto se vuelve a /mesas. */
+  onTerminar?: () => void
 }
 
-export function CuentaMesaView({ cuentaId }: Props) {
+export function CuentaMesaView({ cuentaId, embebido = false, onCambio, onTerminar }: Props) {
   const { sesion, hasRole } = useAuth()
   const toast = useToast()
   const navegar = useNavigate()
@@ -67,11 +73,12 @@ export function CuentaMesaView({ cuentaId }: Props) {
     metodosPagoApi.listar().then(setMetodos).catch((e: unknown) => toast.error(e))
   }, [cobrando, metodos.length, toast])
 
-  const volver = (
+  const volver = embebido ? null : (
     <Link to="/mesas" className={base.back}>
       ← Volver a las mesas
     </Link>
   )
+  const Encabezado = embebido ? 'h2' : 'h1'
 
   if (error && !cuenta) {
     return (
@@ -105,6 +112,7 @@ export function CuentaMesaView({ cuentaId }: Props) {
     } finally {
       setOcupado(false)
       recargar()
+      onCambio?.()
     }
   }
 
@@ -153,7 +161,8 @@ export function CuentaMesaView({ cuentaId }: Props) {
     try {
       await mesasApi.anular((cuenta as CuentaMesa).id)
       toast.exito('Mesa cerrada sin consumo')
-      navegar('/mesas')
+      if (onTerminar) onTerminar()
+      else navegar('/mesas')
     } catch (e) {
       toast.error(e)
       setOcupado(false)
@@ -183,7 +192,8 @@ export function CuentaMesaView({ cuentaId }: Props) {
           : undefined,
       )
       toast.exito(vuelto > 0 ? `Mesa cobrada. Vuelto ${formatearMonto(vuelto)}` : 'Mesa cobrada')
-      navegar('/mesas')
+      if (onTerminar) onTerminar()
+      else navegar('/mesas')
     } catch (e) {
       toast.error(e)
       setOcupado(false)
@@ -197,7 +207,7 @@ export function CuentaMesaView({ cuentaId }: Props) {
     return (
       <section className={base.page}>
         {volver}
-        <h1>Mesa {cuenta.mesa_numero}</h1>
+        <Encabezado>Mesa {cuenta.mesa_numero}</Encabezado>
         <p className={base.muted}>
           Esta cuenta está {cuenta.estado === 'cobrada' ? 'cobrada' : 'cerrada sin consumo'}.
         </p>
@@ -208,7 +218,7 @@ export function CuentaMesaView({ cuentaId }: Props) {
   if (cobrando) {
     return (
       <section className={base.page}>
-        <h1>Cobrar mesa {cuenta.mesa_numero}</h1>
+        <Encabezado>Cobrar mesa {cuenta.mesa_numero}</Encabezado>
         <p className={base.muted}>
           Cuenta {formatearMonto(cuenta.total)}
           {descuento > 0 && ` − descuento ${formatearMonto(descuento)}`}
@@ -238,7 +248,7 @@ export function CuentaMesaView({ cuentaId }: Props) {
       <section className={base.card}>
         <div className={styles.resumen}>
           <div>
-            <h1 style={{ margin: 0 }}>Mesa {cuenta.mesa_numero}</h1>
+            <Encabezado style={{ margin: 0 }}>Mesa {cuenta.mesa_numero}</Encabezado>
             <p className={base.muted}>
               Abierta {formatearFecha(cuenta.abierta_en)} por {cuenta.abierta_por ?? '—'}
               {cuenta.pidio_cuenta && ' · Pidió la cuenta'}
@@ -347,7 +357,7 @@ export function CuentaMesaView({ cuentaId }: Props) {
               </button>
             </div>
             {catalogo ? (
-              <AgregarItemPanel pedidoId={miBorrador.id} catalogo={catalogo} onAgregado={recargar} silencioso />
+              <MenuCaja pedidoId={miBorrador.id} catalogo={catalogo} onAgregado={recargar} />
             ) : (
               <p className={base.muted}>Cargando el menú…</p>
             )}

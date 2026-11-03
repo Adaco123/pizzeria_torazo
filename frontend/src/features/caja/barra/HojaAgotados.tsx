@@ -10,8 +10,13 @@ import styles from './Herramientas.module.css'
 
 const limpiar = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 
+interface Props {
+  /** Mesero: puede avisar que algo se acabó, pero no volver a habilitarlo (eso lo hace caja o cocina). */
+  soloAvisar?: boolean
+}
+
 /** Marcar qué productos se acabaron: dejan de venderse en caja hasta que se vuelvan a habilitar. */
-export function HojaAgotados() {
+export function HojaAgotados({ soloAvisar = false }: Props) {
   const toast = useToast()
   const [productos, setProductos] = useState<Producto[] | null>(null)
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -63,7 +68,11 @@ export function HojaAgotados() {
           {error}
         </p>
       )}
-      <p className={styles.ayuda}>Toca un producto para marcarlo como agotado. Vuelve a tocarlo para habilitarlo.</p>
+      <p className={styles.ayuda}>
+        {soloAvisar
+          ? 'Toca el producto que se acabó para avisar a caja y cocina. Ellos lo habilitan cuando haya de nuevo.'
+          : 'Toca un producto para marcarlo como agotado. Vuelve a tocarlo para habilitarlo.'}
+      </p>
 
       <div className={styles.filtros}>
         <label className={styles.buscar}>
@@ -97,7 +106,7 @@ export function HojaAgotados() {
                 type="button"
                 className={p.agotado ? `${styles.ficha} ${styles.fichaAgotada}` : styles.ficha}
                 aria-pressed={p.agotado}
-                disabled={ocupadoId === p.id}
+                disabled={ocupadoId === p.id || (soloAvisar && p.agotado)}
                 onClick={() => void alternar(p)}
               >
                 <span>{p.nombre}</span>

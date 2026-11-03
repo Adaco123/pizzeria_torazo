@@ -6,7 +6,6 @@ import { BarraCocina } from '../features/cocina/barra/BarraCocina.tsx'
 import styles from '../features/cocina/Cocina.module.css'
 import { PedidoFoco } from '../features/cocina/foco/PedidoFoco.tsx'
 import { PanelListos } from '../features/cocina/listos/PanelListos.tsx'
-import { PanelAgotados } from '../features/cocina/PanelAgotados.tsx'
 import { RielCocina } from '../features/cocina/riel/RielCocina.tsx'
 import { useAhora, useCocina, useNombresCombos } from '../features/cocina/useCocina.ts'
 import { useAvisoSonoro } from '../features/cocina/useSonido.ts'
@@ -134,7 +133,6 @@ export function CocinaPage() {
 
           <div className={styles.lateral}>
             <PanelListos pedidos={listos} ahora={ahora} ocupadoId={ocupadoId} onTicket={(p) => void ticket(p)} />
-            <PanelAgotados abierto />
           </div>
         </div>
       )}

@@ -1,64 +1,467 @@
-.plano {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
+/* ==========================================================================
+   Mesas — misma paleta y formas que Pedidos, Caja y Cocina (variables de index.css).
+   Tres columnas: atención | plano | cuenta. Debajo de 1100px la cuenta se abre en una Hoja.
+   ========================================================================== */
+
+/* ---------- Encabezado: título a la izquierda; herramientas y sonido a la derecha, en la misma línea ---------- */
+.herramientas {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
 }
 
-.mesa {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
-  min-height: 112px;
-  padding: 12px 14px;
-  border: 2px solid var(--color-border);
+/* ---------- Estructura ---------- */
+.tablero {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 420px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1099px) {
+  .tablero {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 759px) {
+  .tablero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zonaPlano {
+  min-width: 0;
+}
+
+.detalle {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+/* ---------- Atención (igual que el riel de caja) ---------- */
+.atencion {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  color: inherit;
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 759px) {
+  .atencion {
+    position: static;
+    max-height: none;
+  }
+}
+
+.atencion h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.atContador,
+.atContadorVacio {
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.atContador {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.atContadorVacio {
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+}
+
+.atLista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.atVacio {
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.atFila {
+  --c: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--c);
+  border-radius: 12px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.atEntregar {
+  --c: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.atCobrar {
+  --c: #c2410c;
+  background: #fff7ed;
+}
+
+.atSin {
+  --c: var(--color-muted);
+}
+
+.atElegida {
+  border-color: var(--color-primary);
+  border-left-color: var(--c);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}
+
+.atCuerpo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  background: none;
   font: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
 }
 
-.mesa:disabled {
+.atNumero {
+  min-width: 28px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.atDatos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.atDatos b {
+  color: var(--color-heading);
+}
+
+.atDatos small {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.atAccion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 0;
+  background: var(--c);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+}
+
+.atAccion:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 
-.mesaLibre {
+/* ---------- Filtros y leyenda ---------- */
+.conteo {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--color-surface-alt);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.conteoOn {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--color-on-primary);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.leyenda i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+/* ---------- Plano: mesas redondas ---------- */
+.plano {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 6px 4px;
+  padding: 6px 0;
+}
+
+.mesa {
+  --c: #d9c9cb;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 170px;
+  height: 170px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.libre {
+  --c: #d9c9cb;
+}
+
+.ocupada {
+  --c: var(--color-primary);
+}
+
+.lista {
+  --c: var(--color-success);
+}
+
+.cuenta {
+  --c: #c2410c;
+}
+
+.atenuada {
+  opacity: 0.22;
+}
+
+.silla {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px;
+  border-radius: 50%;
+  background: var(--c);
+  opacity: 0.55;
+  transform: rotate(calc(var(--a) * 1deg)) translateY(-72px);
+  transition: opacity 0.2s;
+}
+
+.mesaCirculo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 112px;
+  border: 5px solid var(--c);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  line-height: 1.1;
+  transition: transform 0.2s;
+}
+
+.libre .mesaCirculo {
   border-style: dashed;
+  background: var(--color-surface-alt);
 }
 
-.mesaOcupada {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
+.mesa:hover .mesaCirculo {
+  transform: scale(1.07);
 }
 
-.mesaCuenta {
-  border-color: #c2410c;
-  background: #fff7ed;
-  color: #7c2d12;
+.mesa:active .mesaCirculo {
+  transform: scale(0.96);
 }
 
-.mesaListo {
-  border-color: #15803d;
+.seleccionada .mesaCirculo {
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 6px var(--color-primary-soft),
+    var(--shadow);
 }
 
-.numero {
-  font-size: 22px;
+.seleccionada .silla {
+  opacity: 1;
+}
+
+.mesaNumero {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--color-heading);
+}
+
+.libre .mesaNumero {
+  color: var(--color-muted);
+}
+
+.mesaMonto {
+  font-size: 12.5px;
   font-weight: 700;
+  color: var(--c);
 }
 
-.total {
-  font-size: 18px;
-  font-weight: 700;
+.libre .mesaMonto {
+  color: var(--color-muted);
 }
 
-.nota {
-  font-size: 13px;
-  opacity: 0.85;
+.mesaTiempo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
+.lista .mesaCirculo,
+.cuenta .mesaCirculo {
+  animation: brillo 1.8s infinite;
+}
+
+@keyframes brillo {
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--c) 18%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lista .mesaCirculo,
+  .cuenta .mesaCirculo {
+    animation: none;
+  }
+}
+
+.insignias {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 3px;
+}
+
+.insignias i {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  color: var(--c);
+}
+
+/* ---------- Panel de la mesa elegida ---------- */
+.panelVacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 34px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.panelVacio b {
+  font-size: 19px;
+  color: var(--color-heading);
+}
+
+.panelVacio p {
+  font-size: 14px;
+}
+
+.panelCirculo {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 8px;
+  border: 5px dashed var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+}
+
+.abrir {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 170px;
+  height: 170px;
+  margin-bottom: 8px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 18px 36px -10px var(--color-primary);
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--color-on-primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.abrir:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: scale(1.06);
+}
+
+.abrir:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---------- Cuenta de la mesa (CuentaMesaView) ---------- */
 .ronda {
   display: flex;
   flex-direction: column;

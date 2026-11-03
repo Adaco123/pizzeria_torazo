@@ -41,4 +41,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: inherit;
+  cursor: pointer;
 }

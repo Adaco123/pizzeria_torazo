@@ -17,6 +17,8 @@ import { UsuariosPage } from '../pages/UsuariosPage.tsx'
 export interface Acceso {
   path: string
   label: string
+  /** Una línea que dice para qué sirve la pantalla (se ve en «Mi cuenta»). */
+  descripcion: string
   /** Roles que pueden entrar. Es la única fuente de verdad: menú y rutas salen de aquí. */
   roles: RolNombre[]
   Page: ComponentType
@@ -28,6 +30,7 @@ export const ACCESOS: Acceso[] = [
   {
     path: '/pedidos',
     label: 'Pedidos',
+    descripcion: 'Cobrar y entregar',
     roles: ['Administrador', 'Cajero'],
     Page: PedidosPage,
     hijas: [{ path: '/pedidos/:id', Page: PedidoDetallePage }],
@@ -35,15 +38,17 @@ export const ACCESOS: Acceso[] = [
   {
     path: '/mesas',
     label: 'Mesas',
+    descripcion: 'Plano y cuentas',
     roles: ['Administrador', 'Cajero', 'Mesero'],
     Page: MesasPage,
     hijas: [{ path: '/mesas/:id', Page: CuentaMesaPage }],
   },
-  { path: '/turnos', label: 'Turnos', roles: ['Administrador', 'Cajero'], Page: TurnosPage },
-  { path: '/cocina', label: 'Cocina', roles: ['Administrador', 'Pizzero'], Page: CocinaPage },
+  { path: '/turnos', label: 'Turnos', descripcion: 'Caja del día', roles: ['Administrador', 'Cajero'], Page: TurnosPage },
+  { path: '/cocina', label: 'Cocina', descripcion: 'Pedidos por preparar', roles: ['Administrador', 'Pizzero'], Page: CocinaPage },
   {
     path: '/admin',
     label: 'Administración',
+    descripcion: 'Catálogo, usuarios y reportes',
     roles: ['Administrador'],
     Page: AdminPage,
     hijas: [
@@ -55,7 +60,7 @@ export const ACCESOS: Acceso[] = [
     ],
   },
   // Cada usuario cambia su propia contraseña, sea cual sea su rol.
-  { path: '/cuenta', label: 'Mi cuenta', roles: ['Administrador', 'Cajero', 'Pizzero', 'Mesero'], Page: CuentaPage },
+  { path: '/cuenta', label: 'Mi cuenta', descripcion: 'Tu perfil y contraseña', roles: ['Administrador', 'Cajero', 'Pizzero', 'Mesero'], Page: CuentaPage },
 ]
 
 const INICIO: Record<RolNombre, string> = {

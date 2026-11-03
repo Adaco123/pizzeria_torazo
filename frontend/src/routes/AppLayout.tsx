@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/auth-context.ts'
 import { ACCESOS } from './accesos.tsx'
 import styles from './AppLayout.module.css'
+import type { ContextoLayout } from './useAccesosDelRol.ts'
 
 export function AppLayout() {
   const { sesion, logout, hasRole } = useAuth()
@@ -38,7 +39,7 @@ export function AppLayout() {
       </header>
 
       <main className={styles.main}>
-        <Outlet />
+        <Outlet context={{ accesos: enlaces } satisfies ContextoLayout} />
       </main>
     </div>
   )
