@@ -1,3 +1,4 @@
+import { Check, Pencil, Plus, X, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { combosApi } from '../../apis/combos.ts'
 import type { Combo, ComboProducto } from '../../apis/combos.ts'
@@ -5,6 +6,8 @@ import type { Producto } from '../../apis/productos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
 import { useAccion } from './useAccion.ts'
+import { Acciones, BotonIcono } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -90,12 +93,15 @@ export function ComboProductos({ combo, productos }: Props) {
       {lista.length === 0 ? (
         <p className={styles.muted}>Todavía no tiene productos.</p>
       ) : (
-        <table className={styles.table}>
+        <div className={ui.tw}>
+        <table className={ui.tabla}>
           <thead>
             <tr>
               <th>Producto</th>
-              <th className={styles.num}>Cantidad</th>
-              <th>Acciones</th>
+              <th className={ui.num}>Cantidad</th>
+              <th>
+                <span className={ui.soloLector}>Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -103,11 +109,15 @@ export function ComboProductos({ combo, productos }: Props) {
               const enEdicion = editando?.productoId === item.producto_id
               return (
                 <tr key={item.producto_id}>
-                  <td>{nombreDe(item.producto_id)}</td>
-                  <td className={styles.num}>
+                  <td>
+                    <b>{nombreDe(item.producto_id)}</b>
+                  </td>
+                  <td className={ui.num}>
                     {enEdicion ? (
                       <input
-                        className={styles.inlineInput}
+                        className={ui.edicion}
+                        style={{ width: 100 }}
+                        aria-label="Cantidad"
                         type="number"
                         min="1"
                         step="1"
@@ -119,43 +129,37 @@ export function ComboProductos({ combo, productos }: Props) {
                       item.cantidad
                     )}
                   </td>
-                  <td className={styles.acciones}>
-                    {enEdicion ? (
-                      <>
-                        <button className={styles.link} type="button" disabled={ocupado} onClick={() => cambiarCantidad(item, editando.texto)}>
-                          guardar
-                        </button>
-                        <button className={styles.link} type="button" onClick={() => setEditando(null)}>
-                          cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className={styles.link}
-                          type="button"
-                          onClick={() => setEditando({ productoId: item.producto_id, texto: String(item.cantidad) })}
-                        >
-                          cambiar cantidad
-                        </button>
-                        <button
-                          className={styles.linkDanger}
-                          type="button"
-                          disabled={ocupado}
-                          onClick={() =>
-                            ejecutar(() => combosApi.quitarProducto(combo.id, item.producto_id), 'Producto quitado del combo')
-                          }
-                        >
-                          quitar
-                        </button>
-                      </>
-                    )}
+                  <td className={ui.acciones}>
+                    <Acciones>
+                      {enEdicion ? (
+                        <>
+                          <BotonIcono icono={Check} titulo="Guardar cantidad" tono="ok" disabled={ocupado} onClick={() => cambiarCantidad(item, editando.texto)} />
+                          <BotonIcono icono={X} titulo="Cancelar" onClick={() => setEditando(null)} />
+                        </>
+                      ) : (
+                        <>
+                          <BotonIcono
+                            icono={Pencil}
+                            titulo="Cambiar la cantidad"
+                            onClick={() => setEditando({ productoId: item.producto_id, texto: String(item.cantidad) })}
+                          />
+                          <BotonIcono
+                            icono={Trash2}
+                            titulo="Quitar del combo"
+                            tono="peligro"
+                            disabled={ocupado}
+                            onClick={() => void ejecutar(() => combosApi.quitarProducto(combo.id, item.producto_id), 'Producto quitado del combo')}
+                          />
+                        </>
+                      )}
+                    </Acciones>
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {disponibles.length > 0 ? (
@@ -174,8 +178,8 @@ export function ComboProductos({ combo, productos }: Props) {
             <span>Cantidad</span>
             <input type="number" min="1" step="1" value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
           </label>
-          <button className={styles.primary} type="button" disabled={ocupado} onClick={agregar}>
-            Agregar
+          <button className={`${ui.btn} ${ui.primario}`} type="button" disabled={ocupado} onClick={agregar}>
+            <Plus size={16} aria-hidden="true" /> Agregar
           </button>
         </div>
       ) : (

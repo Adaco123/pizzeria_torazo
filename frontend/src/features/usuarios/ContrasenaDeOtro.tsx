@@ -1,3 +1,4 @@
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 import { CampoContrasena } from './CampoContrasena.tsx'
 import form from './Contrasena.module.css'
@@ -30,10 +31,10 @@ export function ContrasenaDeOtro(props: PropsDeOtro) {
         </div>
         <FuerzaContrasena nueva={nueva} repetida={repetida} />
         <div className={styles.acciones}>
-          <button className={styles.primary} type="submit" disabled={enviando}>
+          <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={enviando}>
             {enviando ? 'Guardando…' : 'Restablecer contraseña'}
           </button>
-          <button className={styles.secondary} type="button" disabled={enviando} onClick={props.onCancelar}>
+          <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={enviando} onClick={props.onCancelar}>
             Cancelar
           </button>
         </div>

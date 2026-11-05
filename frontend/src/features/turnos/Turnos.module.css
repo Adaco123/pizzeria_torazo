@@ -1,14 +1,57 @@
-.page {
+/* ==========================================================================
+   Turnos con el mismo esquema que Pedidos (caja):
+   barra arriba · «Mi turno» a la izquierda · lista al centro · resumen (ticket) a la derecha.
+   Botones, tablas y píldoras salen de features/admin (Ui.module.css).
+   ========================================================================== */
+
+/* ---------- Barra superior ---------- */
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo {
+  margin: 0 6px 0 0;
+}
+
+.pildora {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  background: var(--color-surface-alt);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pildora b {
+  color: var(--color-primary);
+}
+
+/* ---------- Rejilla: riel | lista | ticket ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.centro {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1000px;
+  min-width: 0;
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 20px;
   border: 1px solid var(--color-border);
   border-top: 4px solid var(--color-primary);
@@ -17,26 +60,31 @@
   box-shadow: var(--shadow);
 }
 
-.card h2,
 .card h3 {
   margin: 0;
-}
-
-.card h3 {
   font-size: 16px;
 }
 
-.cardHeader {
+.muted {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.errorRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-}
-
-.muted {
-  color: var(--color-muted);
-  font-size: 14px;
 }
 
 .form {
@@ -56,8 +104,8 @@
 
 .field input {
   padding: 10px 12px;
-  font: inherit;
   min-width: 220px;
+  font: inherit;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-white);
@@ -70,173 +118,464 @@
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
-.primary,
-.secondary {
-  padding: 10px 16px;
-  font: inherit;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+/* ---------- Riel: «Mi turno» ---------- */
+.riel {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
 }
 
-.primary {
-  border: 0;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+.tituloRiel {
+  margin: 0;
+  font-size: 17px;
 }
 
-.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+.riel h2 {
+  margin: 0;
+  font-size: 17px;
 }
 
-.secondary {
-  border: 1px solid var(--color-primary);
-  background: var(--color-white);
-  color: var(--color-primary);
+.riel .field input {
+  width: 100%;
+  min-width: 0;
 }
 
-.secondary:hover:not(:disabled) {
-  background: var(--color-primary-soft);
+.mi {
+  --c: var(--color-success);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--c);
+  border-radius: 12px;
+  background: #fff;
 }
 
-.primary:disabled,
-.secondary:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.miSin {
+  --c: #a8999c;
+  background: var(--color-surface-alt);
 }
 
-.error {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  color: var(--color-error);
-  background: var(--color-error-bg);
-}
-
-.errorRow {
+.miTitulo {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 8px;
+  color: var(--color-heading);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Formulario dentro del riel */
+.formulario {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.badgeOpen,
-.badgeClosed {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.badgeOpen {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.badgeClosed {
-  background: var(--color-surface-alt);
-  color: var(--color-muted);
-  border: 1px solid var(--color-border);
-}
-
-.tableWrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.table th,
-.table td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-  white-space: nowrap;
-}
-
-.table th {
-  font-weight: 600;
-  color: var(--color-heading);
-  background: var(--color-surface-alt);
-}
-
-.actions {
+/* ---------- Botón grande (como «Cobrar» en caja) ---------- */
+.grande {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-}
-
-.link {
-  padding: 0;
-  font: inherit;
-  font-size: 14px;
+  width: 100%;
+  padding: 14px;
   border: 0;
-  background: none;
-  color: var(--color-primary);
-  text-decoration: underline;
+  border-radius: 14px;
+  background: var(--color-primary);
+  box-shadow: 0 8px 18px -6px var(--color-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-on-primary);
   cursor: pointer;
 }
 
-.link:hover {
-  color: var(--color-primary-hover);
+.grande:hover:not(:disabled) {
+  background: var(--color-primary-hover);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+.grande:disabled {
+  background: #d9c9cb;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ancho {
+  justify-content: center;
+  width: 100%;
+}
+
+/* «Mi turno» como tarjeta suelta (Pedidos): el botón no ocupa todo el ancho. */
+.suelta .grande {
+  width: auto;
+  align-self: flex-start;
+  padding: 12px 22px;
+}
+
+.apilado {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apilado .ticket {
+  position: static;
+}
+
+/* ---------- Lista de turnos ---------- */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fila {
+  --c: var(--color-success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 10px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--c);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.filaCerrada {
+  --c: #a8999c;
+}
+
+.filaPendiente {
+  --c: #c2410c;
+}
+
+.filaElegida {
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.filaCuerpo {
+  display: flex;
+  flex: 1;
+  align-items: center;
   gap: 12px;
+  min-width: 0;
+  padding: 10px 0 10px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+button.filaCuerpo {
+  cursor: pointer;
+}
+
+button.filaCuerpo:hover {
+  background: var(--color-surface-alt);
+  border-radius: 8px;
+}
+
+.numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.datos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.datos b {
+  color: var(--color-heading);
+}
+
+.datos small {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.monto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.monto b {
+  font-size: 15px;
+  color: var(--color-heading);
+}
+
+.pendiente {
+  background: #fff4e5;
+  color: #c2410c;
+}
+
+/* ---------- Ticket: resumen del turno ---------- */
+.ticket {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cabeza h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.cabeza h2 b {
+  color: var(--color-primary);
+}
+
+.cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.pie {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fichas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin: 0;
 }
 
-.stats > div {
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   background: var(--color-surface-alt);
 }
 
-.stats dt {
+.ficha dt {
   font-size: 12px;
   color: var(--color-muted);
 }
 
-.stats dd {
-  margin: 2px 0 0;
-  font-size: 18px;
-  font-weight: 600;
+.ficha dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
-.statTotal {
-  background: var(--color-primary-soft) !important;
-  border-color: var(--color-primary) !important;
+.fichaTotal {
+  grid-column: 1 / -1;
+  border-color: transparent;
+  background: var(--color-primary-soft);
 }
 
-.statTotal dd {
+.fichaTotal dd {
+  font-size: 22px;
   color: var(--color-primary);
 }
-.stats .statBien {
-  background: var(--color-success-bg);
-  border-color: var(--color-success);
+
+.cuadre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
 }
 
-.stats .statBien dd {
+.cuadre h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.linea span {
+  color: var(--color-muted);
+}
+
+.linea b {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-heading);
+}
+
+.lineaTotal {
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.lineaTotal span {
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.veredicto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.bien {
+  background: var(--color-success-bg);
   color: var(--color-success);
 }
 
-.stats .statMal {
+.mal {
   background: var(--color-error-bg);
-  border-color: var(--color-error);
-}
-
-.stats .statMal dd {
   color: var(--color-error);
 }
 
-.stats .statAviso dd {
+.aviso {
+  background: #fff4e5;
+  color: #c2410c;
+}
+
+.vacioTicket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 16px;
+  text-align: center;
   color: var(--color-muted);
+}
+
+.vacioTicket svg {
+  color: #d9c3c6;
+}
+
+.vacioTicket b {
+  color: var(--color-heading);
+}
+
+/* ---------- Detalle del turno (admin) ---------- */
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fichasAncho {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+/* Responsivo: va al final para ganar a los estilos base. */
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 290px minmax(0, 1fr);
+  }
+
+  .ticket {
+    position: static;
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .riel {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .fila {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+
+  .filaCuerpo {
+    flex-wrap: wrap;
+    padding: 10px 12px 6px;
+  }
+
+  .datos {
+    flex: 1 1 140px;
+  }
+
+  .monto {
+    align-items: flex-start;
+  }
+
+  .fila > :last-child {
+    justify-content: flex-start;
+    padding: 0 12px 10px;
+  }
 }

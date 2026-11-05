@@ -6,6 +6,7 @@ import { useToast } from '../../toast/toast-context.ts'
 import { esCategoriaPizzas } from '../pedidos/categorias.ts'
 import { parseMonto } from '../../utils/formato.ts'
 import { useAccion } from './useAccion.ts'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -96,10 +97,10 @@ export function ProductoForm({ categorias, inicial, onGuardado, onCancelar }: Pr
           Activo
         </label>
 
-        <button className={styles.primary} type="submit" disabled={ocupado}>
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupado}>
           {ocupado ? 'Guardando…' : 'Guardar'}
         </button>
-        <button className={styles.secondary} type="button" onClick={onCancelar}>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={onCancelar}>
           Cancelar
         </button>
       </form>

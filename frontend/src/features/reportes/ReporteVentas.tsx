@@ -1,7 +1,10 @@
+import { Ban, Banknote, Bike, CalendarDays, ChartColumn, Percent, Receipt, ShoppingBag, Trophy, Users, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { reportesApi } from '../../apis/reportes.ts'
 import type { ReporteVentas as Reporte } from '../../apis/reportes.ts'
 import { esAbort, formatearFecha, formatearMonto, mensajeDeError } from '../../utils/formato.ts'
+import { Cabeza, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 import { diaDeBolivia, etiquetaDia } from './fechas.ts'
 
@@ -48,7 +51,7 @@ export function ReporteVentas() {
   return (
     <div className={styles.page}>
       <section className={styles.card}>
-        <h2>Periodo</h2>
+        <Cabeza icono={CalendarDays} titulo="Periodo" />
         <div className={styles.rangoFechas}>
           <label className={styles.field}>
             <span>Desde</span>
@@ -59,7 +62,7 @@ export function ReporteVentas() {
             <input type="date" value={hasta} min={desde || undefined} onChange={(e) => { setCargando(true); setHasta(e.target.value) }} />
           </label>
           {ATAJOS.map((a) => (
-            <button key={a.label} className={styles.secondary} type="button" onClick={() => elegir(a.dias)}>
+            <button key={a.label} className={`${ui.btn} ${ui.secundario}`} type="button" onClick={() => elegir(a.dias)}>
               {a.label}
             </button>
           ))}
@@ -81,48 +84,75 @@ export function ReporteVentas() {
       {reporte && (
         <>
           <section className={styles.card}>
-            <dl className={styles.stats}>
-              <div>
-                <dt>Total vendido</dt>
-                <dd>{formatearMonto(reporte.total_vendido)}</dd>
+            <dl className={ui.fichas}>
+              <div className={ui.ficha}>
+                <span className={ui.icono}>
+                  <Banknote size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <dt>Total vendido</dt>
+                  <dd>{formatearMonto(reporte.total_vendido)}</dd>
+                </div>
               </div>
-              <div>
-                <dt>Pedidos</dt>
-                <dd>{reporte.pedidos}</dd>
+              <div className={ui.ficha}>
+                <span className={ui.icono}>
+                  <Receipt size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <dt>Pedidos</dt>
+                  <dd>{reporte.pedidos}</dd>
+                </div>
               </div>
-              <div>
-                <dt>Ticket promedio</dt>
-                <dd>{formatearMonto(reporte.ticket_promedio)}</dd>
+              <div className={ui.ficha}>
+                <span className={ui.icono}>
+                  <ShoppingBag size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <dt>Ticket promedio</dt>
+                  <dd>{formatearMonto(reporte.ticket_promedio)}</dd>
+                </div>
               </div>
-              <div>
-                <dt>Devuelto por cancelaciones</dt>
-                <dd>{formatearMonto(reporte.total_devuelto)}</dd>
+              <div className={ui.ficha}>
+                <span className={ui.icono}>
+                  <Ban size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <dt>Devuelto por cancelaciones</dt>
+                  <dd>{formatearMonto(reporte.total_devuelto)}</dd>
+                </div>
               </div>
-              <div>
-                <dt>Descuentos dados ({reporte.descuentos.pedidos})</dt>
-                <dd>{formatearMonto(reporte.descuentos.total)}</dd>
+              <div className={ui.ficha}>
+                <span className={ui.icono}>
+                  <Percent size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <dt>Descuentos dados ({reporte.descuentos.pedidos})</dt>
+                  <dd>{formatearMonto(reporte.descuentos.total)}</dd>
+                </div>
               </div>
             </dl>
           </section>
 
           <section className={styles.card}>
-            <h2>Ventas por día</h2>
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
+            <Cabeza icono={ChartColumn} titulo="Ventas por día" />
+            <div className={ui.tw}>
+              <table className={ui.tabla}>
                 <thead>
                   <tr>
                     <th>Día</th>
-                    <th className={styles.num}>Pedidos</th>
-                    <th className={styles.num}>Total</th>
+                    <th className={ui.num}>Pedidos</th>
+                    <th className={ui.num}>Total</th>
                     <th aria-label="Gráfico" />
                   </tr>
                 </thead>
                 <tbody>
                   {reporte.por_dia.map((d) => (
                     <tr key={d.fecha}>
-                      <td>{etiquetaDia(d.fecha)}</td>
-                      <td className={styles.num}>{d.pedidos}</td>
-                      <td className={styles.num}>{formatearMonto(d.total)}</td>
+                      <td>
+                        <b>{etiquetaDia(d.fecha)}</b>
+                      </td>
+                      <td className={ui.num}>{d.pedidos}</td>
+                      <td className={ui.num}>{formatearMonto(d.total)}</td>
                       <td className={styles.celdaBarra}>
                         <span className={styles.barra} style={{ width: `${(d.total / maxDia) * 100}%` }} />
                       </td>
@@ -134,26 +164,28 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Por método de pago</h2>
+            <Cabeza icono={Wallet} titulo="Por método de pago" />
             <p className={styles.muted}>Dinero neto: lo cobrado menos lo devuelto.</p>
             {reporte.por_metodo.length === 0 ? (
-              <p className={styles.muted}>Sin cobros en este periodo.</p>
+              <Vacio icono={Receipt} titulo="Sin cobros en este periodo." />
             ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
                   <thead>
                     <tr>
                       <th>Método</th>
-                      <th className={styles.num}>Cobros</th>
-                      <th className={styles.num}>Neto</th>
+                      <th className={ui.num}>Cobros</th>
+                      <th className={ui.num}>Neto</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reporte.por_metodo.map((m) => (
                       <tr key={m.metodo}>
-                        <td>{m.metodo}</td>
-                        <td className={styles.num}>{m.cantidad}</td>
-                        <td className={styles.num}>{formatearMonto(m.total)}</td>
+                        <td>
+                          <b>{m.metodo}</b>
+                        </td>
+                        <td className={ui.num}>{m.cantidad}</td>
+                        <td className={ui.num}>{formatearMonto(m.total)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -163,28 +195,31 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Lo más vendido</h2>
+            <Cabeza icono={Trophy} titulo="Lo más vendido" />
             <p className={styles.muted}>
               Ordenado por importe. En mitad y mitad cada sabor cuenta media pizza (½).
             </p>
             {reporte.por_producto.length === 0 ? (
-              <p className={styles.muted}>Sin ventas en este periodo.</p>
+              <Vacio icono={Receipt} titulo="Sin ventas en este periodo." />
             ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
                   <thead>
                     <tr>
                       <th>Producto</th>
-                      <th className={styles.num}>Cantidad</th>
-                      <th className={styles.num}>Importe</th>
+                      <th className={ui.num}>Cantidad</th>
+                      <th className={ui.num}>Importe</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reporte.por_producto.map((p) => (
+                    {reporte.por_producto.map((p, i) => (
                       <tr key={p.producto}>
-                        <td>{p.producto}</td>
-                        <td className={styles.num}>{p.cantidad}</td>
-                        <td className={styles.num}>{formatearMonto(p.total)}</td>
+                        <td>
+                          <span className={`${ui.puesto} ${i < 3 ? ui.puestoTop : ''}`}>{i + 1}</span>
+                          <b>{p.producto}</b>
+                        </td>
+                        <td className={ui.num}>{p.cantidad}</td>
+                        <td className={ui.num}>{formatearMonto(p.total)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -194,33 +229,37 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Mejores clientes</h2>
+            <Cabeza icono={Users} titulo="Mejores clientes" />
             <p className={styles.muted}>
               Ordenado por lo que gastaron en el periodo. Las ventas de mostrador (sin cliente) no cuentan.
             </p>
             {reporte.mejores_clientes.length === 0 ? (
-              <p className={styles.muted}>Ningún cliente registrado compró en este periodo.</p>
+              <Vacio icono={Receipt} titulo="Ningún cliente registrado compró en este periodo." />
             ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
                   <thead>
                     <tr>
                       <th>#</th>
                       <th>Cliente</th>
                       <th>Teléfono</th>
-                      <th className={styles.num}>Pedidos</th>
-                      <th className={styles.num}>Gastó</th>
+                      <th className={ui.num}>Pedidos</th>
+                      <th className={ui.num}>Gastó</th>
                       <th>Última compra</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reporte.mejores_clientes.map((c, i) => (
                       <tr key={c.cliente_id}>
-                        <td>{i + 1}</td>
-                        <td>{c.cliente}</td>
+                        <td>
+                          <span className={`${ui.puesto} ${i < 3 ? ui.puestoTop : ''}`}>{i + 1}</span>
+                        </td>
+                        <td>
+                          <b>{c.cliente}</b>
+                        </td>
                         <td>{c.telefono && c.telefono !== '0' ? c.telefono : '—'}</td>
-                        <td className={styles.num}>{c.pedidos}</td>
-                        <td className={styles.num}>{formatearMonto(c.total)}</td>
+                        <td className={ui.num}>{c.pedidos}</td>
+                        <td className={ui.num}>{formatearMonto(c.total)}</td>
                         <td>{formatearFecha(c.ultima_compra)}</td>
                       </tr>
                     ))}
@@ -231,29 +270,31 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Envíos y repartidores</h2>
+            <Cabeza icono={Bike} titulo="Envíos y repartidores" />
             <p className={styles.muted}>
               Envíos cobrados: <strong>{formatearMonto(reporte.envios.total)}</strong> en {reporte.envios.pedidos}{' '}
               {reporte.envios.pedidos === 1 ? 'pedido' : 'pedidos'}.
             </p>
             {reporte.por_repartidor.length === 0 ? (
-              <p className={styles.muted}>No hubo domicilios en este periodo.</p>
+              <Vacio icono={Receipt} titulo="No hubo domicilios en este periodo." />
             ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
                   <thead>
                     <tr>
                       <th>Repartidor</th>
-                      <th className={styles.num}>Entregas</th>
-                      <th className={styles.num}>Envíos cobrados</th>
+                      <th className={ui.num}>Entregas</th>
+                      <th className={ui.num}>Envíos cobrados</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reporte.por_repartidor.map((r) => (
                       <tr key={r.repartidor}>
-                        <td>{r.repartidor}</td>
-                        <td className={styles.num}>{r.entregas}</td>
-                        <td className={styles.num}>{formatearMonto(r.envios)}</td>
+                        <td>
+                          <b>{r.repartidor}</b>
+                        </td>
+                        <td className={ui.num}>{r.entregas}</td>
+                        <td className={ui.num}>{formatearMonto(r.envios)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -263,29 +304,31 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Gastos y retiros de caja</h2>
+            <Cabeza icono={Banknote} titulo="Gastos y retiros de caja" />
             {reporte.gastos.por_categoria.length === 0 ? (
-              <p className={styles.muted}>No se anotaron gastos en este periodo.</p>
+              <Vacio icono={Receipt} titulo="No se anotaron gastos en este periodo." />
             ) : (
               <>
                 <p className={styles.muted}>
                   Salió de la caja: <strong>{formatearMonto(reporte.gastos.total)}</strong>
                 </p>
-                <div className={styles.tableWrap}>
-                  <table className={styles.table}>
+                <div className={ui.tw}>
+                  <table className={ui.tabla}>
                     <thead>
                       <tr>
                         <th>Tipo</th>
-                        <th className={styles.num}>Veces</th>
-                        <th className={styles.num}>Total</th>
+                        <th className={ui.num}>Veces</th>
+                        <th className={ui.num}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reporte.gastos.por_categoria.map((c) => (
                         <tr key={c.categoria}>
-                          <td>{c.nombre}</td>
-                          <td className={styles.num}>{c.cantidad}</td>
-                          <td className={styles.num}>{formatearMonto(c.total)}</td>
+                          <td>
+                            <b>{c.nombre}</b>
+                          </td>
+                          <td className={ui.num}>{c.cantidad}</td>
+                          <td className={ui.num}>{formatearMonto(c.total)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -296,17 +339,17 @@ export function ReporteVentas() {
           </section>
 
           <section className={styles.card}>
-            <h2>Cancelaciones con devolución</h2>
+            <Cabeza icono={Ban} titulo="Cancelaciones con devolución" />
             {reporte.cancelaciones.length === 0 ? (
-              <p className={styles.muted}>No hubo cancelaciones en este periodo.</p>
+              <Vacio icono={Receipt} titulo="No hubo cancelaciones en este periodo." />
             ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
                   <thead>
                     <tr>
                       <th>Ficha</th>
                       <th>Fecha</th>
-                      <th className={styles.num}>Devuelto</th>
+                      <th className={ui.num}>Devuelto</th>
                       <th>Motivo</th>
                       <th>Cajero</th>
                       <th>Canceló</th>
@@ -315,9 +358,11 @@ export function ReporteVentas() {
                   <tbody>
                     {reporte.cancelaciones.map((c) => (
                       <tr key={c.pedido_id}>
-                        <td>{c.ficha ?? '—'}</td>
+                        <td>
+                          <b>{c.ficha ?? '—'}</b>
+                        </td>
                         <td>{formatearFecha(c.fecha)}</td>
-                        <td className={styles.num}>{formatearMonto(c.total_devuelto)}</td>
+                        <td className={ui.num}>{formatearMonto(c.total_devuelto)}</td>
                         <td>{c.motivo ?? '—'}</td>
                         <td>{c.cajero ?? '—'}</td>
                         <td>{c.cancelado_por ?? '—'}</td>

@@ -1,8 +1,13 @@
+import { Bike, Building2, Pencil, Phone, Plus, Power, Trash2, User } from 'lucide-react'
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { repartidoresApi } from '../../apis/repartidores.ts'
 import type { Repartidor, TipoRepartidor } from '../../apis/repartidores.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
+import { Acciones, Buscador, BotonIcono, Cabeza, EstadoPildora, FiltroEstadoBarra, Vacio } from '../admin/ui.tsx'
+import { coincideEstado } from '../admin/filtros.ts'
+import type { FiltroEstado } from '../admin/filtros.ts'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 
 interface FormProps {
@@ -71,6 +76,8 @@ export function RepartidoresAdmin() {
   const [panel, setPanel] = useState<'nuevo' | Repartidor | null>(null)
   const [ocupadoId, setOcupadoId] = useState<number | null>(null)
   const [version, setVersion] = useState(0)
+  const [busqueda, setBusqueda] = useState('')
+  const [filtro, setFiltro] = useState<FiltroEstado>('todos')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -116,6 +123,9 @@ export function RepartidoresAdmin() {
     }
   }
 
+  const texto = busqueda.trim().toLowerCase()
+  const visibles = (lista ?? []).filter((r) => coincideEstado(filtro, r.activo) && r.nombre.toLowerCase().includes(texto))
+
   return (
     <div className={styles.page}>
       {error && (
@@ -137,58 +147,89 @@ export function RepartidoresAdmin() {
       )}
 
       <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2>Repartidores y empresas</h2>
-          <button className={styles.primary} type="button" onClick={() => setPanel('nuevo')}>
-            Nuevo repartidor
+        <Cabeza icono={Bike} titulo="Repartidores y empresas" cuenta={lista?.length}>
+          <button className={`${ui.btn} ${ui.primario}`} type="button" onClick={() => setPanel('nuevo')}>
+            <Plus size={16} aria-hidden="true" /> Nuevo repartidor
           </button>
-        </div>
+        </Cabeza>
 
         {!lista && !error && <p className={styles.muted}>Cargando…</p>}
         {lista && lista.length === 0 && (
-          <p className={styles.muted}>Todavía no hay repartidores. Agrega uno para elegirlo en los domicilios.</p>
+          <Vacio icono={Bike} titulo="Todavía no hay repartidores" detalle="Agrega uno para elegirlo en los domicilios." />
         )}
         {lista && lista.length > 0 && (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Tipo</th>
-                  <th>Teléfono</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lista.map((r) => (
-                  <tr key={r.id} className={r.activo ? undefined : styles.inactiva}>
-                    <td>{r.nombre}</td>
-                    <td>{r.tipo === 'empresa' ? 'Empresa' : 'Persona'}</td>
-                    <td>{r.telefono ?? '—'}</td>
-                    <td>
-                      <span className={`${styles.badge} ${r.activo ? styles.badgeOn : styles.badgeOff}`}>
-                        {r.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className={styles.acciones}>
-                        <button className={styles.link} type="button" onClick={() => setPanel(r)}>
-                          Editar
-                        </button>
-                        <button className={styles.link} type="button" disabled={ocupadoId === r.id} onClick={() => cambiarActivo(r)}>
-                          {r.activo ? 'Desactivar' : 'Activar'}
-                        </button>
-                        <button className={styles.link} type="button" disabled={ocupadoId === r.id} onClick={() => eliminar(r)}>
-                          Borrar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className={ui.herramientas}>
+              <Buscador valor={busqueda} onChange={setBusqueda} etiqueta="Buscar repartidor" />
+              <FiltroEstadoBarra valor={filtro} onChange={setFiltro} items={lista} />
+            </div>
+            {visibles.length === 0 ? (
+              <Vacio icono={Bike} titulo="No hay repartidores que coincidan" detalle="Prueba con otro nombre o quita el filtro." />
+            ) : (
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Teléfono</th>
+                      <th>Estado</th>
+                      <th>
+                        <span className={ui.soloLector}>Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibles.map((r) => (
+                      <tr key={r.id} className={r.activo ? undefined : ui.inactiva}>
+                        <td>
+                          <b>{r.nombre}</b>
+                        </td>
+                        <td>
+                          <span className={ui.etiqueta}>
+                            {r.tipo === 'empresa' ? <Building2 size={15} aria-hidden="true" /> : <User size={15} aria-hidden="true" />}
+                            {r.tipo === 'empresa' ? 'Empresa' : 'Persona'}
+                          </span>
+                        </td>
+                        <td>
+                          {r.telefono ? (
+                            <span className={ui.etiqueta}>
+                              <Phone size={14} aria-hidden="true" />
+                              {r.telefono}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          <EstadoPildora activo={r.activo} />
+                        </td>
+                        <td className={ui.acciones}>
+                          <Acciones>
+                            <BotonIcono icono={Pencil} titulo={`Editar a ${r.nombre}`} onClick={() => setPanel(r)} />
+                            <BotonIcono
+                              icono={Power}
+                              titulo={r.activo ? `Desactivar a ${r.nombre}` : `Activar a ${r.nombre}`}
+                              tono={r.activo ? 'ok' : 'off'}
+                              disabled={ocupadoId === r.id}
+                              onClick={() => void cambiarActivo(r)}
+                            />
+                            <BotonIcono
+                              icono={Trash2}
+                              titulo={`Borrar a ${r.nombre}`}
+                              tono="peligro"
+                              disabled={ocupadoId === r.id}
+                              onClick={() => void eliminar(r)}
+                            />
+                          </Acciones>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

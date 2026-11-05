@@ -1,8 +1,11 @@
+import { Check, GlassWater, History, Plus, Settings2, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { stockApi } from '../../apis/stock.ts'
 import type { MovimientoStock, StockBebidaResumen } from '../../apis/stock.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearFecha, mensajeDeError } from '../../utils/formato.ts'
+import { BotonIcono, Acciones, Cabeza, EstadoPildora, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 
 const ETIQUETA_TIPO: Record<MovimientoStock['tipo'], string> = {
@@ -92,7 +95,7 @@ export function PanelStockBebidas({ esAdmin }: Props) {
 
   return (
     <section className={styles.card}>
-      <h2>Stock de bebidas</h2>
+      <Cabeza icono={GlassWater} titulo="Stock de bebidas" cuenta={bebidas?.length} />
       <p className={styles.muted}>
         Cuando llega mercadería, escribe cuántas unidades entraron. Cada bebida que se cobra se descuenta sola; todo
         queda en los movimientos, con quién lo hizo.
@@ -105,36 +108,40 @@ export function PanelStockBebidas({ esAdmin }: Props) {
       )}
       {!bebidas && !error && <p className={styles.muted}>Cargando stock…</p>}
       {bebidas && bebidas.length === 0 && (
-        <p className={styles.muted}>No hay bebidas. Crea productos en la categoría «Bebidas».</p>
+        <Vacio icono={GlassWater} titulo="No hay bebidas" detalle="Crea productos en la categoría «Bebidas»." />
       )}
 
       {bebidas && bebidas.length > 0 && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+        <div className={ui.tw}>
+          <table className={ui.tabla}>
             <thead>
               <tr>
                 <th>Bebida</th>
-                <th className={styles.num}>Llegaron hoy</th>
-                <th className={styles.num}>Vendidas hoy</th>
-                <th className={styles.num}>Hay</th>
+                <th className={ui.num}>Llegaron hoy</th>
+                <th className={ui.num}>Vendidas hoy</th>
+                <th className={ui.num}>Hay</th>
                 <th>Llegaron</th>
-                {esAdmin && <th>Corregir</th>}
+                {esAdmin && (
+                  <th>
+                    <span className={ui.soloLector}>Corregir</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
               {bebidas.map((b) => (
-                <tr key={b.producto_id}>
+                <tr key={b.producto_id} className={b.agotado ? ui.inactiva : undefined}>
                   <td>
-                    {b.nombre}{' '}
-                    {b.agotado && <span className={`${styles.badge} ${styles.badgeOff}`}>Agotada</span>}
+                    <b>{b.nombre}</b> {b.agotado && <EstadoPildora activo={false} off="Agotada" />}
                   </td>
-                  <td className={styles.num}>{b.entradas_hoy > 0 ? `+${b.entradas_hoy}` : 0}</td>
-                  <td className={styles.num}>{b.vendidas_hoy > 0 ? `−${b.vendidas_hoy}` : 0}</td>
-                  <td className={styles.num}>{b.stock ?? 0}</td>
+                  <td className={ui.num}>{b.entradas_hoy > 0 ? `+${b.entradas_hoy}` : 0}</td>
+                  <td className={ui.num}>{b.vendidas_hoy > 0 ? `−${b.vendidas_hoy}` : 0}</td>
+                  <td className={ui.num}>{b.stock ?? 0}</td>
                   <td>
-                    <div className={styles.acciones}>
+                    <div className={ui.acc} style={{ justifyContent: 'flex-start' }}>
                       <input
-                        className={styles.inlineInput}
+                        className={ui.edicion}
+                        style={{ width: 90 }}
                         type="number"
                         inputMode="numeric"
                         min="1"
@@ -145,20 +152,20 @@ export function PanelStockBebidas({ esAdmin }: Props) {
                         onChange={(e) => setEntradas((x) => ({ ...x, [b.producto_id]: e.target.value }))}
                       />
                       <button
-                        className={styles.primary}
+                        className={`${ui.btn} ${ui.primario}`}
                         type="button"
                         disabled={ocupadoId === b.producto_id}
                         onClick={() => void agregar(b)}
                       >
-                        Agregar
+                        <Plus size={16} aria-hidden="true" /> Agregar
                       </button>
                     </div>
                   </td>
                   {esAdmin && (
-                    <td>
-                      <button className={styles.link} type="button" onClick={() => setAjustando(b)}>
-                        Ajustar
-                      </button>
+                    <td className={ui.acciones}>
+                      <Acciones>
+                        <BotonIcono icono={Settings2} titulo={`Ajustar el stock de ${b.nombre}`} onClick={() => setAjustando(b)} />
+                      </Acciones>
                     </td>
                   )}
                 </tr>
@@ -195,12 +202,12 @@ export function PanelStockBebidas({ esAdmin }: Props) {
               required
             />
           </label>
-          <div className={styles.acciones}>
-            <button className={styles.primary} type="submit" disabled={ocupadoId === ajustando.producto_id}>
-              Guardar ajuste
+          <div className={ui.herramientas}>
+            <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupadoId === ajustando.producto_id}>
+              <Check size={16} aria-hidden="true" /> Guardar ajuste
             </button>
-            <button className={styles.secondary} type="button" onClick={() => setAjustando(null)}>
-              Cancelar
+            <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={() => setAjustando(null)}>
+              <X size={16} aria-hidden="true" /> Cancelar
             </button>
           </div>
         </form>
@@ -208,17 +215,17 @@ export function PanelStockBebidas({ esAdmin }: Props) {
 
       {movimientos.length > 0 && (
         <div>
-          <h3>Últimos movimientos</h3>
+          <Cabeza icono={History} titulo="Últimos movimientos" />
           <p className={styles.muted}>Lo que llegó, lo que se vendió y las correcciones.</p>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
+          <div className={ui.tw}>
+            <table className={ui.tabla}>
               <thead>
                 <tr>
                   <th>Fecha</th>
                   <th>Bebida</th>
                   <th>Qué pasó</th>
-                  <th className={styles.num}>Cambio</th>
-                  <th className={styles.num}>Quedó</th>
+                  <th className={ui.num}>Cambio</th>
+                  <th className={ui.num}>Quedó</th>
                   <th>Quién</th>
                   <th>Motivo</th>
                 </tr>
@@ -229,8 +236,8 @@ export function PanelStockBebidas({ esAdmin }: Props) {
                     <td>{formatearFecha(m.fecha)}</td>
                     <td>{m.producto_nombre}</td>
                     <td>{ETIQUETA_TIPO[m.tipo]}</td>
-                    <td className={styles.num}>{m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}</td>
-                    <td className={styles.num}>{m.stock_nuevo}</td>
+                    <td className={ui.num}>{m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}</td>
+                    <td className={ui.num}>{m.stock_nuevo}</td>
                     <td>{m.usuario_nombre}</td>
                     <td>{m.motivo ?? '—'}</td>
                   </tr>

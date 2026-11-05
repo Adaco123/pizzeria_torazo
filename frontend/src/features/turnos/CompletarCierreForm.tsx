@@ -1,8 +1,11 @@
+import { Banknote } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { turnosApi } from '../../apis/turnos.ts'
 import type { Turno } from '../../apis/turnos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, parseMonto } from '../../utils/formato.ts'
+import ui from '../admin/Ui.module.css'
+import { Cabeza } from '../admin/ui.tsx'
 import styles from './Turnos.module.css'
 
 interface Props {
@@ -42,7 +45,7 @@ export function CompletarCierreForm({ turno, onListo, onCancelar }: Props) {
 
   return (
     <section className={styles.card}>
-      <h2>Registrar monto de cierre del turno #{turno.id}</h2>
+      <Cabeza icono={Banknote} titulo={`Registrar monto de cierre del turno #${turno.id}`} />
       <p className={styles.muted}>
         Cerrado automáticamente el {formatearFecha(turno.cierre)}. Falta el monto con el que quedó la
         caja.
@@ -61,10 +64,10 @@ export function CompletarCierreForm({ turno, onListo, onCancelar }: Props) {
             autoFocus
           />
         </label>
-        <button className={styles.primary} type="submit" disabled={enviando}>
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={enviando}>
           {enviando ? 'Guardando…' : 'Guardar'}
         </button>
-        <button className={styles.secondary} type="button" onClick={onCancelar}>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={onCancelar}>
           Cancelar
         </button>
       </form>

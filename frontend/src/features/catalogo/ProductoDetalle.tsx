@@ -1,3 +1,4 @@
+import { Check, Pencil, Plus, X, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { productosApi } from '../../apis/productos.ts'
 import type { Ingrediente } from '../../apis/ingredientes.ts'
@@ -6,6 +7,8 @@ import type { Tamano } from '../../apis/tamanos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearMonto, mensajeDeError, parseMonto } from '../../utils/formato.ts'
 import { useAccion } from './useAccion.ts'
+import { Acciones, BotonIcono } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -112,12 +115,15 @@ export function ProductoDetalle({ producto, tamanos, ingredientes }: Props) {
           <p className={styles.muted}>Sin tamaños: se cobra el precio base ({formatearMonto(producto.precio_base)}).</p>
         )}
         {asignados.length > 0 && (
-          <table className={styles.table}>
+          <div className={ui.tw}>
+          <table className={ui.tabla}>
             <thead>
               <tr>
                 <th>Tamaño</th>
-                <th className={styles.num}>Precio</th>
-                <th>Acciones</th>
+                <th className={ui.num}>Precio</th>
+                <th>
+                  <span className={ui.soloLector}>Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -125,11 +131,15 @@ export function ProductoDetalle({ producto, tamanos, ingredientes }: Props) {
                 const enEdicion = editando?.tamanoId === asignado.tamano_id
                 return (
                   <tr key={asignado.tamano_id}>
-                    <td>{asignado.tamano}</td>
-                    <td className={styles.num}>
+                    <td>
+                      <b>{asignado.tamano}</b>
+                    </td>
+                    <td className={ui.num}>
                       {enEdicion ? (
                         <input
-                          className={styles.inlineInput}
+                          className={ui.edicion}
+                          style={{ width: 120 }}
+                          aria-label="Precio"
                           type="number"
                           inputMode="decimal"
                           min="0"
@@ -142,36 +152,31 @@ export function ProductoDetalle({ producto, tamanos, ingredientes }: Props) {
                         formatearMonto(asignado.precio)
                       )}
                     </td>
-                    <td className={styles.acciones}>
-                      {enEdicion ? (
-                        <>
-                          <button className={styles.link} type="button" disabled={ocupado} onClick={() => cambiarPrecio(asignado, editando.texto)}>
-                            guardar
-                          </button>
-                          <button className={styles.link} type="button" onClick={() => setEditando(null)}>
-                            cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className={styles.link}
-                            type="button"
-                            onClick={() => setEditando({ tamanoId: asignado.tamano_id, texto: String(asignado.precio) })}
-                          >
-                            cambiar precio
-                          </button>
-                          <button className={styles.linkDanger} type="button" disabled={ocupado} onClick={() => quitarTamano(asignado)}>
-                            quitar
-                          </button>
-                        </>
-                      )}
+                    <td className={ui.acciones}>
+                      <Acciones>
+                        {enEdicion ? (
+                          <>
+                            <BotonIcono icono={Check} titulo="Guardar precio" tono="ok" disabled={ocupado} onClick={() => cambiarPrecio(asignado, editando.texto)} />
+                            <BotonIcono icono={X} titulo="Cancelar" onClick={() => setEditando(null)} />
+                          </>
+                        ) : (
+                          <>
+                            <BotonIcono
+                              icono={Pencil}
+                              titulo={`Cambiar el precio de ${asignado.tamano}`}
+                              onClick={() => setEditando({ tamanoId: asignado.tamano_id, texto: String(asignado.precio) })}
+                            />
+                            <BotonIcono icono={Trash2} titulo={`Quitar el tamaño ${asignado.tamano}`} tono="peligro" disabled={ocupado} onClick={() => quitarTamano(asignado)} />
+                          </>
+                        )}
+                      </Acciones>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+          </div>
         )}
 
         {libres.length > 0 ? (
@@ -197,8 +202,8 @@ export function ProductoDetalle({ producto, tamanos, ingredientes }: Props) {
                 onChange={(e) => setNuevoPrecio(e.target.value)}
               />
             </label>
-            <button className={styles.primary} type="button" disabled={ocupado} onClick={agregarTamano}>
-              Agregar
+            <button className={`${ui.btn} ${ui.primario}`} type="button" disabled={ocupado} onClick={agregarTamano}>
+              <Plus size={16} aria-hidden="true" /> Agregar
             </button>
           </div>
         ) : (

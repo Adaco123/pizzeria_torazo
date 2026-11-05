@@ -1,3 +1,4 @@
+import { ArrowRight, Lock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../auth/auth-context.ts'
@@ -75,10 +76,18 @@ export function PedidosPage() {
         <MiTurnoPanel turno={null} usuarioId={sesion.id} onCambio={turnos.recargar} />
       )}
       {sinTurno && esAdmin && (
-        <div className={styles.aviso}>
-          <p>Necesitas un turno abierto para registrar ventas.</p>
-          <Link to="/turnos">Ir a Turnos</Link>
-        </div>
+        <section className={styles.sinTurno} role="status">
+          <span className={styles.sinTurnoIcono}>
+            <Lock size={22} aria-hidden="true" />
+          </span>
+          <div className={styles.sinTurnoTexto}>
+            <b>Necesitas un turno abierto para registrar ventas</b>
+            <span>Ábrelo en Turnos y vuelve aquí para empezar a vender.</span>
+          </div>
+          <Link className={styles.sinTurnoBoton} to="/turnos">
+            Ir a Turnos <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
       )}
 
       {miTurno && sesion && <Caja usuarioId={sesion.id} turnoId={miTurno.id} esAdmin={esAdmin} pedidos={delAlcance} onCambio={alCambiar} />}

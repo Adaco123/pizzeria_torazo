@@ -1,9 +1,14 @@
+import { KeyRound, Pencil, Plus, Power, Users as IconoUsuarios } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { authApi } from '../../apis/auth.ts'
 import type { RolInfo, UsuarioAdmin } from '../../apis/auth.ts'
 import { useAuth } from '../../auth/auth-context.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
+import { Acciones, Buscador, BotonIcono, Cabeza, EstadoPildora, FiltroEstadoBarra, Vacio } from '../admin/ui.tsx'
+import { coincideEstado } from '../admin/filtros.ts'
+import type { FiltroEstado } from '../admin/filtros.ts'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 import { ContrasenaForm } from './ContrasenaForm.tsx'
 import { FormularioUsuario } from './FormularioUsuario.tsx'
@@ -23,6 +28,8 @@ export function UsuariosAdmin() {
   const [panel, setPanel] = useState<Panel>(null)
   const [ocupadoId, setOcupadoId] = useState<number | null>(null)
   const [version, setVersion] = useState(0)
+  const [busqueda, setBusqueda] = useState('')
+  const [filtro, setFiltro] = useState<FiltroEstado>('todos')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -66,6 +73,11 @@ export function UsuariosAdmin() {
     }
   }
 
+  const texto = busqueda.trim().toLowerCase()
+  const visibles = (usuarios ?? []).filter(
+    (u) => coincideEstado(filtro, u.activo) && `${u.nombre} ${u.correo}`.toLowerCase().includes(texto),
+  )
+
   return (
     <div className={styles.page}>
       {error && (
@@ -99,74 +111,78 @@ export function UsuariosAdmin() {
       )}
 
       <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2>Usuarios</h2>
-          <button className={styles.primary} type="button" onClick={() => setPanel({ tipo: 'nuevo' })}>
-            Nuevo usuario
+        <Cabeza icono={IconoUsuarios} titulo="Usuarios" cuenta={usuarios?.length}>
+          <button className={`${ui.btn} ${ui.primario}`} type="button" onClick={() => setPanel({ tipo: 'nuevo' })}>
+            <Plus size={16} aria-hidden="true" /> Nuevo usuario
           </button>
-        </div>
+        </Cabeza>
 
         {!usuarios && !error && <p className={styles.muted}>Cargando usuarios…</p>}
         {usuarios && (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Correo</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuarios.map((u) => {
-                  const esUnoMismo = u.id === sesion?.id
-                  return (
-                    <tr key={u.id} className={u.activo ? undefined : styles.inactiva}>
-                      <td>
-                        {u.nombre}
-                        {esUnoMismo && ' (tú)'}
-                      </td>
-                      <td>{u.correo}</td>
-                      <td>{u.rol ?? '—'}</td>
-                      <td>
-                        <span className={`${styles.badge} ${u.activo ? styles.badgeOn : styles.badgeOff}`}>
-                          {u.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.acciones}>
-                          <button className={styles.link} type="button" onClick={() => setPanel({ tipo: 'editar', usuario: u })}>
-                            Editar
-                          </button>
-                          {!esUnoMismo && (
-                            <button
-                              className={styles.link}
-                              type="button"
-                              onClick={() => setPanel({ tipo: 'contrasena', usuario: u })}
-                            >
-                              Contraseña
-                            </button>
-                          )}
-                          {!esUnoMismo && (
-                            <button
-                              className={styles.link}
-                              type="button"
-                              disabled={ocupadoId === u.id}
-                              onClick={() => void cambiarActivo(u)}
-                            >
-                              {u.activo ? 'Desactivar' : 'Activar'}
-                            </button>
-                          )}
-                        </div>
-                      </td>
+          <>
+            <div className={ui.herramientas}>
+              <Buscador valor={busqueda} onChange={setBusqueda} etiqueta="Buscar usuario" />
+              <FiltroEstadoBarra valor={filtro} onChange={setFiltro} items={usuarios} />
+            </div>
+            {visibles.length === 0 ? (
+              <Vacio icono={IconoUsuarios} titulo="No hay usuarios que coincidan" detalle="Prueba con otro nombre o quita el filtro." />
+            ) : (
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Correo</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                      <th>
+                        <span className={ui.soloLector}>Acciones</span>
+                      </th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {visibles.map((u) => {
+                      const esUnoMismo = u.id === sesion?.id
+                      return (
+                        <tr key={u.id} className={u.activo ? undefined : ui.inactiva}>
+                          <td>
+                            <b>{u.nombre}</b>
+                            {esUnoMismo && <span className={ui.cuenta}> tú</span>}
+                          </td>
+                          <td>{u.correo}</td>
+                          <td>{u.rol ?? '—'}</td>
+                          <td>
+                            <EstadoPildora activo={u.activo} />
+                          </td>
+                          <td className={ui.acciones}>
+                            <Acciones>
+                              <BotonIcono icono={Pencil} titulo={`Editar a ${u.nombre}`} onClick={() => setPanel({ tipo: 'editar', usuario: u })} />
+                              {!esUnoMismo && (
+                                <BotonIcono
+                                  icono={KeyRound}
+                                  titulo={`Restablecer la contraseña de ${u.nombre}`}
+                                  onClick={() => setPanel({ tipo: 'contrasena', usuario: u })}
+                                />
+                              )}
+                              {!esUnoMismo && (
+                                <BotonIcono
+                                  icono={Power}
+                                  titulo={u.activo ? `Desactivar a ${u.nombre}` : `Activar a ${u.nombre}`}
+                                  tono={u.activo ? 'ok' : 'off'}
+                                  disabled={ocupadoId === u.id}
+                                  onClick={() => void cambiarActivo(u)}
+                                />
+                              )}
+                            </Acciones>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

@@ -1,3 +1,4 @@
+import { Plus, Pencil, Power, Tag, Trash2, Wheat } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { ingredientesApi } from '../../apis/ingredientes.ts'
 import type { Ingrediente } from '../../apis/ingredientes.ts'
@@ -7,6 +8,10 @@ import type { DatosCatalogo } from './useCatalogoAdmin.ts'
 import { mensajeEliminar } from './errores.ts'
 import { MatrizPreciosIngredientes } from './MatrizPreciosIngredientes.tsx'
 import { useAccion } from './useAccion.ts'
+import { Acciones, Buscador, BotonIcono, Cabeza, EstadoPildora, FiltroEstadoBarra, Vacio } from '../admin/ui.tsx'
+import { coincideEstado } from '../admin/filtros.ts'
+import type { FiltroEstado } from '../admin/filtros.ts'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface FormProps {
@@ -59,10 +64,10 @@ function IngredienteForm({ inicial, onGuardado, onCancelar }: FormProps) {
           <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
           Activo
         </label>
-        <button className={styles.primary} type="submit" disabled={ocupado}>
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupado}>
           {ocupado ? 'Guardando…' : 'Guardar'}
         </button>
-        <button className={styles.secondary} type="button" onClick={onCancelar}>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={onCancelar}>
           Cancelar
         </button>
       </form>
@@ -78,12 +83,17 @@ interface Props {
 export function IngredientesTab({ datos, recargar }: Props) {
   const { ocupado, ejecutar } = useAccion(recargar)
   const [formulario, setFormulario] = useState<'nuevo' | number | null>(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const enEdicion = typeof formulario === 'number' ? datos.ingredientes.find((i) => i.id === formulario) : undefined
 
   // Se reinicia la matriz cuando cambian los precios guardados.
   const claveMatriz = datos.preciosIngrediente
     .map((p) => `${p.ingrediente_id}:${p.tamano_id}:${p.precio_extra}`)
     .join('|')
+
+  const texto = busqueda.trim().toLowerCase()
+  const visibles = datos.ingredientes.filter((i) => coincideEstado(filtro, i.activo) && i.nombre.toLowerCase().includes(texto))
 
   async function eliminar(ingrediente: Ingrediente) {
     if (!window.confirm(`¿Eliminar el ingrediente «${ingrediente.nombre}»?`)) return
@@ -112,70 +122,75 @@ export function IngredientesTab({ datos, recargar }: Props) {
       )}
 
       <section className={styles.card}>
-        <div className={styles.headerRow}>
-          <h2>Ingredientes</h2>
-          <button className={styles.primary} type="button" onClick={() => setFormulario('nuevo')}>
-            + Nuevo ingrediente
+        <Cabeza icono={Wheat} titulo="Ingredientes" cuenta={datos.ingredientes.length}>
+          <button className={`${ui.btn} ${ui.primario}`} type="button" onClick={() => setFormulario('nuevo')}>
+            <Plus size={16} aria-hidden="true" /> Nuevo ingrediente
           </button>
-        </div>
+        </Cabeza>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th className={styles.num}>Precio base</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datos.ingredientes.map((ingrediente) => (
-                <tr key={ingrediente.id} className={ingrediente.activo ? undefined : styles.inactiva}>
-                  <td>{ingrediente.nombre}</td>
-                  <td className={styles.num}>{formatearMonto(ingrediente.precio_extra)}</td>
-                  <td>
-                    <span className={ingrediente.activo ? `${styles.badge} ${styles.badgeOn}` : `${styles.badge} ${styles.badgeOff}`}>
-                      {ingrediente.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className={styles.acciones}>
-                    <button className={styles.link} type="button" onClick={() => setFormulario(ingrediente.id)}>
-                      editar
-                    </button>
-                    <button
-                      className={styles.link}
-                      type="button"
-                      disabled={ocupado}
-                      onClick={() =>
-                        ejecutar(
-                          () => ingredientesApi.actualizar(ingrediente.id, { activo: !ingrediente.activo }),
-                          ingrediente.activo ? 'Ingrediente desactivado' : 'Ingrediente activado',
-                        )
-                      }
-                    >
-                      {ingrediente.activo ? 'desactivar' : 'activar'}
-                    </button>
-                    <button className={styles.linkDanger} type="button" disabled={ocupado} onClick={() => eliminar(ingrediente)}>
-                      eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {datos.ingredientes.length === 0 && (
-                <tr>
-                  <td colSpan={4} className={styles.muted}>
-                    Todavía no hay ingredientes.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {datos.ingredientes.length === 0 ? (
+          <Vacio icono={Wheat} titulo="Todavía no hay ingredientes" detalle="Crea el primero para usarlo como extra." />
+        ) : (
+          <>
+            <div className={ui.herramientas}>
+              <Buscador valor={busqueda} onChange={setBusqueda} etiqueta="Buscar ingrediente" />
+              <FiltroEstadoBarra valor={filtro} onChange={setFiltro} items={datos.ingredientes} />
+            </div>
+            {visibles.length === 0 ? (
+              <Vacio icono={Wheat} titulo="No hay ingredientes que coincidan" detalle="Prueba con otro nombre o quita el filtro." />
+            ) : (
+              <div className={ui.tw}>
+                <table className={ui.tabla}>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th className={ui.num}>Precio base</th>
+                      <th>Estado</th>
+                      <th>
+                        <span className={ui.soloLector}>Acciones</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibles.map((ingrediente) => (
+                      <tr key={ingrediente.id} className={ingrediente.activo ? undefined : ui.inactiva}>
+                        <td>
+                          <b>{ingrediente.nombre}</b>
+                        </td>
+                        <td className={ui.num}>{formatearMonto(ingrediente.precio_extra)}</td>
+                        <td>
+                          <EstadoPildora activo={ingrediente.activo} />
+                        </td>
+                        <td className={ui.acciones}>
+                          <Acciones>
+                            <BotonIcono icono={Pencil} titulo={`Editar «${ingrediente.nombre}»`} onClick={() => setFormulario(ingrediente.id)} />
+                            <BotonIcono
+                              icono={Power}
+                              titulo={ingrediente.activo ? `Desactivar «${ingrediente.nombre}»` : `Activar «${ingrediente.nombre}»`}
+                              tono={ingrediente.activo ? 'ok' : 'off'}
+                              disabled={ocupado}
+                              onClick={() =>
+                                void ejecutar(
+                                  () => ingredientesApi.actualizar(ingrediente.id, { activo: !ingrediente.activo }),
+                                  ingrediente.activo ? 'Ingrediente desactivado' : 'Ingrediente activado',
+                                )
+                              }
+                            />
+                            <BotonIcono icono={Trash2} titulo={`Eliminar «${ingrediente.nombre}»`} tono="peligro" disabled={ocupado} onClick={() => void eliminar(ingrediente)} />
+                          </Acciones>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
       </section>
 
       <section className={styles.card}>
-        <h2>Precio de los extras por tamaño</h2>
+        <Cabeza icono={Tag} titulo="Precio de los extras por tamaño" />
         <p className={styles.hint}>
           Si un tamaño queda vacío, en una pizza normal se cobra el precio base del ingrediente, pero en
           una pizza mitad y mitad el extra se cobra en 0. Conviene llenar todos los tamaños.

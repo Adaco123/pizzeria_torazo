@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { authApi } from '../../apis/auth.ts'
 import type { RolInfo, UsuarioAdmin } from '../../apis/auth.ts'
 import { useToast } from '../../toast/toast-context.ts'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 
 interface Props {
@@ -110,10 +111,10 @@ export function FormularioUsuario({ roles, usuario, esUnoMismo = false, onListo,
             />
           </label>
         )}
-        <button className={styles.primary} type="submit" disabled={enviando}>
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={enviando}>
           {enviando ? 'Guardando…' : usuario ? 'Guardar cambios' : 'Crear usuario'}
         </button>
-        <button className={styles.secondary} type="button" disabled={enviando} onClick={onCancelar}>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={enviando} onClick={onCancelar}>
           Cancelar
         </button>
       </form>

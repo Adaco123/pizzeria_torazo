@@ -1,0 +1,511 @@
+/* ==========================================================================
+   Piezas compartidas del panel de administración (mismo lenguaje que Pedidos):
+   botones con ícono, píldoras de estado, barra de herramientas y tablas con franja.
+   Aparte de Catalogo.module.css a propósito: esas clases también las usan Turnos y Caja.
+   ========================================================================== */
+
+/* ---------- Encabezado de tarjeta ---------- */
+.cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cabeza h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+}
+
+.icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.cuenta {
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: var(--color-primary-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.espacio {
+  flex: 1;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primario {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.primario:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.secundario {
+  border-color: var(--color-primary);
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.secundario:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.ib {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-heading);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ib:hover:not(:disabled) {
+  border-color: #d9c3c6;
+  background: var(--color-surface-alt);
+}
+
+.ib:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ok {
+  color: var(--color-success);
+}
+
+.ok:hover:not(:disabled) {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.off {
+  color: var(--color-muted);
+}
+
+.peligro {
+  color: var(--color-error);
+}
+
+.peligro:hover:not(:disabled) {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.activo {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.acc {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ---------- Barra de herramientas ---------- */
+.herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--color-muted);
+}
+
+.busca svg {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+
+.busca input,
+.selector {
+  padding: 9px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-heading);
+}
+
+.busca input {
+  width: 230px;
+  padding-left: 32px;
+}
+
+.busca input:focus,
+.selector:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.segmento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+}
+
+.segmento button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segmento i {
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--color-border);
+  font-size: 11px;
+  font-style: normal;
+  color: var(--color-text);
+}
+
+.segmento button[aria-pressed='true'] {
+  background: #fff;
+  color: var(--color-heading);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Tabla con franja lateral por estado ---------- */
+.tw {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tbody tr:hover td {
+  background: #fffafa;
+}
+
+.tabla td:first-child {
+  padding-left: 16px;
+  box-shadow: inset 4px 0 0 var(--c, var(--color-primary));
+}
+
+.tabla td:first-child b {
+  color: var(--color-heading);
+}
+
+.tabla .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla td.acciones {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.inactiva {
+  --c: #a8999c;
+  color: var(--color-muted);
+}
+
+.inactiva td:first-child b {
+  color: var(--color-muted);
+}
+
+.detalle td {
+  padding: 0;
+  background: var(--color-surface-alt) !important;
+  box-shadow: none !important;
+}
+
+.edicion {
+  width: 100%;
+  min-width: 140px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.edicion:focus {
+  outline: none;
+}
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.estado::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.estadoOn {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.estadoOff {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+}
+
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.etiqueta svg {
+  color: var(--color-muted);
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.vacio svg {
+  color: #d9c3c6;
+}
+
+.vacio p {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ---------- Baldosas (mesas) ---------- */
+.baldosas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.baldosa {
+  --c: var(--color-success);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--c);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.baldosaOcupada {
+  --c: var(--color-primary);
+}
+
+.baldosaOff {
+  --c: #a8999c;
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+}
+
+.baldosa strong {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-heading);
+}
+
+.baldosaOff strong {
+  color: var(--color-muted);
+}
+
+.baldosa .estado {
+  align-self: flex-start;
+}
+
+.baldosa .acc {
+  margin-top: 4px;
+}
+
+/* ---------- Reportes ---------- */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.ficha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.ficha .icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.ficha dt {
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.ficha dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-heading);
+}
+
+.dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.puesto {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-muted);
+}
+
+.puestoTop {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Responsivo: va al final para ganar a los estilos base. */
+@media (max-width: 1100px) {
+  .dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .busca {
+    flex: 1;
+    min-width: 100%;
+  }
+
+  .busca input {
+    width: 100%;
+  }
+}
+
+.soloLector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

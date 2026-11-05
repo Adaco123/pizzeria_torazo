@@ -1,9 +1,11 @@
+import { Banknote, Clock, FileText, Lock, LockOpen } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { isApiError } from '../../api.ts'
 import { turnoAbiertoDeError, turnosApi } from '../../apis/turnos.ts'
 import type { Turno } from '../../apis/turnos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto, parseMonto } from '../../utils/formato.ts'
+import ui from '../admin/Ui.module.css'
 import styles from './Turnos.module.css'
 
 interface Props {
@@ -15,6 +17,8 @@ interface Props {
   onVerResumen?: (turnoId: number) => void
   /** El administrador puede ver el resumen con el turno abierto; el cajero solo al cerrarlo. */
   puedeVerResumenAbierto?: boolean
+  /** true en Turnos (columna izquierda fija); false = tarjeta suelta, como en Pedidos. */
+  enRiel?: boolean
 }
 
 export function MiTurnoPanel({
@@ -23,6 +27,7 @@ export function MiTurnoPanel({
   onCambio,
   onVerResumen,
   puedeVerResumenAbierto = false,
+  enRiel = false,
 }: Props) {
   const toast = useToast()
   const [monto, setMonto] = useState('')
@@ -79,10 +84,13 @@ export function MiTurnoPanel({
 
   if (!turno) {
     return (
-      <section className={styles.card}>
-        <h2>No tienes un turno abierto</h2>
-        <p className={styles.muted}>Abre un turno para poder registrar pedidos.</p>
-        <form className={styles.form} onSubmit={abrir}>
+      <aside className={enRiel ? styles.riel : `${styles.card} ${styles.suelta}`} aria-label="Mi turno">
+        <h2 className={styles.tituloRiel}>Mi turno</h2>
+        <div className={`${styles.mi} ${styles.miSin}`}>
+          <b className={styles.miTitulo}>No tienes un turno abierto</b>
+          <p className={styles.muted}>Abre un turno para poder registrar pedidos.</p>
+        </div>
+        <form className={styles.formulario} onSubmit={abrir}>
           <label className={styles.field}>
             <span>Monto inicial en caja (Bs)</span>
             <input
@@ -95,25 +103,33 @@ export function MiTurnoPanel({
               onChange={(e) => setMonto(e.target.value)}
             />
           </label>
-          <button className={styles.primary} type="submit" disabled={enviando}>
-            {enviando ? 'Abriendo…' : 'Abrir turno'}
+          <button className={styles.grande} type="submit" disabled={enviando}>
+            <LockOpen size={18} aria-hidden="true" /> {enviando ? 'Abriendo…' : 'Abrir turno'}
           </button>
         </form>
-      </section>
+      </aside>
     )
   }
 
   return (
-    <section className={styles.card}>
-      <div className={styles.cardHeader}>
-        <h2>Turno #{turno.id} abierto</h2>
-        <span className={styles.badgeOpen}>Abierto</span>
+    <aside className={enRiel ? styles.riel : `${styles.card} ${styles.suelta}`} aria-label="Mi turno">
+      <h2 className={styles.tituloRiel}>Mi turno</h2>
+      <div className={styles.mi}>
+        <div className={styles.miTitulo}>
+          <b>Turno #{turno.id}</b>
+          <span className={`${ui.estado} ${ui.estadoOn}`}>Abierto</span>
+        </div>
+        <div className={styles.meta}>
+          <span>
+            <Clock size={13} aria-hidden="true" /> Desde {formatearFecha(turno.apertura)}
+          </span>
+          <span>
+            <Banknote size={13} aria-hidden="true" /> Monto inicial {formatearMonto(turno.monto_inicio)}
+          </span>
+        </div>
       </div>
-      <p className={styles.muted}>
-        Desde {formatearFecha(turno.apertura)} · Monto inicial {formatearMonto(turno.monto_inicio)}
-      </p>
 
-      <form className={styles.form} onSubmit={cerrar}>
+      <form className={styles.formulario} onSubmit={cerrar}>
         <label className={styles.field}>
           <span>Monto de cierre en caja (Bs)</span>
           <input
@@ -127,15 +143,15 @@ export function MiTurnoPanel({
             required
           />
         </label>
-        <button className={styles.primary} type="submit" disabled={enviando}>
-          {enviando ? 'Cerrando…' : 'Cerrar turno'}
+        <button className={styles.grande} type="submit" disabled={enviando}>
+          <Lock size={18} aria-hidden="true" /> {enviando ? 'Cerrando…' : 'Cerrar turno'}
         </button>
         {onVerResumen && puedeVerResumenAbierto && (
-          <button className={styles.secondary} type="button" onClick={() => onVerResumen(turno.id)}>
-            Ver resumen
+          <button className={`${ui.btn} ${ui.secundario} ${styles.ancho}`} type="button" onClick={() => onVerResumen(turno.id)}>
+            <FileText size={16} aria-hidden="true" /> Ver resumen
           </button>
         )}
       </form>
-    </section>
+    </aside>
   )
 }

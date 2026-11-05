@@ -1,9 +1,12 @@
+import { Check, Pencil, Plus, Ruler, Trash2, X } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { tamanosApi } from '../../apis/tamanos.ts'
 import type { Tamano } from '../../apis/tamanos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { mensajeEliminar } from './errores.ts'
 import { useAccion } from './useAccion.ts'
+import { Acciones, BotonIcono, Cabeza, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -47,7 +50,7 @@ export function TamanosTab({ tamanos, recargar }: Props) {
 
   return (
     <section className={styles.card}>
-      <h2>Tamaños</h2>
+      <Cabeza icono={Ruler} titulo="Tamaños" cuenta={tamanos.length} />
       <p className={styles.muted}>
         Los tamaños se asignan a cada producto (con su precio) en la pestaña Productos, y a cada
         ingrediente en Ingredientes.
@@ -58,78 +61,72 @@ export function TamanosTab({ tamanos, recargar }: Props) {
           <span>Nuevo tamaño</span>
           <input value={nombre} maxLength={50} onChange={(e) => setNombre(e.target.value)} />
         </label>
-        <button className={styles.primary} type="submit" disabled={ocupado}>
-          Crear
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupado}>
+          <Plus size={16} aria-hidden="true" /> Crear
         </button>
       </form>
 
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tamanos.map((tamano) => {
-              const editando = editandoId === tamano.id
-              return (
-                <tr key={tamano.id}>
-                  <td>
-                    {editando ? (
-                      <input
-                        className={styles.inlineInputWide}
-                        value={textoEdicion}
-                        maxLength={50}
-                        autoFocus
-                        onChange={(e) => setTextoEdicion(e.target.value)}
-                      />
-                    ) : (
-                      tamano.nombre
-                    )}
-                  </td>
-                  <td className={styles.acciones}>
-                    {editando ? (
-                      <>
-                        <button className={styles.link} type="button" disabled={ocupado} onClick={() => renombrar(tamano)}>
-                          guardar
-                        </button>
-                        <button className={styles.link} type="button" onClick={() => setEditandoId(null)}>
-                          cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className={styles.link}
-                          type="button"
-                          onClick={() => {
-                            setEditandoId(tamano.id)
-                            setTextoEdicion(tamano.nombre)
-                          }}
-                        >
-                          renombrar
-                        </button>
-                        <button className={styles.linkDanger} type="button" disabled={ocupado} onClick={() => eliminar(tamano)}>
-                          eliminar
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-            {tamanos.length === 0 && (
+      {tamanos.length === 0 ? (
+        <Vacio icono={Ruler} titulo="Todavía no hay tamaños" detalle="Crea el primero, por ejemplo «Personal»." />
+      ) : (
+        <div className={ui.tw}>
+          <table className={ui.tabla}>
+            <thead>
               <tr>
-                <td colSpan={2} className={styles.muted}>
-                  Todavía no hay tamaños.
-                </td>
+                <th>Nombre</th>
+                <th>
+                  <span className={ui.soloLector}>Acciones</span>
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {tamanos.map((tamano) => {
+                const editando = editandoId === tamano.id
+                return (
+                  <tr key={tamano.id}>
+                    <td>
+                      {editando ? (
+                        <input
+                          className={ui.edicion}
+                          aria-label="Nombre del tamaño"
+                          value={textoEdicion}
+                          maxLength={50}
+                          autoFocus
+                          onChange={(e) => setTextoEdicion(e.target.value)}
+                        />
+                      ) : (
+                        <b>{tamano.nombre}</b>
+                      )}
+                    </td>
+                    <td className={ui.acciones}>
+                      <Acciones>
+                        {editando ? (
+                          <>
+                            <BotonIcono icono={Check} titulo="Guardar" tono="ok" disabled={ocupado} onClick={() => renombrar(tamano)} />
+                            <BotonIcono icono={X} titulo="Cancelar" onClick={() => setEditandoId(null)} />
+                          </>
+                        ) : (
+                          <>
+                            <BotonIcono
+                              icono={Pencil}
+                              titulo={`Renombrar «${tamano.nombre}»`}
+                              onClick={() => {
+                                setEditandoId(tamano.id)
+                                setTextoEdicion(tamano.nombre)
+                              }}
+                            />
+                            <BotonIcono icono={Trash2} titulo={`Eliminar «${tamano.nombre}»`} tono="peligro" disabled={ocupado} onClick={() => void eliminar(tamano)} />
+                          </>
+                        )}
+                      </Acciones>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   )
 }

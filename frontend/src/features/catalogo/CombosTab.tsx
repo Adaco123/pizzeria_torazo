@@ -1,3 +1,4 @@
+import { Check, Package, PackageOpen, Pencil, Plus, Power, Trash2, X } from 'lucide-react'
 import { Fragment, useState, type SubmitEvent } from 'react'
 import { combosApi } from '../../apis/combos.ts'
 import type { Combo } from '../../apis/combos.ts'
@@ -7,6 +8,8 @@ import type { DatosCatalogo } from './useCatalogoAdmin.ts'
 import { ComboProductos } from './ComboProductos.tsx'
 import { mensajeEliminar } from './errores.ts'
 import { useAccion } from './useAccion.ts'
+import { Acciones, BotonIcono, Cabeza, EstadoPildora, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -62,7 +65,7 @@ export function CombosTab({ datos, recargar }: Props) {
 
   return (
     <section className={styles.card}>
-      <h2>Combos</h2>
+      <Cabeza icono={Package} titulo="Combos" cuenta={datos.combos.length} />
 
       <form className={styles.form} onSubmit={crear}>
         <label className={`${styles.field} ${styles.grow}`}>
@@ -80,117 +83,110 @@ export function CombosTab({ datos, recargar }: Props) {
             onChange={(e) => setPrecio(e.target.value)}
           />
         </label>
-        <button className={styles.primary} type="submit" disabled={ocupado}>
-          Crear
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupado}>
+          <Plus size={16} aria-hidden="true" /> Crear
         </button>
       </form>
       <p className={styles.muted}>Del combo solo se puede cambiar después el precio y si está activo.</p>
 
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Combo</th>
-              <th className={styles.num}>Precio</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {datos.combos.map((combo) => {
-              const enEdicion = editando?.id === combo.id
-              return (
-                <Fragment key={combo.id}>
-                  <tr className={combo.activo ? undefined : styles.inactiva}>
-                    <td>{combo.nombre}</td>
-                    <td className={styles.num}>
-                      {enEdicion ? (
-                        <input
-                          className={styles.inlineInput}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          autoFocus
-                          value={editando.texto}
-                          onChange={(e) => setEditando({ id: combo.id, texto: e.target.value })}
-                        />
-                      ) : (
-                        formatearMonto(combo.precio)
-                      )}
-                    </td>
-                    <td>
-                      <span className={combo.activo ? `${styles.badge} ${styles.badgeOn}` : `${styles.badge} ${styles.badgeOff}`}>
-                        {combo.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className={styles.acciones}>
-                      {enEdicion ? (
-                        <>
-                          <button className={styles.link} type="button" disabled={ocupado} onClick={() => cambiarPrecio(combo, editando.texto)}>
-                            guardar
-                          </button>
-                          <button className={styles.link} type="button" onClick={() => setEditando(null)}>
-                            cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className={styles.link}
-                            type="button"
-                            aria-expanded={abiertoId === combo.id}
-                            onClick={() => setAbiertoId(abiertoId === combo.id ? null : combo.id)}
-                          >
-                            {abiertoId === combo.id ? 'ocultar productos' : 'productos'}
-                          </button>
-                          <button
-                            className={styles.link}
-                            type="button"
-                            onClick={() => setEditando({ id: combo.id, texto: String(combo.precio) })}
-                          >
-                            cambiar precio
-                          </button>
-                          <button
-                            className={styles.link}
-                            type="button"
-                            disabled={ocupado}
-                            onClick={() =>
-                              ejecutar(
-                                () => combosApi.toggleActivo(combo.id),
-                                combo.activo ? 'Combo desactivado' : 'Combo activado',
-                              )
-                            }
-                          >
-                            {combo.activo ? 'desactivar' : 'activar'}
-                          </button>
-                          <button className={styles.linkDanger} type="button" disabled={ocupado} onClick={() => eliminar(combo)}>
-                            eliminar
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                  {abiertoId === combo.id && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: 0 }}>
-                        <ComboProductos combo={combo} productos={datos.productos} />
+      {datos.combos.length === 0 ? (
+        <Vacio icono={Package} titulo="Todavía no hay combos" detalle="Crea uno y luego agrégale sus productos." />
+      ) : (
+        <div className={ui.tw}>
+          <table className={ui.tabla}>
+            <thead>
+              <tr>
+                <th>Combo</th>
+                <th className={ui.num}>Precio</th>
+                <th>Estado</th>
+                <th>
+                  <span className={ui.soloLector}>Acciones</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {datos.combos.map((combo) => {
+                const enEdicion = editando?.id === combo.id
+                return (
+                  <Fragment key={combo.id}>
+                    <tr className={combo.activo ? undefined : ui.inactiva}>
+                      <td>
+                        <b>{combo.nombre}</b>
+                      </td>
+                      <td className={ui.num}>
+                        {enEdicion ? (
+                          <input
+                            className={ui.edicion}
+                            style={{ width: 120 }}
+                            aria-label="Precio del combo"
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            autoFocus
+                            value={editando.texto}
+                            onChange={(e) => setEditando({ id: combo.id, texto: e.target.value })}
+                          />
+                        ) : (
+                          formatearMonto(combo.precio)
+                        )}
+                      </td>
+                      <td>
+                        <EstadoPildora activo={combo.activo} />
+                      </td>
+                      <td className={ui.acciones}>
+                        <Acciones>
+                          {enEdicion ? (
+                            <>
+                              <BotonIcono icono={Check} titulo="Guardar precio" tono="ok" disabled={ocupado} onClick={() => cambiarPrecio(combo, editando.texto)} />
+                              <BotonIcono icono={X} titulo="Cancelar" onClick={() => setEditando(null)} />
+                            </>
+                          ) : (
+                            <>
+                              <BotonIcono
+                                icono={PackageOpen}
+                                titulo={abiertoId === combo.id ? 'Ocultar productos' : 'Productos del combo'}
+                                tono={abiertoId === combo.id ? 'activo' : undefined}
+                                expandido={abiertoId === combo.id}
+                                onClick={() => setAbiertoId(abiertoId === combo.id ? null : combo.id)}
+                              />
+                              <BotonIcono
+                                icono={Pencil}
+                                titulo={`Cambiar el precio de «${combo.nombre}»`}
+                                onClick={() => setEditando({ id: combo.id, texto: String(combo.precio) })}
+                              />
+                              <BotonIcono
+                                icono={Power}
+                                titulo={combo.activo ? `Desactivar «${combo.nombre}»` : `Activar «${combo.nombre}»`}
+                                tono={combo.activo ? 'ok' : 'off'}
+                                disabled={ocupado}
+                                onClick={() =>
+                                  void ejecutar(
+                                    () => combosApi.toggleActivo(combo.id),
+                                    combo.activo ? 'Combo desactivado' : 'Combo activado',
+                                  )
+                                }
+                              />
+                              <BotonIcono icono={Trash2} titulo={`Eliminar «${combo.nombre}»`} tono="peligro" disabled={ocupado} onClick={() => void eliminar(combo)} />
+                            </>
+                          )}
+                        </Acciones>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              )
-            })}
-            {datos.combos.length === 0 && (
-              <tr>
-                <td colSpan={4} className={styles.muted}>
-                  Todavía no hay combos.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                    {abiertoId === combo.id && (
+                      <tr className={ui.detalle}>
+                        <td colSpan={4}>
+                          <ComboProductos combo={combo} productos={datos.productos} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   )
 }

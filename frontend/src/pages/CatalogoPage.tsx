@@ -1,4 +1,5 @@
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
+import { MarcoAdmin } from '../features/admin/MarcoAdmin.tsx'
 import { CategoriasTab } from '../features/catalogo/CategoriasTab.tsx'
 import { CombosTab } from '../features/catalogo/CombosTab.tsx'
 import { IngredientesTab } from '../features/catalogo/IngredientesTab.tsx'
@@ -29,12 +30,7 @@ export function CatalogoPage() {
   const { datos, error, recargar } = useCatalogoAdmin()
 
   return (
-    <section className={styles.page}>
-      <Link to="/admin" className={styles.back}>
-        ← Administración
-      </Link>
-      <h1>Catálogo</h1>
-
+    <MarcoAdmin seccion="/admin/catalogo">
       <div className={styles.tabs} role="tablist">
         {PESTANAS.map((p) => (
           <button
@@ -70,6 +66,6 @@ export function CatalogoPage() {
       {datos && pestana === 'ingredientes' && <IngredientesTab datos={datos} recargar={recargar} />}
       {datos && pestana === 'combos' && <CombosTab datos={datos} recargar={recargar} />}
       {pestana === 'stock' && <PanelStockBebidas esAdmin />}
-    </section>
+    </MarcoAdmin>
   )
 }

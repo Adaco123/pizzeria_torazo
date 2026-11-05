@@ -1,8 +1,11 @@
+import { CircleDot, Plus, Power, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { mesasApi } from '../../apis/mesas.ts'
 import type { Mesa } from '../../apis/mesas.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, mensajeDeError } from '../../utils/formato.ts'
+import { Acciones, BotonIcono, Cabeza, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from '../catalogo/Catalogo.module.css'
 
 export function MesasAdmin() {
@@ -73,41 +76,43 @@ export function MesasAdmin() {
   return (
     <div className={styles.page}>
       <section className={styles.card}>
-        <h2>Nueva mesa</h2>
+        <Cabeza icono={CircleDot} titulo="Mesas" cuenta={lista?.length} />
+
         <form className={styles.form} onSubmit={crear}>
           <label className={styles.field}>
             <span>Número de mesa</span>
             <input type="number" min="1" max="999" value={numero} onChange={(e) => setNumero(e.target.value)} required />
           </label>
-          <button className={styles.primary} type="submit">
-            Agregar
+          <button className={`${ui.btn} ${ui.primario}`} type="submit">
+            <Plus size={16} aria-hidden="true" /> Agregar
           </button>
         </form>
-      </section>
 
-      <section className={styles.card}>
-        <h2>Mesas</h2>
         {error && (
           <p className={styles.error} role="alert">
             {error}
           </p>
         )}
         {lista === null && !error && <p className={styles.muted}>Cargando…</p>}
-        {lista?.length === 0 && <p className={styles.muted}>Todavía no hay mesas.</p>}
+        {lista?.length === 0 && <Vacio icono={CircleDot} titulo="Todavía no hay mesas" detalle="Agrega la primera con su número." />}
         {lista && lista.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ul className={ui.baldosas}>
             {lista.map((m) => (
-              <li key={m.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <li key={m.id} className={`${ui.baldosa} ${!m.activa ? ui.baldosaOff : m.cuenta ? ui.baldosaOcupada : ''}`}>
                 <strong>Mesa {m.numero}</strong>
-                <span className={styles.muted}>
+                <span className={`${ui.estado} ${m.activa ? ui.estadoOn : ui.estadoOff}`}>
                   {!m.activa ? 'Desactivada' : m.cuenta ? 'Ocupada' : 'Libre'}
                 </span>
-                <button className={styles.secondary} type="button" disabled={ocupadoId === m.id} onClick={() => void cambiarActiva(m)}>
-                  {m.activa ? 'Desactivar' : 'Activar'}
-                </button>
-                <button className={styles.secondary} type="button" disabled={ocupadoId === m.id} onClick={() => void eliminar(m)}>
-                  Borrar
-                </button>
+                <Acciones>
+                  <BotonIcono
+                    icono={Power}
+                    titulo={m.activa ? `Desactivar la mesa ${m.numero}` : `Activar la mesa ${m.numero}`}
+                    tono={m.activa ? 'ok' : 'off'}
+                    disabled={ocupadoId === m.id}
+                    onClick={() => void cambiarActiva(m)}
+                  />
+                  <BotonIcono icono={Trash2} titulo={`Borrar la mesa ${m.numero}`} tono="peligro" disabled={ocupadoId === m.id} onClick={() => void eliminar(m)} />
+                </Acciones>
               </li>
             ))}
           </ul>

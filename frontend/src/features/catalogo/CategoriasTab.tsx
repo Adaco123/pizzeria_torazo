@@ -1,3 +1,4 @@
+import { Check, Layers, Pencil, Plus, Power, Trash2, X } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { categoriasApi } from '../../apis/categorias.ts'
 import type { Categoria } from '../../apis/categorias.ts'
@@ -5,6 +6,8 @@ import type { Producto } from '../../apis/productos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { mensajeEliminar } from './errores.ts'
 import { useAccion } from './useAccion.ts'
+import { Acciones, BotonIcono, Cabeza, EstadoPildora, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Catalogo.module.css'
 
 interface Props {
@@ -59,113 +62,104 @@ export function CategoriasTab({ categorias, productos, recargar }: Props) {
 
   return (
     <section className={styles.card}>
-      <h2>Categorías</h2>
+      <Cabeza icono={Layers} titulo="Categorías" cuenta={categorias.length} />
 
       <form className={styles.form} onSubmit={crear}>
         <label className={`${styles.field} ${styles.grow}`}>
           <span>Nueva categoría</span>
           <input value={nombre} maxLength={50} onChange={(e) => setNombre(e.target.value)} />
         </label>
-        <button className={styles.primary} type="submit" disabled={ocupado}>
-          Crear
+        <button className={`${ui.btn} ${ui.primario}`} type="submit" disabled={ocupado}>
+          <Plus size={16} aria-hidden="true" /> Crear
         </button>
       </form>
 
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th className={styles.num}>Productos</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categorias.map((categoria) => {
-              const cantidad = cantidadDe(categoria.id)
-              const editando = editandoId === categoria.id
-              return (
-                <tr key={categoria.id} className={categoria.activo ? undefined : styles.inactiva}>
-                  <td>
-                    {editando ? (
-                      <input
-                        className={styles.inlineInputWide}
-                        value={textoEdicion}
-                        maxLength={50}
-                        autoFocus
-                        onChange={(e) => setTextoEdicion(e.target.value)}
-                      />
-                    ) : (
-                      categoria.nombre
-                    )}
-                  </td>
-                  <td className={styles.num}>{cantidad}</td>
-                  <td>
-                    <span className={categoria.activo ? `${styles.badge} ${styles.badgeOn}` : `${styles.badge} ${styles.badgeOff}`}>
-                      {categoria.activo ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </td>
-                  <td className={styles.acciones}>
-                    {editando ? (
-                      <>
-                        <button className={styles.link} type="button" disabled={ocupado} onClick={() => renombrar(categoria)}>
-                          guardar
-                        </button>
-                        <button className={styles.link} type="button" onClick={() => setEditandoId(null)}>
-                          cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className={styles.link}
-                          type="button"
-                          onClick={() => {
-                            setEditandoId(categoria.id)
-                            setTextoEdicion(categoria.nombre)
-                          }}
-                        >
-                          renombrar
-                        </button>
-                        <button
-                          className={styles.link}
-                          type="button"
-                          disabled={ocupado}
-                          onClick={() =>
-                            ejecutar(
-                              () => categoriasApi.toggleActivo(categoria.id),
-                              categoria.activo ? 'Categoría desactivada' : 'Categoría activada',
-                            )
-                          }
-                        >
-                          {categoria.activo ? 'desactivar' : 'activar'}
-                        </button>
-                        <button
-                          className={styles.linkDanger}
-                          type="button"
-                          disabled={ocupado || cantidad > 0}
-                          title={cantidad > 0 ? 'Tiene productos: muévelos o desactiva la categoría' : undefined}
-                          onClick={() => eliminar(categoria)}
-                        >
-                          eliminar
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-            {categorias.length === 0 && (
+      {categorias.length === 0 ? (
+        <Vacio icono={Layers} titulo="Todavía no hay categorías" detalle="Crea la primera para poder agregar productos." />
+      ) : (
+        <div className={ui.tw}>
+          <table className={ui.tabla}>
+            <thead>
               <tr>
-                <td colSpan={4} className={styles.muted}>
-                  Todavía no hay categorías.
-                </td>
+                <th>Nombre</th>
+                <th className={ui.num}>Productos</th>
+                <th>Estado</th>
+                <th>
+                  <span className={ui.soloLector}>Acciones</span>
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {categorias.map((categoria) => {
+                const cantidad = cantidadDe(categoria.id)
+                const editando = editandoId === categoria.id
+                return (
+                  <tr key={categoria.id} className={categoria.activo ? undefined : ui.inactiva}>
+                    <td>
+                      {editando ? (
+                        <input
+                          className={ui.edicion}
+                          aria-label="Nombre de la categoría"
+                          value={textoEdicion}
+                          maxLength={50}
+                          autoFocus
+                          onChange={(e) => setTextoEdicion(e.target.value)}
+                        />
+                      ) : (
+                        <b>{categoria.nombre}</b>
+                      )}
+                    </td>
+                    <td className={ui.num}>{cantidad}</td>
+                    <td>
+                      <EstadoPildora activo={categoria.activo} on="Activa" off="Inactiva" />
+                    </td>
+                    <td className={ui.acciones}>
+                      <Acciones>
+                        {editando ? (
+                          <>
+                            <BotonIcono icono={Check} titulo="Guardar" tono="ok" disabled={ocupado} onClick={() => renombrar(categoria)} />
+                            <BotonIcono icono={X} titulo="Cancelar" onClick={() => setEditandoId(null)} />
+                          </>
+                        ) : (
+                          <>
+                            <BotonIcono
+                              icono={Pencil}
+                              titulo={`Renombrar «${categoria.nombre}»`}
+                              onClick={() => {
+                                setEditandoId(categoria.id)
+                                setTextoEdicion(categoria.nombre)
+                              }}
+                            />
+                            <BotonIcono
+                              icono={Power}
+                              titulo={categoria.activo ? `Desactivar «${categoria.nombre}»` : `Activar «${categoria.nombre}»`}
+                              tono={categoria.activo ? 'ok' : 'off'}
+                              disabled={ocupado}
+                              onClick={() =>
+                                void ejecutar(
+                                  () => categoriasApi.toggleActivo(categoria.id),
+                                  categoria.activo ? 'Categoría desactivada' : 'Categoría activada',
+                                )
+                              }
+                            />
+                            <BotonIcono
+                              icono={Trash2}
+                              titulo={cantidad > 0 ? 'Tiene productos: muévelos o desactiva la categoría' : `Eliminar «${categoria.nombre}»`}
+                              tono="peligro"
+                              disabled={ocupado || cantidad > 0}
+                              onClick={() => void eliminar(categoria)}
+                            />
+                          </>
+                        )}
+                      </Acciones>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   )
 }

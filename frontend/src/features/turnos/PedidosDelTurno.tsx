@@ -1,3 +1,4 @@
+import { ExternalLink, Printer, Receipt, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { pedidosApi } from '../../apis/pedidos.ts'
@@ -8,6 +9,8 @@ import { esAbort, formatearFecha, formatearMonto, mensajeDeError } from '../../u
 import { EstadoBadge } from '../pedidos/EstadoBadge.tsx'
 import { estadoDe } from '../pedidos/estados.ts'
 import { useClientes } from '../pedidos/usePedidos.ts'
+import { Acciones, BotonIcono, Buscador, Cabeza, Vacio } from '../admin/ui.tsx'
+import ui from '../admin/Ui.module.css'
 import styles from './Turnos.module.css'
 
 interface Props {
@@ -62,23 +65,15 @@ export function PedidosDelTurno({ turnoId, onCerrar }: Props) {
 
   return (
     <section className={styles.card}>
-      <div className={styles.cardHeader}>
-        <h2>Pedidos del turno #{turnoId}</h2>
-        <button className={styles.secondary} type="button" onClick={onCerrar}>
-          Cerrar lista
+      <Cabeza icono={Receipt} titulo={`Pedidos del turno #${turnoId}`} cuenta={pedidos ? pedidos.filter((p) => p.numero_turno !== null).length : undefined}>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={onCerrar}>
+          <X size={16} aria-hidden="true" /> Cerrar lista
         </button>
-      </div>
+      </Cabeza>
 
-      <label className={styles.field}>
-        <span>Buscar por ficha o cliente</span>
-        <input
-          type="search"
-          inputMode="search"
-          placeholder="Ej.: 12"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
-      </label>
+      <div className={ui.herramientas}>
+        <Buscador valor={busqueda} onChange={setBusqueda} etiqueta="Buscar por ficha o cliente (ej. 12)" />
+      </div>
 
       {error && (
         <p className={styles.error} role="alert">
@@ -86,11 +81,13 @@ export function PedidosDelTurno({ turnoId, onCerrar }: Props) {
         </p>
       )}
       {!pedidos && !error && <p className={styles.muted}>Cargando pedidos…</p>}
-      {pedidos && visibles.length === 0 && <p className={styles.muted}>No hay pedidos que coincidan.</p>}
+      {pedidos && visibles.length === 0 && (
+        <Vacio icono={Receipt} titulo="No hay pedidos que coincidan" detalle="Prueba con otra ficha o cliente." />
+      )}
 
       {visibles.length > 0 && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+        <div className={ui.tw}>
+          <table className={ui.tabla}>
             <thead>
               <tr>
                 <th>Ficha</th>
@@ -98,17 +95,19 @@ export function PedidosDelTurno({ turnoId, onCerrar }: Props) {
                 <th>Cliente</th>
                 <th>Entrega</th>
                 <th>Estado</th>
-                <th>Total</th>
-                <th>Acciones</th>
+                <th className={ui.num}>Total</th>
+                <th>
+                  <span className={ui.soloLector}>Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {visibles.map((pedido) => {
                 const cancelado = estadoDe(pedido) === 'cancelado'
                 return (
-                  <tr key={pedido.id}>
+                  <tr key={pedido.id} className={cancelado ? ui.inactiva : undefined}>
                     <td>
-                      <strong>{pedido.numero_turno}</strong>
+                      <b>{pedido.numero_turno}</b>
                     </td>
                     <td>{formatearFecha(pedido.fecha)}</td>
                     <td>{nombres[pedido.cliente_id] ?? `Cliente #${pedido.cliente_id}`}</td>
@@ -116,19 +115,26 @@ export function PedidosDelTurno({ turnoId, onCerrar }: Props) {
                     <td>
                       <EstadoBadge estado={estadoDe(pedido)} />
                     </td>
-                    <td>{formatearMonto(pedido.total)}</td>
-                    <td className={styles.actions}>
-                      <Link to={`/pedidos/${pedido.id}`}>Abrir</Link>
-                      {!cancelado && (
-                        <button
-                          className={styles.link}
-                          type="button"
-                          disabled={ocupadoId === pedido.id}
-                          onClick={() => void ticket(pedido)}
+                    <td className={ui.num}>{formatearMonto(pedido.total)}</td>
+                    <td className={ui.acciones}>
+                      <Acciones>
+                        <Link
+                          className={ui.ib}
+                          to={`/pedidos/${pedido.id}`}
+                          title={`Abrir la ficha ${pedido.numero_turno}`}
+                          aria-label={`Abrir la ficha ${pedido.numero_turno}`}
                         >
-                          Ticket
-                        </button>
-                      )}
+                          <ExternalLink size={16} aria-hidden="true" />
+                        </Link>
+                        {!cancelado && (
+                          <BotonIcono
+                            icono={Printer}
+                            titulo={`Descargar el ticket de la ficha ${pedido.numero_turno}`}
+                            disabled={ocupadoId === pedido.id}
+                            onClick={() => void ticket(pedido)}
+                          />
+                        )}
+                      </Acciones>
                     </td>
                   </tr>
                 )
