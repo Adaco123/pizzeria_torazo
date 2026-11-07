@@ -42,10 +42,10 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff7e6;
+  background: var(--color-warning-bg);
   font-size: 13px;
   font-weight: 600;
-  color: #8a5a00;
+  color: var(--color-warning-strong);
 }
 
 .vacio {
@@ -108,7 +108,7 @@
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: var(--color-success);
+  background: var(--color-success-solid);
 }
 
 .barraTope i[data-alto] {
@@ -135,7 +135,7 @@
   padding: 9px 14px;
   border: 1px solid var(--color-border);
   border-radius: 99px;
-  background: #fff;
+  background: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-heading);
@@ -152,7 +152,7 @@
   padding: 7px 12px;
   border: 1px solid var(--color-border);
   border-radius: 99px;
-  background: #fff;
+  background: var(--color-surface);
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
@@ -169,7 +169,7 @@
   padding: 6px 14px;
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .montoGrande:focus-within {
@@ -199,7 +199,7 @@
   padding: 11px 12px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
   font-size: 15px;
   color: var(--color-heading);
 }
@@ -218,7 +218,7 @@
   background: var(--color-primary);
   font-size: 16px;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .principal:hover {
@@ -238,14 +238,14 @@
   border-radius: 10px;
   background: var(--color-primary);
   font-weight: 800;
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .secundario {
   padding: 12px 16px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
   font-weight: 700;
   color: var(--color-heading);
 }
@@ -301,7 +301,7 @@
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .anulado {
@@ -365,7 +365,7 @@
 
 .si {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .no {
@@ -436,7 +436,7 @@
 }
 
 .segmento .segOn {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-heading);
   box-shadow: var(--shadow);
 }
@@ -456,7 +456,7 @@
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
   text-align: left;
@@ -488,7 +488,7 @@
   padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .bebidaTop {
@@ -514,8 +514,8 @@
 }
 
 .bajo {
-  background: #fff3d6;
-  color: #8a5a00;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-strong);
 }
 
 .cero {

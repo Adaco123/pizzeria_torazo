@@ -1,4 +1,4 @@
-import { Search, UserPlus } from 'lucide-react'
+import { ArrowLeft, Search, Store, UserPlus } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { clientesApi } from '../../apis/clientes.ts'
 import type { Cliente } from '../../apis/clientes.ts'
@@ -102,7 +102,7 @@ export function SelectorCliente({
           {enviando ? 'Guardando…' : 'Guardar y elegir'}
         </button>
         <button className={styles.secundario} type="button" onClick={() => setCreando(false)}>
-          Volver
+          <ArrowLeft size={16} aria-hidden="true" /> Volver
         </button>
       </form>
     )
@@ -142,7 +142,7 @@ export function SelectorCliente({
       </button>
       {puedeVolverAMostrador && (
         <button className={styles.enlace} type="button" onClick={onMostrador}>
-          Volver a Mostrador
+          <Store size={14} aria-hidden="true" /> Volver a Mostrador
         </button>
       )}
     </div>

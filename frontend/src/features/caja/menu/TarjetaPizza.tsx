@@ -29,7 +29,7 @@ export function TarjetaPizza({ pizza, datos, etiquetas, buscador, onElegir }: Pr
       <span className={styles.texto}>
         <b>
           <Resaltado texto={pizza.nombre} buscador={buscador} />
-          {pizza.agotado && <em className={styles.marcaAgotada}> · agotada</em>}
+
         </b>
         {lleva && (
           <small>
@@ -37,6 +37,7 @@ export function TarjetaPizza({ pizza, datos, etiquetas, buscador, onElegir }: Pr
           </small>
         )}
       </span>
+      {pizza.agotado && <i className={styles.pildoraAgotada}>Agotada</i>}
       <span className={styles.precios}>
         {!datos && <i className={styles.cargandoPrecios}>…</i>}
         {datos?.fallo && <i className={styles.cargandoPrecios}>—</i>}

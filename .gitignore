@@ -22,6 +22,10 @@ __pycache__/
 .env.*
 !.env.example
 
+# Certificados HTTPS locales
+/backend/certs/*.pem
+/frontend/certs/*.pem
+
 # Node / frontend
 node_modules/
 coverage/

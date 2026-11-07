@@ -6,7 +6,7 @@ import { INTERVALO_MS } from '../cocina/useCocina.ts'
 import { estadoDe } from '../pedidos/estados.ts'
 import { usePedidos } from '../pedidos/usePedidos.ts'
 import { ResumenTurnoPanel } from '../turnos/ResumenTurnoPanel.tsx'
-import { useTurnos } from '../turnos/useTurnos.ts'
+import { useTurnosAbiertos } from '../turnos/useTurnos.ts'
 
 /**
  * La barra de caja de Pedidos (gastos, agotados, stock, cierre) dentro de Mesas, con su misma regla:
@@ -15,7 +15,7 @@ import { useTurnos } from '../turnos/useTurnos.ts'
 export function BarraCajaMesas() {
   const { sesion, hasRole } = useAuth()
   const esAdmin = hasRole('Administrador')
-  const turnos = useTurnos()
+  const turnos = useTurnosAbiertos()
   const { pedidos, recargar } = usePedidos()
   const [resumenId, setResumenId] = useState<number | null>(null)
 

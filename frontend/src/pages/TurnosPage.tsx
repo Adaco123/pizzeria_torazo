@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../auth/auth-context.ts'
 import { Cabeza } from '../features/admin/ui.tsx'
@@ -10,7 +10,7 @@ import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
 import { PedidosDelTurno } from '../features/turnos/PedidosDelTurno.tsx'
 import { ResumenTicket } from '../features/turnos/ResumenTicket.tsx'
 import styles from '../features/turnos/Turnos.module.css'
-import { useNombresUsuarios, useTurnos } from '../features/turnos/useTurnos.ts'
+import { useNombresUsuarios, useTurnos, useTurnosAbiertos } from '../features/turnos/useTurnos.ts'
 import { useResumenTurno } from '../features/turnos/useResumenTurno.ts'
 import base from '../features/pedidos/Pedidos.module.css'
 
@@ -18,7 +18,14 @@ import base from '../features/pedidos/Pedidos.module.css'
 export function TurnosPage() {
   const { sesion, hasRole } = useAuth()
   const esAdmin = hasRole('Administrador')
-  const { turnos, cargando, error, recargar } = useTurnos()
+  // El cajero pide solo sus turnos; el administrador, todos, de a 20 con «Ver más».
+  const historial = useTurnos(esAdmin ? undefined : sesion?.id)
+  const abiertos = useTurnosAbiertos()
+  const { turnos, cargando, error, hayMas, cargandoMas, verMas } = historial
+  function recargar(): void {
+    historial.recargar()
+    abiertos.recargar()
+  }
   const nombres = useNombresUsuarios(esAdmin)
 
   const [resumenId, setResumenId] = useState<number | null>(null)
@@ -28,7 +35,7 @@ export function TurnosPage() {
 
   // El cajero solo ve sus turnos; el administrador ve todos.
   const visibles = esAdmin ? turnos : turnos.filter((t) => t.usuario_id === sesion?.id)
-  const miTurno = turnos.find((t) => t.abierto && t.usuario_id === sesion?.id) ?? null
+  const miTurno = abiertos.turnos.find((t) => t.usuario_id === sesion?.id) ?? null
   const turnoACompletar = turnos.find((t) => t.id === completandoId) ?? null
   const listo = !cargando && !error
 
@@ -48,7 +55,7 @@ export function TurnosPage() {
               )}
             </span>
             <span className={styles.pildora}>
-              <b>{visibles.length}</b> {esAdmin ? 'turnos' : 'mis turnos'}
+              <b>{visibles.length}{hayMas ? '+' : ''}</b> {esAdmin ? 'turnos' : 'mis turnos'}
             </span>
           </>
         )}
@@ -113,6 +120,16 @@ export function TurnosPage() {
                 onPedidos={setPedidosId}
                 onCompletar={setCompletandoId}
               />
+              {hayMas && (
+                <button
+                  className={`${ui.btn} ${ui.secundario} ${styles.verMas}`}
+                  type="button"
+                  disabled={cargandoMas}
+                  onClick={() => void verMas()}
+                >
+                  <ChevronDown size={16} aria-hidden="true" /> {cargandoMas ? 'Cargando…' : 'Ver más turnos'}
+                </button>
+              )}
             </section>
           )}
 

@@ -90,6 +90,17 @@ export const turnosApi = {
     return requestData<Turno[]>(baseTurnos, opts)
   },
 
+  /** Una página de turnos (más recientes primero). `usuarioId` deja solo los de ese usuario. */
+  listarPagina(
+    { limit, offset, usuarioId }: { limit: number; offset: number; usuarioId?: number },
+    opts: Opts = {},
+  ): Promise<Turno[]> {
+    return requestData<Turno[]>(baseTurnos, {
+      query: { limit, offset, ...(usuarioId ? { usuario_id: usuarioId } : {}) },
+      ...opts,
+    })
+  },
+
   /** Turnos sin cierre. */
   abiertos(opts: Opts = {}): Promise<Turno[]> {
     return requestData<Turno[]>(`${baseTurnos}/abiertos`, opts)

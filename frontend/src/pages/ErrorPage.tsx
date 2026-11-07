@@ -1,6 +1,9 @@
+import { House, LogOut, TriangleAlert } from 'lucide-react'
 import { isRouteErrorResponse, useRouteError } from 'react-router'
 import { useAuth } from '../auth/auth-context.ts'
+import ui from '../features/admin/Ui.module.css'
 import styles from './ErrorPage.module.css'
+import { PaginaMensaje } from './PaginaMensaje.tsx'
 
 function descripcion(error: unknown): string {
   if (isRouteErrorResponse(error)) return `${error.status} ${error.statusText}`
@@ -20,25 +23,27 @@ export function ErrorPage() {
   }
 
   return (
-    <main className={styles.root}>
-      <div className={styles.card} role="alert">
-        <h1>Algo salió mal</h1>
-        <p>Ocurrió un error inesperado en esta pantalla. Puedes volver al inicio o cerrar sesión.</p>
-
-        <details className={styles.detalle}>
-          <summary>Detalle técnico</summary>
-          <pre>{descripcion(error)}</pre>
-        </details>
-
-        <div className={styles.acciones}>
-          <a className={styles.primary} href="/">
-            Volver al inicio
+    <PaginaMensaje
+      pantallaCompleta
+      alerta
+      icono={TriangleAlert}
+      titulo="Algo salió mal"
+      acciones={
+        <>
+          <a className={`${ui.btn} ${ui.primario}`} href="/">
+            <House size={16} aria-hidden="true" /> Volver al inicio
           </a>
-          <button className={styles.secondary} type="button" onClick={cerrarSesion}>
-            Cerrar sesión
+          <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={cerrarSesion}>
+            <LogOut size={16} aria-hidden="true" /> Cerrar sesión
           </button>
-        </div>
-      </div>
-    </main>
+        </>
+      }
+    >
+      <p>Ocurrió un error inesperado en esta pantalla. Puedes volver al inicio o cerrar sesión.</p>
+      <details className={styles.detalle}>
+        <summary>Detalle técnico</summary>
+        <pre>{descripcion(error)}</pre>
+      </details>
+    </PaginaMensaje>
   )
 }

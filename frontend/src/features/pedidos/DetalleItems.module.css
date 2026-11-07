@@ -1,0 +1,139 @@
+/* Líneas de un pedido: una fila por producto, con franja lateral (como las filas de Pedidos). */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.cantidad {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 4px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.texto b {
+  color: var(--color-heading);
+}
+
+.sub {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 4px 0 0;
+  padding: 1px 4px 1px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  background: var(--color-surface-alt);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.etiquetaFija {
+  padding-right: 8px;
+}
+
+.quitarExtra {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-error);
+  cursor: pointer;
+}
+
+.quitarExtra:hover {
+  background: var(--color-error-bg);
+}
+
+.nota {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.precio {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.precio small {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.precio b {
+  color: var(--color-heading);
+}
+
+.totales {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 4px 0;
+  font-size: 14px;
+}
+
+.linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-muted);
+}
+
+.total {
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.vacio {
+  margin: 0;
+  color: var(--color-muted);
+}

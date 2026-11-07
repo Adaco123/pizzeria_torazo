@@ -1,3 +1,4 @@
+import { ExternalLink, Plus, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { pedidosApi } from '../../apis/pedidos.ts'
@@ -6,6 +7,7 @@ import { useToast } from '../../toast/toast-context.ts'
 import { descargarBlob } from '../../utils/archivos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
 import { textoHoraPrometida } from '../cocina/tiempo.ts'
+import ui from '../admin/Ui.module.css'
 import base from '../pedidos/Pedidos.module.css'
 import styles from './Caja.module.css'
 
@@ -57,13 +59,13 @@ export function FichaConfirmada({ resultado, onNuevo }: Props) {
 
       <div className={styles.accionesFicha}>
         <button className={`${base.primary} ${styles.confirmar}`} type="button" onClick={onNuevo}>
-          Nuevo pedido
+          <Plus size={18} aria-hidden="true" style={{ verticalAlign: '-3px' }} /> Nuevo pedido
         </button>
-        <button className={base.secondary} type="button" disabled={descargando} onClick={descargarTicket}>
-          {descargando ? 'Generando…' : 'Ticket de cocina (PDF)'}
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={descargando} onClick={descargarTicket}>
+          <Printer size={16} aria-hidden="true" /> {descargando ? 'Generando…' : 'Ticket de cocina (PDF)'}
         </button>
-        <Link to={`/pedidos/${pedido.id}`} className={base.link}>
-          Ver pedido
+        <Link to={`/pedidos/${pedido.id}`} className={`${ui.btn} ${ui.secundario}`} style={{ textDecoration: 'none' }}>
+          <ExternalLink size={16} aria-hidden="true" /> Ver pedido
         </Link>
       </div>
     </section>

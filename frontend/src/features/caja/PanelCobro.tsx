@@ -1,8 +1,10 @@
+import { ArrowLeft, Banknote, CreditCard, HandCoins, QrCode, Split, Wallet, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import type { MetodoPago } from '../../apis/pagos.ts'
 import type { PagoCobro } from '../../apis/pedidos.ts'
 import { formatearMonto, parseMonto } from '../../utils/formato.ts'
 import { redondear } from '../cobro/facturacion.ts'
+import ui from '../admin/Ui.module.css'
 import base from '../pedidos/Pedidos.module.css'
 import type { TipoEntregaNombre } from '../pedidos/estados.ts'
 import { esperaSugerida, OPCIONES_ESPERA } from './espera.ts'
@@ -21,6 +23,14 @@ interface Props {
   /** Cuenta de una mesa: la comida ya salió a cocina, no se promete hora. */
   sinEspera?: boolean
   textoVolver?: string
+}
+
+function iconoDeMetodo(nombre: string): LucideIcon {
+  const n = nombre.trim().toLowerCase()
+  if (n.includes('efectivo')) return Banknote
+  if (n.includes('qr')) return QrCode
+  if (n.includes('tarjeta') || n.includes('débito') || n.includes('debito') || n.includes('crédito') || n.includes('credito')) return CreditCard
+  return Wallet
 }
 
 interface AtajosProps {
@@ -100,46 +110,58 @@ export function PanelCobro({
 
   if (metodos.length === 0) {
     return (
-      <section className={`${base.card} ${styles.cobro}`}>
-        <h2>Cobrar</h2>
-        <p className={base.error} role="alert">
-          No hay métodos de pago configurados.
-        </p>
-        <button className={base.secondary} type="button" onClick={onVolver}>
-          {textoVolver}
-        </button>
+      <section className={styles.cobroTicket}>
+        <div className={styles.cobroCab}>
+          <b>Cobrar</b>
+        </div>
+        <div className={styles.cobroCuerpo}>
+          <p className={base.error} role="alert">
+            No hay métodos de pago configurados.
+          </p>
+          <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={onVolver}>
+            <ArrowLeft size={16} aria-hidden="true" /> {textoVolver}
+          </button>
+        </div>
       </section>
     )
   }
 
   return (
-    <section className={`${base.card} ${styles.cobro}`} aria-label="Cobro del pedido">
-      <div>
+    <section className={styles.cobroTicket} aria-label="Cobro del pedido">
+      <div className={styles.cobroCab}>
+        <b>Cobrar</b>
+        <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={ocupado} onClick={onVolver}>
+          <ArrowLeft size={16} aria-hidden="true" /> {textoVolver}
+        </button>
+      </div>
+      <div className={styles.cobroCuerpo}>
+      <div className={styles.cobroTotal}>
         <span className={base.muted}>Total a cobrar</span>
-        <p className={styles.totalGrande}>{formatearMonto(total)}</p>
+        <strong>{formatearMonto(total)}</strong>
       </div>
 
       <div className={base.field}>
         <span>Cómo paga</span>
-        <div className={base.chips}>
-          {metodos.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={modo === 'unico' && m.id === metodoId ? base.chipActive : base.chip}
-              aria-pressed={modo === 'unico' && m.id === metodoId}
-              onClick={() => elegirMetodo(m.id)}
-            >
-              {m.nombre}
-            </button>
-          ))}
+        <div className={styles.metodos}>
+          {metodos.map((m) => {
+            const Icono = iconoDeMetodo(m.nombre)
+            const activo = modo === 'unico' && m.id === metodoId
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={styles.metodo}
+                aria-pressed={activo}
+                onClick={() => elegirMetodo(m.id)}
+              >
+                <Icono size={20} aria-hidden="true" />
+                {m.nombre}
+              </button>
+            )
+          })}
           {puedeDividir && (
-            <button
-              type="button"
-              className={modo === 'dividido' ? base.chipActive : base.chip}
-              aria-pressed={modo === 'dividido'}
-              onClick={dividir}
-            >
+            <button type="button" className={styles.metodo} aria-pressed={modo === 'dividido'} onClick={dividir}>
+              <Split size={20} aria-hidden="true" />
               Dividir el pago
             </button>
           )}
@@ -250,13 +272,9 @@ export function PanelCobro({
         </p>
       )}
 
-      <div className={base.formRow}>
-        <button className={`${base.primary} ${styles.confirmar}`} type="button" disabled={ocupado} onClick={confirmar}>
-          {ocupado ? 'Cobrando…' : `Confirmar cobro ${formatearMonto(total)}`}
-        </button>
-        <button className={base.secondary} type="button" disabled={ocupado} onClick={onVolver}>
-          {textoVolver}
-        </button>
+      <button className={styles.cobroGrande} type="button" disabled={ocupado} onClick={confirmar}>
+        <HandCoins size={18} aria-hidden="true" /> {ocupado ? 'Cobrando…' : `Confirmar cobro ${formatearMonto(total)}`}
+      </button>
       </div>
     </section>
   )

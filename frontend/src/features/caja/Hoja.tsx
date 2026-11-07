@@ -5,12 +5,14 @@ import styles from './Ticket.module.css'
 
 interface Props {
   titulo: string
+  /** Ventana más ancha (para contenido con tablas o listas largas). */
+  ancha?: boolean
   onCerrar: () => void
   children: ReactNode
 }
 
 /** Ventana flotante del cajero: centrada en PC, pegada abajo en celular. Se cierra con Escape. */
-export function Hoja({ titulo, onCerrar, children }: Props) {
+export function Hoja({ titulo, ancha = false, onCerrar, children }: Props) {
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCerrar()
@@ -22,7 +24,7 @@ export function Hoja({ titulo, onCerrar, children }: Props) {
   return createPortal(
     <div className={styles.fondoHoja} onClick={onCerrar}>
       <div
-        className={styles.hoja}
+        className={ancha ? `${styles.hoja} ${styles.hojaAncha}` : styles.hoja}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}

@@ -1,4 +1,4 @@
-import { Tag } from 'lucide-react'
+import { Tag, X } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { pedidosApi } from '../../apis/pedidos.ts'
 import type { Pedido, TipoDescuento } from '../../apis/pedidos.ts'
@@ -71,8 +71,15 @@ export function DescuentoCaja({ pedido, ocupado, onCambio }: Props) {
         </span>
         <span>
           -{formatearMonto(pedido.descuento)}
-          <button type="button" className={styles.enlace} disabled={ocupado || enviando} onClick={quitar}>
-            quitar
+          <button
+            type="button"
+            className={styles.enlace}
+            disabled={ocupado || enviando}
+            onClick={quitar}
+            title="Quitar descuento"
+            aria-label="Quitar descuento"
+          >
+            <X size={14} aria-hidden="true" />
           </button>
         </span>
       </div>

@@ -18,7 +18,7 @@
   min-width: 24px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--color-success);
+  background: var(--color-success-solid);
   font-size: 12px;
   text-align: center;
   color: var(--color-on-primary);
@@ -55,7 +55,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--color-success);
+  background: var(--color-success-solid);
   color: var(--color-on-primary);
 }
 

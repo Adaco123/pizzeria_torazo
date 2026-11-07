@@ -17,7 +17,7 @@
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
-  color: var(--color-white);
+  color: var(--color-on-primary);
   font-size: 14px;
   line-height: 1.4;
   pointer-events: auto;
@@ -25,11 +25,11 @@
 }
 
 .error {
-  background: var(--color-error);
+  background: var(--color-error-solid);
 }
 
 .exito {
-  background: var(--color-success);
+  background: var(--color-success-solid);
 }
 
 .mensaje {
@@ -54,7 +54,7 @@
 }
 
 .cerrar:focus-visible {
-  outline-color: var(--color-white);
+  outline-color: var(--color-on-primary);
 }
 
 @keyframes entrar {

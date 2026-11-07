@@ -1,9 +1,12 @@
+import { Ban, FileText, ReceiptText } from 'lucide-react'
 import { useState } from 'react'
 import { facturasApi } from '../../apis/facturas.ts'
 import type { Cliente } from '../../apis/clientes.ts'
 import type { Pedido } from '../../apis/pedidos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto } from '../../utils/formato.ts'
+import ui from '../admin/Ui.module.css'
+import { Cabeza } from '../admin/ui.tsx'
 import base from '../pedidos/Pedidos.module.css'
 import { estadoDe } from '../pedidos/estados.ts'
 import { crearFactura } from './facturacion.ts'
@@ -69,7 +72,7 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
   if (cargando) {
     return (
       <section className={base.card}>
-        <h2>Factura</h2>
+        <Cabeza icono={FileText} titulo="Factura" />
         <p className={base.muted}>Cargando…</p>
       </section>
     )
@@ -78,12 +81,12 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
   if (error) {
     return (
       <section className={base.card}>
-        <h2>Factura</h2>
+        <Cabeza icono={FileText} titulo="Factura" />
         <div className={base.errorRow}>
           <p className={base.error} role="alert">
             {error}
           </p>
-          <button className={base.secondary} type="button" onClick={recargar}>
+          <button className={`${ui.btn} ${ui.secundario}`} type="button" onClick={recargar}>
             Reintentar
           </button>
         </div>
@@ -94,10 +97,9 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
   if (factura) {
     return (
       <section className={base.card}>
-        <div className={base.headerRow}>
-          <h2>Factura {factura.numero_factura}</h2>
+        <Cabeza icono={ReceiptText} titulo={`Factura ${factura.numero_factura}`}>
           <span className={`${base.badge} ${base.estadoListo}`}>Emitida</span>
-        </div>
+        </Cabeza>
         <p className={base.muted}>
           {formatearFecha(factura.fecha)} · a nombre de {factura.cliente?.nombre ?? `Cliente #${factura.cliente_id}`}
         </p>
@@ -109,8 +111,8 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
         </dl>
         {esAdmin && (
           <div className={base.formRow}>
-            <button className={base.danger} type="button" disabled={ocupado} onClick={anular}>
-              Anular factura
+            <button className={`${ui.btn} ${ui.secundario}`} style={{ borderColor: 'var(--color-error)', color: 'var(--color-error)' }} type="button" disabled={ocupado} onClick={anular}>
+              <Ban size={16} aria-hidden="true" /> Anular factura
             </button>
           </div>
         )}
@@ -122,7 +124,7 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
 
   return (
     <section className={base.card}>
-      <h2>Factura</h2>
+      <Cabeza icono={FileText} titulo="Factura" />
       {anuladas > 0 && (
         <p className={base.muted}>
           Este pedido tuvo {anuladas} factura{anuladas === 1 ? '' : 's'} anulada{anuladas === 1 ? '' : 's'}.
@@ -144,7 +146,7 @@ export function FacturaPanel({ pedido, usuarioId, esAdmin, clientes, factura: es
                 ))}
               </select>
             </label>
-            <button className={base.primary} type="button" disabled={ocupado} onClick={emitir}>
+            <button className={`${ui.btn} ${ui.primario}`} type="button" disabled={ocupado} onClick={emitir}>
               {ocupado ? 'Emitiendo…' : `Emitir factura · ${formatearMonto(pedido.pagado)}`}
             </button>
           </div>

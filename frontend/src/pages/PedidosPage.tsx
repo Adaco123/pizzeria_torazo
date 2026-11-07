@@ -12,13 +12,13 @@ import styles from '../features/pedidos/Pedidos.module.css'
 import { estadoDe } from '../features/pedidos/estados.ts'
 import { useClientes, usePedidos } from '../features/pedidos/usePedidos.ts'
 import { MiTurnoPanel } from '../features/turnos/MiTurnoPanel.tsx'
-import { useTurnos } from '../features/turnos/useTurnos.ts'
+import { useTurnosAbiertos } from '../features/turnos/useTurnos.ts'
 
 export function PedidosPage() {
   const { sesion, hasRole } = useAuth()
   const esAdmin = hasRole('Administrador')
 
-  const turnos = useTurnos()
+  const turnos = useTurnosAbiertos()
   const [resumenId, setResumenId] = useState<number | null>(null)
   const { pedidos, cargando, error, recargar } = usePedidos()
   const { clientes, recargar: recargarClientes } = useClientes()

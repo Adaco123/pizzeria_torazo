@@ -1,3 +1,4 @@
+import { Eye, EyeOff, Lock, Mail, Pizza, TriangleAlert } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { isApiError } from '../api.ts'
@@ -21,6 +22,7 @@ export function LoginPage() {
   const [contra, setContra] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [verContra, setVerContra] = useState(false)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,36 +43,63 @@ export function LoginPage() {
 
   return (
     <main className={styles.root}>
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <h1 className={styles.title}>Pizzería Torazo</h1>
-        <p className={styles.subtitle}>Inicia sesión para continuar</p>
+      <div className={styles.marca}>
+        <span className={styles.logo}>
+          <Pizza size={34} aria-hidden="true" />
+        </span>
+        <h1>Pizzería Torazo</h1>
+        <p>Pedidos, mesas, cocina y caja en un solo lugar.</p>
+      </div>
+
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div>
+          <h2 className={styles.title}>Inicia sesión</h2>
+          <p className={styles.subtitle}>Usa tu correo y tu contraseña.</p>
+        </div>
 
         <label className={styles.field}>
           <span>Correo</span>
-          <input
-            type="email"
-            autoComplete="username"
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
-            required
-            autoFocus
-          />
+          <span className={styles.entrada}>
+            <Mail size={16} aria-hidden="true" />
+            <input
+              type="email"
+              autoComplete="username"
+              placeholder="tu@correo.com"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              required
+              autoFocus
+            />
+          </span>
         </label>
 
         <label className={styles.field}>
           <span>Contraseña</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={contra}
-            onChange={(e) => setContra(e.target.value)}
-            required
-          />
+          <span className={styles.entrada}>
+            <Lock size={16} aria-hidden="true" />
+            <input
+              type={verContra ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={contra}
+              onChange={(e) => setContra(e.target.value)}
+              required
+            />
+            <button
+              className={styles.ojo}
+              type="button"
+              aria-label={verContra ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
+              aria-pressed={verContra}
+              onClick={() => setVerContra((v) => !v)}
+            >
+              {verContra ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+            </button>
+          </span>
         </label>
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            <TriangleAlert size={16} aria-hidden="true" /> {error}
           </p>
         )}
 

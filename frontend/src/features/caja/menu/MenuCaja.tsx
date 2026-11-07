@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react'
+import { GlassWater, Layers, PackageOpen, Pizza, Search, X, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { pedidosApi } from '../../../apis/pedidos.ts'
 import type { Producto } from '../../../apis/productos.ts'
@@ -25,6 +25,7 @@ interface Props {
 type Pestana = 'pizzas' | 'combos' | 'bebidas' | 'otros'
 
 const ETIQUETA: Record<Pestana, string> = { pizzas: 'Pizzas', combos: 'Combos', bebidas: 'Bebidas', otros: 'Otros' }
+const ICONO: Record<Pestana, LucideIcon> = { pizzas: Pizza, combos: Layers, bebidas: GlassWater, otros: PackageOpen }
 
 /** Una letra por tamaño ("P", "M", "F", "G"); si dos empiezan igual, se usan dos. */
 function etiquetasDeTamanos(tamanos: Catalogo['tamanos']): Map<number, string> {
@@ -163,11 +164,15 @@ export function MenuCaja({ pedidoId, catalogo, onAgregado }: Props) {
       <div className={styles.cabecera}>
         {pestanas.length > 1 && (
           <div className={`${styles.vistas} ${styles.pestanas}`} role="group" aria-label="Qué vas a agregar">
-            {pestanas.map((p) => (
-              <button key={p} type="button" aria-pressed={!buscando && actual === p} onClick={() => setPestana(p)}>
-                {ETIQUETA[p]}
-              </button>
-            ))}
+            {pestanas.map((p) => {
+              const Icono = ICONO[p]
+              return (
+                <button key={p} type="button" aria-pressed={!buscando && actual === p} onClick={() => setPestana(p)}>
+                  <Icono size={16} aria-hidden="true" />
+                  {ETIQUETA[p]}
+                </button>
+              )
+            })}
           </div>
         )}
 

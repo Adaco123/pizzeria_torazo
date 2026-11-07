@@ -67,8 +67,10 @@ export function PanelMasExtras({
               <circle
                 key={z}
                 r={((tamanos === 1 ? 110 : 54 + (z * 111) / (tamanos - 1)) * 18) / 165}
-                fill={z <= indiceTamano ? '#c8102e' : '#6d6266'}
-                stroke="#fff"
+                style={{
+                  fill: z <= indiceTamano ? 'var(--color-primary)' : 'var(--color-border)',
+                  stroke: 'var(--color-surface)',
+                }}
                 strokeWidth="1.2"
               />
             ))}

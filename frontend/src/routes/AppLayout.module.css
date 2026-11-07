@@ -40,35 +40,79 @@
 }
 
 .linkActive {
-  background: var(--color-white);
+  background: var(--color-on-primary);
   color: var(--color-primary);
 }
 
 .linkActive:hover {
-  background: var(--color-white);
+  background: var(--color-on-primary);
   color: var(--color-primary-hover);
 }
 
 .user {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 14px;
 }
 
-.logout {
-  padding: 6px 12px;
-  font: inherit;
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-on-primary);
   font-size: 14px;
-  border: 1px solid var(--color-on-primary);
-  border-radius: var(--radius-sm);
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.quien {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  font-size: 13px;
+}
+
+.quien small {
+  opacity: 0.8;
+}
+
+.tema {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-on-primary-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-on-primary);
+  cursor: pointer;
+}
+
+.tema:hover {
+  background: var(--color-on-primary);
+  color: var(--color-primary);
+}
+
+.logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--color-on-primary-line);
+  border-radius: 10px;
   background: transparent;
   color: var(--color-on-primary);
   cursor: pointer;
 }
 
 .logout:hover {
-  background: var(--color-white);
+  background: var(--color-on-primary);
   color: var(--color-primary);
 }
 

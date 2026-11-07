@@ -1,4 +1,4 @@
-import { Minus, X } from 'lucide-react'
+import { Circle, Minus, SplitSquareHorizontal, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { pedidosApi } from '../../../apis/pedidos.ts'
 import type { DetalleMitadInput } from '../../../apis/pedidos.ts'
@@ -16,7 +16,6 @@ import { registrarUso } from './usoLocal.ts'
 import styles from './Selector.module.css'
 
 const NOTAS_RAPIDAS = ['Sin cebolla', 'Bien cocida', 'Poco queso', 'Cortada en 12']
-const COLOR_LETRA = '#3d3538'
 const CHIPS_SEGUNDA = 3
 
 interface Props {
@@ -209,7 +208,7 @@ function SelectorListo({
           const y = rE * Math.sin(g)
           return (
             <g key={id} className={styles.insignia}>
-              <circle cx={x} cy={y} r="14" fill={COLOR_LETRA} />
+              <circle cx={x} cy={y} r="14" />
               <text x={x} y={y} className={styles.letra}>{abreviatura(s.nombreDe(Number(id)))}</text>
               {q > 1 && <text x={x + 13} y={y + 13} className={styles.cantidad}>×{q}</text>}
             </g>
@@ -353,7 +352,7 @@ function SelectorListo({
                 insignias(0, 90)
               )}
               {hayMitad && (
-                <line x1="0" y1="-165" x2="0" y2="165" stroke="#fff" strokeWidth="4" strokeDasharray="9 7" pointerEvents="none" />
+                <line x1="0" y1="-165" x2="0" y2="165" stroke="var(--color-on-primary)" strokeWidth="4" strokeDasharray="9 7" pointerEvents="none" />
               )}
               {hayMitad && <path className={styles.hring} d={`M0,-173A173,173 0 0 ${lado === 0 ? 0 : 1} 0,173`} />}
               {[...opciones.keys()].reverse().map(etiqueta)}
@@ -413,17 +412,18 @@ function SelectorListo({
 
         <div className={styles.controles}>
           {s.puedeMitad && (
-            <button
-              type="button"
-              className={cx(styles.hl, s.mitad && styles.hlOn)}
-              aria-pressed={s.mitad}
-              onClick={s.alternarMitad}
-            >
-              ½ + ½ Mitad y mitad
-            </button>
+            <div className={styles.modo} role="group" aria-label="Tipo de pizza">
+              <button type="button" aria-pressed={!s.mitad} onClick={() => s.mitad && s.alternarMitad()}>
+                <Circle size={16} aria-hidden="true" /> Entera
+              </button>
+              <button type="button" aria-pressed={s.mitad} onClick={() => !s.mitad && s.alternarMitad()}>
+                <SplitSquareHorizontal size={16} aria-hidden="true" /> Mitad y mitad
+              </button>
+            </div>
           )}
           {otra && (
-            <>
+            <div className={styles.bloque}>
+              <span className={styles.etiqueta}>Segunda mitad</span>
               <div className={styles.sugeridas}>
                 {[...new Set([otra.id, ...s.porUso.map((p) => p.id)])]
                   .slice(0, CHIPS_SEGUNDA)
@@ -442,28 +442,33 @@ function SelectorListo({
                 </button>
               </div>
               {tarjetas}
-            </>
+            </div>
           )}
-          <input
-            className={styles.nota}
-            value={s.nota}
-            maxLength={120}
-            autoComplete="off"
-            placeholder="Nota para cocina (opcional)"
-            aria-label="Nota para cocina"
-            onChange={(e) => s.setNota(e.target.value)}
-          />
-          <div className={styles.rapidas}>
-            {NOTAS_RAPIDAS.map((frase) => (
-              <button
-                key={frase}
-                type="button"
-                className={s.nota.includes(frase) ? styles.on : undefined}
-                onClick={() => alternarNota(frase)}
-              >
-                {frase}
-              </button>
-            ))}
+          <div className={styles.bloque}>
+            <label className={styles.etiqueta} htmlFor="nota-pizza">
+              Nota para cocina
+            </label>
+            <input
+              id="nota-pizza"
+              className={styles.nota}
+              value={s.nota}
+              maxLength={120}
+              autoComplete="off"
+              placeholder="Opcional"
+              onChange={(e) => s.setNota(e.target.value)}
+            />
+            <div className={styles.rapidas}>
+              {NOTAS_RAPIDAS.map((frase) => (
+                <button
+                  key={frase}
+                  type="button"
+                  className={s.nota.includes(frase) ? styles.on : undefined}
+                  onClick={() => alternarNota(frase)}
+                >
+                  {frase}
+                </button>
+              ))}
+            </div>
           </div>
           <div className={styles.acciones}>
             <button type="button" className={styles.fantasma} onClick={onCerrar}>

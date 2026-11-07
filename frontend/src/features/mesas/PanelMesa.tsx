@@ -31,10 +31,10 @@ export function PanelMesa({ mesa, cuentaId, abriendo, onAbrir, onCambio, onTermi
       <div className={styles.panelVacio}>
         <button type="button" className={styles.abrir} disabled={abriendo} onClick={onAbrir}>
           <UtensilsCrossed size={34} aria-hidden="true" />
-          <span>{abriendo ? 'Abriendo…' : `Abrir mesa ${mesa.numero}`}</span>
+          <span>{abriendo ? 'Abriendo…' : `Abrir mesa ${mesa.numero} y tomar pedido`}</span>
         </button>
         <b>Mesa {mesa.numero} libre</b>
-        <p>Ábrela cuando se sienten los clientes.</p>
+        <p>Se abre y queda lista para anotar lo que pidan.</p>
       </div>
     )
   }

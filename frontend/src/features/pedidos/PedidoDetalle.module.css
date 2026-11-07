@@ -1,0 +1,268 @@
+/* ==========================================================================
+   Detalle de pedido con el esquema de Pedidos (caja):
+   barra arriba · cliente y entrega a la izquierda · detalle al centro · acciones a la derecha.
+   ========================================================================== */
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo {
+  margin: 0 6px 0 0;
+}
+
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.volver:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-heading);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.centro {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ---------- Riel: cliente y entrega ---------- */
+.riel {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.riel h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dato {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.dato svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-muted);
+}
+
+.dato b {
+  display: block;
+  color: var(--color-heading);
+}
+
+.dato small {
+  color: var(--color-muted);
+}
+
+.espera {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading);
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.motivo {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-error);
+  border-radius: 8px;
+  background: var(--color-error-bg);
+  font-size: 14px;
+  color: var(--color-error);
+}
+
+/* ---------- Ticket: acciones ---------- */
+.ticket {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.cabeza {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cabeza h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.fichas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+}
+
+.ficha dt {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.ficha dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.pie {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.pie a {
+  text-decoration: none;
+}
+
+.pie > button,
+.pie > a {
+  justify-content: center;
+  width: 100%;
+}
+
+.grande {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-success-solid);
+  box-shadow: 0 8px 18px -6px var(--color-success);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-on-primary);
+  cursor: pointer;
+}
+
+.grande:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.peligro {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.peligro:hover:not(:disabled) {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.nota {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* Responsivo: va al final para ganar a los estilos base. */
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 290px minmax(0, 1fr);
+  }
+
+  .ticket {
+    position: static;
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .riel {
+    position: static;
+  }
+}

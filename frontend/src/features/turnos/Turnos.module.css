@@ -108,7 +108,7 @@
   font: inherit;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-white);
+  background: var(--color-surface);
   color: var(--color-heading);
 }
 
@@ -156,11 +156,11 @@
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--c);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .miSin {
-  --c: #a8999c;
+  --c: var(--color-muted-soft);
   background: var(--color-surface-alt);
 }
 
@@ -217,7 +217,7 @@
 }
 
 .grande:disabled {
-  background: #d9c9cb;
+  background: var(--color-disabled);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -263,15 +263,15 @@
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--c);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .filaCerrada {
-  --c: #a8999c;
+  --c: var(--color-muted-soft);
 }
 
 .filaPendiente {
-  --c: #c2410c;
+  --c: var(--color-warning);
 }
 
 .filaElegida {
@@ -347,8 +347,8 @@ button.filaCuerpo:hover {
 }
 
 .pendiente {
-  background: #fff4e5;
-  color: #c2410c;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 /* ---------- Ticket: resumen del turno ---------- */
@@ -495,8 +495,8 @@ button.filaCuerpo:hover {
 }
 
 .aviso {
-  background: #fff4e5;
-  color: #c2410c;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .vacioTicket {
@@ -510,7 +510,7 @@ button.filaCuerpo:hover {
 }
 
 .vacioTicket svg {
-  color: #d9c3c6;
+  color: var(--color-border-strong);
 }
 
 .vacioTicket b {
@@ -531,14 +531,53 @@ button.filaCuerpo:hover {
   margin: 0;
 }
 
+/* Cada columna se desplaza sola: la página queda fija y solo se mueve la que tocas. */
+.layout {
+  /* Alto reservado para el encabezado de la app, el título y los márgenes. */
+  height: calc(100svh - 180px);
+  min-height: 420px;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.layout > .riel,
+.layout > .centro,
+.layout > .ticket {
+  position: static;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Se desplaza igual con rueda, tacto o teclado, pero sin mostrar la barra. */
+  scrollbar-width: none;
+}
+
+.layout > .riel::-webkit-scrollbar,
+.layout > .centro::-webkit-scrollbar,
+.layout > .ticket::-webkit-scrollbar {
+  display: none;
+}
+
+.verMas {
+  align-self: center;
+  margin-top: 12px;
+}
+
 /* Responsivo: va al final para ganar a los estilos base. */
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-rows: none;
+    height: auto;
+    min-height: 0;
+  }
+
+  .layout > .riel,
+  .layout > .centro,
+  .layout > .ticket {
+    max-height: none;
+    overflow-y: visible;
   }
 
   .ticket {
-    position: static;
     grid-column: 1 / -1;
   }
 }
@@ -546,10 +585,6 @@ button.filaCuerpo:hover {
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .riel {
-    position: static;
   }
 }
 

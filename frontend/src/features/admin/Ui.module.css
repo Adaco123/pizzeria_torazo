@@ -69,16 +69,18 @@
 
 .primario:hover:not(:disabled) {
   background: var(--color-primary-hover);
+  color: var(--color-on-primary);
 }
 
 .secundario {
   border-color: var(--color-primary);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-primary);
 }
 
 .secundario:hover:not(:disabled) {
   background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .ib {
@@ -89,14 +91,14 @@
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-heading);
   text-decoration: none;
   cursor: pointer;
 }
 
 .ib:hover:not(:disabled) {
-  border-color: #d9c3c6;
+  border-color: var(--color-border-strong);
   background: var(--color-surface-alt);
 }
 
@@ -166,7 +168,7 @@
   padding: 9px 10px;
   border: 1.5px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-surface);
   font: inherit;
   font-size: 14px;
   color: var(--color-heading);
@@ -220,7 +222,7 @@
 }
 
 .segmento button[aria-pressed='true'] {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-heading);
   box-shadow: var(--shadow);
 }
@@ -262,7 +264,7 @@
 }
 
 .tabla tbody tr:hover td {
-  background: #fffafa;
+  background: var(--color-surface-alt);
 }
 
 .tabla td:first-child {
@@ -285,7 +287,7 @@
 }
 
 .inactiva {
-  --c: #a8999c;
+  --c: var(--color-muted-soft);
   color: var(--color-muted);
 }
 
@@ -363,7 +365,7 @@
 }
 
 .vacio svg {
-  color: #d9c3c6;
+  color: var(--color-border-strong);
 }
 
 .vacio p {
@@ -390,7 +392,7 @@
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--c);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .baldosaOcupada {
@@ -398,7 +400,7 @@
 }
 
 .baldosaOff {
-  --c: #a8999c;
+  --c: var(--color-muted-soft);
   background: var(--color-surface-alt);
   color: var(--color-muted);
 }
@@ -436,7 +438,7 @@
   padding: 14px;
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow);
 }
 

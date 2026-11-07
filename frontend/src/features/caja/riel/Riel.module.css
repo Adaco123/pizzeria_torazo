@@ -89,14 +89,14 @@
 }
 
 .tabs .tabOn {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-heading);
   box-shadow: var(--shadow);
 }
 
 .tabs .tabAlerta i {
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-success-solid);
+  color: var(--color-on-primary);
 }
 
 .lista {
@@ -124,15 +124,15 @@
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--c);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
   overflow: hidden;
 }
 
 .cocina {
-  --c: #b7791f;
+  --c: var(--color-caution);
 }
 .preparando {
-  --c: #2563eb;
+  --c: var(--color-info);
 }
 .listo {
   --c: var(--color-success);
@@ -148,7 +148,7 @@
 }
 
 .entregado {
-  --c: #a8999c;
+  --c: var(--color-muted-soft);
   opacity: 0.85;
 }
 
@@ -170,7 +170,7 @@
   width: 100%;
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--c);
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .piden {
@@ -235,10 +235,10 @@
   gap: 4px;
   padding: 0 10px;
   border: 0;
-  background: var(--color-success);
+  background: var(--color-success-solid);
   font-size: 12.5px;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .entregar:disabled {
@@ -279,13 +279,13 @@
 
 .primario {
   border: 0;
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-success-solid);
+  color: var(--color-on-primary);
 }
 
 .secundario {
   border: 1px solid var(--color-border);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-heading);
 }
 
@@ -351,6 +351,6 @@
     position: fixed;
     inset: 0;
     z-index: 39;
-    background: rgba(31, 21, 23, 0.45);
+    background: var(--color-scrim);
   }
 }

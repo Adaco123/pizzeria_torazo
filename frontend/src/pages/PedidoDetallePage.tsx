@@ -1,3 +1,4 @@
+import { ArrowLeft, Ban, ChefHat, Clock, MessageCircle, PackageCheck, Pencil, Phone, Printer, ReceiptText, Store, Truck, User } from 'lucide-react'
 import { enlaceWhatsapp, mensajeDePedido } from '../utils/whatsapp.ts'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
@@ -10,6 +11,9 @@ import { useFactura } from '../features/cobro/useFactura.ts'
 import { DetalleItems } from '../features/pedidos/DetalleItems.tsx'
 import { EstadoBadge } from '../features/pedidos/EstadoBadge.tsx'
 import { esFinal, estadoDe } from '../features/pedidos/estados.ts'
+import ui from '../features/admin/Ui.module.css'
+import { Cabeza } from '../features/admin/ui.tsx'
+import detalle from '../features/pedidos/PedidoDetalle.module.css'
 import styles from '../features/pedidos/Pedidos.module.css'
 import { useCatalogo } from '../features/pedidos/useCatalogo.ts'
 import { useClientes, usePedido } from '../features/pedidos/usePedidos.ts'
@@ -32,9 +36,11 @@ function PedidoDetalle({ id }: { id: number }) {
   const ahora = useAhora()
 
   const volver = (
-    <Link to="/pedidos" className={styles.back}>
-      ← Volver a pedidos
-    </Link>
+    <div className={detalle.barra}>
+      <Link to="/pedidos" className={detalle.volver}>
+        <ArrowLeft size={16} aria-hidden="true" /> Pedidos
+      </Link>
+    </div>
   )
 
   if (cargando) return <p className={styles.muted}>Cargando pedido…</p>
@@ -140,117 +146,157 @@ function PedidoDetalle({ id }: { id: number }) {
     }
   }
 
-  return (
-    <section className={styles.page}>
-      {volver}
+  const pagado = !borrador && pedido.pagado >= pedido.total && pedido.total > 0
+  const entrega = pedido.tipo_entrega?.nombre ?? '—'
+  const EntregaIcono = pedido.direccion_entrega ? Truck : Store
 
-      <section className={styles.card}>
-        <div className={styles.headerRow}>
-          <h1>{pedido.numero_turno ? `Ficha N° ${pedido.numero_turno}` : 'Pedido sin cobrar'}</h1>
-          <span>
-            <EstadoBadge estado={estado} />
-            {!borrador && pedido.pagado >= pedido.total && pedido.total > 0 && (
-              <>
-                {' '}
-                <span className={`${styles.badge} ${styles.estadoListo}`}>Pagado</span>
-              </>
-            )}
-          </span>
-        </div>
-        <p className={styles.muted}>
-          {formatearFecha(pedido.fecha)} · {cliente?.nombre ?? `Cliente #${pedido.cliente_id}`} ·{' '}
-          {pedido.tipo_entrega?.nombre ?? '—'}
-          {pedido.direccion_entrega ? ` · ${pedido.direccion_entrega}` : ''}
-        </p>
-        {!borrador && <p className={styles.muted}>Cobrado: {formatearMonto(pedido.pagado)}</p>}
-        {pedido.hora_prometida && (
-          <p className={styles.muted}>
-            {textoHoraPrometida(pedido.hora_prometida)}
-            {estado !== 'entregado' && estado !== 'cancelado' &&
-              ` · ${textoPromesa(minutosParaPromesa(pedido.hora_prometida, ahora))}`}
-          </p>
-        )}
-        {(estado === 'confirmado' || estado === 'en_preparacion' || estado === 'listo') && (
-          <div className={styles.field}>
-            <span>Cambiar la hora prometida (minutos desde ahora)</span>
-            <div className={styles.chips} role="group" aria-label="Cambiar la hora prometida">
-              {CAMBIOS_DE_ESPERA.map((minutos) => (
-                <button
-                  key={minutos}
-                  type="button"
-                  className={styles.chip}
-                  disabled={ocupado}
-                  onClick={() => void cambiarEspera(minutos)}
-                >
-                  {minutos} min
-                </button>
-              ))}
+  return (
+    <section className={`${styles.page} ${styles.pageAncha}`}>
+      <div className={detalle.barra}>
+        <Link to="/pedidos" className={detalle.volver}>
+          <ArrowLeft size={16} aria-hidden="true" /> Pedidos
+        </Link>
+        <h1 className={detalle.titulo}>{pedido.numero_turno ? `Ficha N° ${pedido.numero_turno}` : 'Pedido sin cobrar'}</h1>
+        <EstadoBadge estado={estado} />
+        {pagado && <span className={`${styles.badge} ${styles.estadoListo}`}>Pagado</span>}
+      </div>
+
+      <div className={detalle.layout}>
+        <aside className={detalle.riel} aria-label="Cliente y entrega">
+          <h2>Cliente y entrega</h2>
+          <div className={detalle.dato}>
+            <User size={16} aria-hidden="true" />
+            <div>
+              <b>{cliente?.nombre ?? `Cliente #${pedido.cliente_id}`}</b>
+              <small>Cliente · {formatearFecha(pedido.fecha)}</small>
             </div>
           </div>
-        )}
-        {pedido.motivo_cancelacion && (
-          <p className={styles.muted}>Motivo de la cancelación: {pedido.motivo_cancelacion}</p>
-        )}
+          {cliente?.telefono && (
+            <div className={detalle.dato}>
+              <Phone size={16} aria-hidden="true" />
+              <div>
+                <b>{cliente.telefono}</b>
+                <small>Teléfono</small>
+              </div>
+            </div>
+          )}
+          <div className={detalle.dato}>
+            <EntregaIcono size={16} aria-hidden="true" />
+            <div>
+              <b>{entrega}</b>
+              {pedido.direccion_entrega && <small>{pedido.direccion_entrega}</small>}
+            </div>
+          </div>
+          {pedido.hora_prometida && (
+            <div className={detalle.dato}>
+              <Clock size={16} aria-hidden="true" />
+              <div>
+                <b>{textoHoraPrometida(pedido.hora_prometida)}</b>
+                {estado !== 'entregado' && estado !== 'cancelado' && (
+                  <small>{textoPromesa(minutosParaPromesa(pedido.hora_prometida, ahora))}</small>
+                )}
+              </div>
+            </div>
+          )}
+          {(estado === 'confirmado' || estado === 'en_preparacion' || estado === 'listo') && (
+            <div className={detalle.espera}>
+              <span>Cambiar la espera (min desde ahora)</span>
+              <div className={detalle.chips} role="group" aria-label="Cambiar la hora prometida">
+                {CAMBIOS_DE_ESPERA.map((minutos) => (
+                  <button
+                    key={minutos}
+                    type="button"
+                    className={detalle.chip}
+                    disabled={ocupado}
+                    onClick={() => void cambiarEspera(minutos)}
+                  >
+                    {minutos}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {pedido.motivo_cancelacion && (
+            <p className={detalle.motivo}>Motivo de la cancelación: {pedido.motivo_cancelacion}</p>
+          )}
+        </aside>
 
-        <div className={styles.formRow}>
-          {estado === 'listo' && (
-            <button className={styles.primary} type="button" disabled={ocupado} onClick={entregar}>
-              Entregar
-            </button>
-          )}
-          {borrador && (
-            <Link to="/pedidos" className={styles.secondary} style={{ textDecoration: "none" }}>
-              Seguir armándolo en caja
-            </Link>
-          )}
-          {!borrador && (
-            <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicketCliente}>
-              Ticket del cliente (PDF)
-            </button>
-          )}
-          {avisoWhatsapp && (
-            <a className={styles.secondary} href={avisoWhatsapp} target="_blank" rel="noreferrer">
-              Avisar por WhatsApp
-            </a>
-          )}
-          {!borrador && (
-            <button className={styles.secondary} type="button" disabled={ocupado} onClick={descargarTicket}>
-              Ficha de cocina (PDF)
-            </button>
-          )}
-          {!esFinal(estado) && sePuedeCancelar && (
-            <button className={styles.danger} type="button" disabled={ocupado} onClick={cancelar}>
-              Cancelar pedido
-            </button>
+        <div className={detalle.centro}>
+          <section className={styles.card}>
+            <Cabeza icono={ReceiptText} titulo="Detalle" cuenta={pedido.detalles.length} />
+            <DetalleItems
+              detalles={pedido.detalles}
+              total={pedido.total}
+              descuento={pedido.descuento}
+              envio={{ costo: pedido.costo_envio, repartidor: pedido.repartidor?.nombre }}
+              combos={catalogo?.combos ?? []}
+              editable={false}
+              onQuitarExtra={() => {}}
+            />
+          </section>
+
+          {sesion && !borrador && (
+            <FacturaPanel
+              pedido={pedido}
+              usuarioId={sesion.id}
+              esAdmin={esAdmin}
+              clientes={clientes}
+              factura={factura}
+            />
           )}
         </div>
-        {estado === 'listo' && !esAdmin && (
-          <p className={styles.muted}>Ya está listo: solo el administrador puede cancelarlo.</p>
-        )}
-      </section>
 
-      <section className={styles.card}>
-        <h2>Detalle</h2>
-        <DetalleItems
-          detalles={pedido.detalles}
-          total={pedido.total}
-          descuento={pedido.descuento}
-          envio={{ costo: pedido.costo_envio, repartidor: pedido.repartidor?.nombre }}
-          combos={catalogo?.combos ?? []}
-          editable={false}
-          onQuitarExtra={() => {}}
-        />
-      </section>
-
-      {sesion && !borrador && (
-        <FacturaPanel
-          pedido={pedido}
-          usuarioId={sesion.id}
-          esAdmin={esAdmin}
-          clientes={clientes}
-          factura={factura}
-        />
-      )}
+        <aside className={detalle.ticket} aria-label="Acciones del pedido">
+          <div className={detalle.cabeza}>
+            <h2>Acciones</h2>
+          </div>
+          <dl className={detalle.fichas}>
+            <div className={detalle.ficha}>
+              <dt>{borrador ? 'Total' : 'Cobrado'}</dt>
+              <dd>{formatearMonto(borrador ? pedido.total : pedido.pagado)}</dd>
+            </div>
+            <div className={detalle.ficha}>
+              <dt>Entrega</dt>
+              <dd>{entrega}</dd>
+            </div>
+          </dl>
+          <div className={detalle.pie}>
+            {estado === 'listo' && (
+              <button className={detalle.grande} type="button" disabled={ocupado} onClick={entregar}>
+                <PackageCheck size={18} aria-hidden="true" /> Entregar
+              </button>
+            )}
+            {borrador && (
+              <Link to="/pedidos" className={`${ui.btn} ${ui.secundario}`}>
+                <Pencil size={16} aria-hidden="true" /> Seguir armándolo en caja
+              </Link>
+            )}
+            {!borrador && (
+              <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={ocupado} onClick={descargarTicketCliente}>
+                <Printer size={16} aria-hidden="true" /> Ticket del cliente (PDF)
+              </button>
+            )}
+            {!borrador && (
+              <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={ocupado} onClick={descargarTicket}>
+                <ChefHat size={16} aria-hidden="true" /> Ficha de cocina (PDF)
+              </button>
+            )}
+            {avisoWhatsapp && (
+              <a className={`${ui.btn} ${ui.secundario}`} href={avisoWhatsapp} target="_blank" rel="noreferrer">
+                <MessageCircle size={16} aria-hidden="true" /> Avisar por WhatsApp
+              </a>
+            )}
+            {!esFinal(estado) && sePuedeCancelar && (
+              <button className={`${ui.btn} ${ui.secundario} ${detalle.peligro}`} type="button" disabled={ocupado} onClick={cancelar}>
+                <Ban size={16} aria-hidden="true" /> Cancelar pedido
+              </button>
+            )}
+            {estado === 'listo' && !esAdmin && (
+              <p className={detalle.nota}>Ya está listo: solo el administrador puede cancelarlo.</p>
+            )}
+          </div>
+        </aside>
+      </div>
     </section>
   )
 }
@@ -262,9 +308,11 @@ export function PedidoDetallePage() {
   if (!Number.isInteger(pedidoId) || pedidoId < 1) {
     return (
       <section className={styles.page}>
-        <Link to="/pedidos" className={styles.back}>
-          ← Volver a pedidos
-        </Link>
+        <div className={detalle.barra}>
+          <Link to="/pedidos" className={detalle.volver}>
+            <ArrowLeft size={16} aria-hidden="true" /> Pedidos
+          </Link>
+        </div>
         <h1>Pedido no válido</h1>
       </section>
     )

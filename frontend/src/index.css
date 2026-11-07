@@ -1,7 +1,8 @@
 /* ==========================================================================
    Tema global — Pizzería Torazo (rojo y blanco)
    Todos los módulos CSS (*.module.css) heredan estas variables con var(--...).
-   Para cambiar la paleta de toda la app, edita solo este bloque.
+   Para cambiar la paleta de toda la app, edita solo estos bloques: el claro (:root) y el oscuro
+   (:root[data-theme='dark']). Ningún otro archivo debe llevar colores sueltos.
    ========================================================================== */
 :root {
   /* Marca */
@@ -27,6 +28,24 @@
   --color-error-bg: #fef3f2;
   --color-success: #1a7f37;
   --color-success-bg: #e8f5ec;
+  --color-error-solid: #b42318;
+  --color-success-solid: #1a7f37;
+  --color-warning: #c2410c;
+  --color-warning-strong: #b45309;
+  --color-warning-bg: #fff4e5;
+  --color-caution: #b7791f;
+  --color-info: #2563eb;
+  --color-info-bg: #e8f0fe;
+
+  /* Apoyos */
+  --color-border-strong: #d9c3c6;
+  --color-muted-soft: #a8999c;
+  --color-disabled: #d9c9cb;
+  --color-scrim: rgba(31, 21, 23, 0.45);
+  --color-shadow: rgba(31, 21, 23, 0.22);
+  --color-shadow-soft: rgba(31, 21, 23, 0.12);
+  --color-on-primary-soft: rgba(255, 255, 255, 0.25);
+  --color-on-primary-line: rgba(255, 255, 255, 0.6);
 
   /* Forma */
   --radius-sm: 8px;
@@ -45,6 +64,47 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tema oscuro: se activa con data-theme="dark" en <html> (ver hooks/useTema.ts). */
+:root[data-theme='dark'] {
+  --color-primary: #e0344f;
+  --color-primary-hover: #c92a46;
+  --color-primary-soft: #3a1b21;
+  --color-on-primary: #ffffff;
+
+  --color-white: #ffffff;
+  --color-bg: #141011;
+  --color-surface: #1d1618;
+  --color-surface-alt: #251c1f;
+
+  --color-text: #e6dcde;
+  --color-heading: #f7eff0;
+  --color-muted: #a8999c;
+  --color-border: #3a2d30;
+
+  --color-error: #f97066;
+  --color-error-bg: #3a1512;
+  --color-success: #4ade80;
+  --color-success-bg: #14301f;
+  --color-error-solid: #d92d20;
+  --color-success-solid: #178a3e;
+  --color-warning: #fb923c;
+  --color-warning-strong: #fdba74;
+  --color-warning-bg: #3a2614;
+  --color-caution: #fbbf24;
+  --color-info: #60a5fa;
+  --color-info-bg: #14233d;
+
+  --color-border-strong: #4d3d41;
+  --color-muted-soft: #6d6266;
+  --color-disabled: #3a2d30;
+  --color-scrim: rgba(0, 0, 0, 0.62);
+  --color-shadow: rgba(0, 0, 0, 0.55);
+  --color-shadow-soft: rgba(0, 0, 0, 0.4);
+
+  --shadow: rgba(0, 0, 0, 0.35) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  color-scheme: dark;
 }
 
 *,

@@ -1,7 +1,9 @@
+import { Trash2, X } from 'lucide-react'
 import type { Combo } from '../../apis/combos.ts'
 import type { DetallePedido } from '../../apis/pedidos.ts'
 import { formatearMonto } from '../../utils/formato.ts'
-import styles from './Pedidos.module.css'
+import { BotonIcono } from '../admin/ui.tsx'
+import styles from './DetalleItems.module.css'
 
 interface Props {
   detalles: DetallePedido[]
@@ -37,29 +39,30 @@ export function DetalleItems({
   onQuitarDetalle,
 }: Props) {
   if (detalles.length === 0) {
-    return <p className={styles.muted}>Todavía no agregaste nada a este pedido.</p>
+    return <p className={styles.vacio}>Todavía no agregaste nada a este pedido.</p>
   }
 
   return (
-    <div className={styles.items}>
-      <ul className={styles.itemList}>
+    <div>
+      <ul className={styles.lista}>
         {detalles.map((detalle) => (
-          <li key={detalle.id} className={styles.item}>
-            <div className={styles.itemMain}>
-              <strong>
-                {detalle.cantidad} × {tituloDe(detalle, combos)}
+          <li key={detalle.id} className={styles.fila}>
+            <span className={styles.cantidad}>{detalle.cantidad}×</span>
+            <div className={styles.texto}>
+              <b>
+                {tituloDe(detalle, combos)}
                 {detalle.tamano_nombre ? ` (${detalle.tamano_nombre})` : ''}
-              </strong>
+              </b>
 
               {detalle.mitades.length > 0 && (
-                <ul className={styles.subList}>
+                <ul className={styles.sub}>
                   {[...detalle.mitades]
                     .sort((a, b) => a.mitad - b.mitad)
                     .map((mitad) => (
                       <li key={mitad.id}>
                         ½ {mitad.producto?.nombre ?? '—'}
                         {mitad.extras.map((extra) => (
-                          <span key={extra.id} className={styles.extraTag}>
+                          <span key={extra.id} className={`${styles.etiqueta} ${styles.etiquetaFija}`}>
                             + {extra.ingrediente?.nombre ?? 'extra'} ×{extra.cantidad}
                           </span>
                         ))}
@@ -69,63 +72,61 @@ export function DetalleItems({
               )}
 
               {detalle.extras.length > 0 && (
-                <ul className={styles.subList}>
+                <div>
                   {detalle.extras.map((extra) => (
-                    <li key={extra.id}>
-                      + {extra.ingrediente?.nombre ?? 'extra'} ×{extra.cantidad} (
-                      {formatearMonto(extra.precio_extra)})
+                    <span key={extra.id} className={`${styles.etiqueta} ${editable ? '' : styles.etiquetaFija}`}>
+                      + {extra.ingrediente?.nombre ?? 'extra'} ×{extra.cantidad} ({formatearMonto(extra.precio_extra)})
                       {editable && (
                         <button
-                          className={styles.link}
+                          className={styles.quitarExtra}
                           type="button"
+                          title="Quitar extra"
                           aria-label={`Quitar extra ${extra.ingrediente?.nombre ?? ''}`}
                           onClick={() => onQuitarExtra(detalle.id, extra.id)}
                         >
-                          quitar
+                          <X size={12} aria-hidden="true" />
                         </button>
                       )}
-                    </li>
+                    </span>
                   ))}
-                </ul>
+                </div>
               )}
 
-              {detalle.notas && <p className={styles.muted}>Nota: {detalle.notas}</p>}
+              {detalle.notas && <p className={styles.nota}>Nota: {detalle.notas}</p>}
             </div>
-            <div className={styles.itemPrice}>
-              <span className={styles.muted}>{formatearMonto(detalle.precio_unitario)} c/u</span>
-              <strong>{formatearMonto(detalle.subtotal)}</strong>
-              {onQuitarDetalle && (
-                <button
-                  className={styles.link}
-                  type="button"
-                  aria-label={`Quitar ${tituloDe(detalle, combos)}`}
-                  onClick={() => onQuitarDetalle(detalle.id)}
-                >
-                  quitar
-                </button>
-              )}
+            <div className={styles.precio}>
+              <small>{formatearMonto(detalle.precio_unitario)} c/u</small>
+              <b>{formatearMonto(detalle.subtotal)}</b>
             </div>
+            {onQuitarDetalle && (
+              <BotonIcono
+                icono={Trash2}
+                titulo={`Quitar ${tituloDe(detalle, combos)}`}
+                tono="peligro"
+                onClick={() => onQuitarDetalle(detalle.id)}
+              />
+            )}
           </li>
         ))}
       </ul>
 
-      {descuento !== undefined && descuento > 0 && (
-        <div className={styles.totalRow}>
-          <span className={styles.muted}>Descuento</span>
-          <span>-{formatearMonto(descuento)}</span>
+      <div className={styles.totales}>
+        {descuento !== undefined && descuento > 0 && (
+          <div className={styles.linea}>
+            <span>Descuento</span>
+            <span>-{formatearMonto(descuento)}</span>
+          </div>
+        )}
+        {envio && envio.costo > 0 && (
+          <div className={styles.linea}>
+            <span>Envío{envio.repartidor ? ` · ${envio.repartidor}` : ''}</span>
+            <span>{formatearMonto(envio.costo)}</span>
+          </div>
+        )}
+        <div className={`${styles.linea} ${styles.total}`}>
+          <span>Total</span>
+          <span>{formatearMonto(total)}</span>
         </div>
-      )}
-
-      {envio && envio.costo > 0 && (
-        <div className={styles.totalRow}>
-          <span className={styles.muted}>Envío{envio.repartidor ? ` · ${envio.repartidor}` : ''}</span>
-          <span>{formatearMonto(envio.costo)}</span>
-        </div>
-      )}
-
-      <div className={styles.totalRow}>
-        <span>Total</span>
-        <strong>{formatearMonto(total)}</strong>
       </div>
     </div>
   )

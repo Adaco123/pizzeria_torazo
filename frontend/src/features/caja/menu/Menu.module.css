@@ -33,6 +33,10 @@
 }
 
 .vistas button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex: 1;
   padding: 7px 10px;
   border: 0;
@@ -46,8 +50,8 @@
 }
 
 .vistas button[aria-pressed='true'] {
-  background: var(--color-white);
-  color: var(--color-heading);
+  background: var(--color-surface);
+  color: var(--color-primary);
   box-shadow: var(--shadow);
 }
 
@@ -59,7 +63,7 @@
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-muted);
-  background: var(--color-white);
+  background: var(--color-surface);
 }
 
 .buscador:focus-within {
@@ -105,13 +109,15 @@
 
 .tarjeta {
   display: grid;
+  position: relative;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 0;
   text-align: left;
   font: inherit;
-  border: 2px solid var(--color-border);
-  border-radius: 16px;
-  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 12px;
+  background: var(--color-surface);
   cursor: pointer;
   user-select: none;
   transition:
@@ -122,7 +128,7 @@
 
 .tarjeta:hover {
   transform: translateY(-2px);
-  border-color: #d9a9b0;
+  border-color: var(--color-primary);
   box-shadow: var(--shadow);
 }
 
@@ -136,14 +142,26 @@
 }
 
 .agotada {
-  opacity: 0.5;
+  border-left-color: var(--color-warning);
+  background: var(--color-surface-alt);
 }
 
-.marcaAgotada {
+.agotada .texto,
+.agotada .precios {
+  opacity: 0.55;
+}
+
+.pildoraAgotada {
+  position: absolute;
+  top: 6px;
+  right: 76px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
   font-style: normal;
   font-size: 11px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-warning);
 }
 
 .texto {
@@ -178,8 +196,8 @@
   flex: none;
   padding: 6px 10px;
   border-left: 1px solid var(--color-border);
-  border-radius: 0 13px 13px 0;
-  background: var(--color-surface-alt);
+  border-radius: 0 11px 11px 0;
+  background: var(--color-primary-soft);
 }
 
 .precios span {
@@ -189,7 +207,7 @@
   font-size: 12.5px;
   font-weight: 800;
   line-height: 1.38;
-  color: var(--color-heading);
+  color: var(--color-primary);
 }
 
 .precios em {
@@ -213,7 +231,7 @@
 
 mark {
   border-radius: 3px;
-  background: #ffe08a;
+  background: var(--color-primary-soft);
   color: inherit;
 }
 
@@ -246,6 +264,7 @@ mark {
 
 .reciente {
   border-color: var(--color-success);
+  border-left-color: var(--color-success);
 }
 
 .reciente .precios {

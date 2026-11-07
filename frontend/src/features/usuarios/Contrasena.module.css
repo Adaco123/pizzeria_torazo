@@ -37,7 +37,7 @@
   font: inherit;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-white);
+  background: var(--color-surface);
   color: var(--color-heading);
 }
 
@@ -113,11 +113,11 @@
 }
 
 .nivel2 i:nth-child(-n + 2) {
-  background: #c2410c;
+  background: var(--color-warning);
 }
 
 .nivel3 i:nth-child(-n + 3) {
-  background: #b45309;
+  background: var(--color-warning-strong);
 }
 
 .nivel4 i:nth-child(-n + 4) {
@@ -149,7 +149,7 @@
   height: 18px;
   border: 1.5px solid var(--color-border);
   border-radius: 50%;
-  color: var(--color-white);
+  color: var(--color-on-primary);
 }
 
 .punto svg {

@@ -27,7 +27,7 @@ export function TarjetaSimple({ nombre, detalle, precio, agotado = false, recien
       <span className={styles.texto}>
         <b>
           <Resaltado texto={nombre} buscador={buscador} />
-          {agotado && <em className={styles.marcaAgotada}> · agotado</em>}
+
         </b>
         {detalle && (
           <small>
@@ -35,6 +35,7 @@ export function TarjetaSimple({ nombre, detalle, precio, agotado = false, recien
           </small>
         )}
       </span>
+      {agotado && <i className={styles.pildoraAgotada}>Agotado</i>}
       <span className={cx(styles.precios, styles.unico)}>
         {reciente ? <Check size={20} aria-label="Agregado" /> : <span>{Math.round(precio)}</span>}
       </span>

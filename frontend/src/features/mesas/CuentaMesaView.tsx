@@ -1,3 +1,4 @@
+import { ArrowLeft, BellRing, Ban, Clock, HandCoins, Plus, Send, Trash2, User, UtensilsCrossed, X } from 'lucide-react'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { mesasApi } from '../../apis/mesas.ts'
@@ -9,9 +10,10 @@ import type { Pedido, PagoCobro, TipoDescuento } from '../../apis/pedidos.ts'
 import { useAuth } from '../../auth/auth-context.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { formatearFecha, formatearMonto, parseMonto } from '../../utils/formato.ts'
+import ui from '../admin/Ui.module.css'
+import { Acciones, BotonIcono, Cabeza } from '../admin/ui.tsx'
 import { MenuCaja } from '../caja/menu/MenuCaja.tsx'
 import { PanelCobro } from '../caja/PanelCobro.tsx'
-import cajaStyles from '../caja/Caja.module.css'
 import { redondear } from '../cobro/facturacion.ts'
 import { DetalleItems } from '../pedidos/DetalleItems.tsx'
 import { EstadoBadge } from '../pedidos/EstadoBadge.tsx'
@@ -48,13 +50,15 @@ interface Props {
   cuentaId: number
   /** Dentro de otra pantalla (panel o ventana): sin enlace de volver y sin navegar al terminar. */
   embebido?: boolean
+  /** Pantalla completa de /mesas/:id: tres columnas (cuenta · rondas · cobrar). Sin esto, todo va apilado. */
+  enPagina?: boolean
   /** Se llama después de cada cambio en la cuenta, para que quien la muestra refresque. */
   onCambio?: () => void
   /** Se llama al cobrar o cerrar la cuenta. Sin esto se vuelve a /mesas. */
   onTerminar?: () => void
 }
 
-export function CuentaMesaView({ cuentaId, embebido = false, onCambio, onTerminar }: Props) {
+export function CuentaMesaView({ cuentaId, embebido = false, enPagina = false, onCambio, onTerminar }: Props) {
   const { sesion, hasRole } = useAuth()
   const toast = useToast()
   const navegar = useNavigate()
@@ -64,6 +68,7 @@ export function CuentaMesaView({ cuentaId, embebido = false, onCambio, onTermina
   const [cobrando, setCobrando] = useState(false)
   const [metodos, setMetodos] = useState<MetodoPago[]>([])
   const [form, setForm] = useState<DescuentoForm>(SIN_DESCUENTO)
+  const [vista, setVista] = useState<'pedir' | 'cuenta'>('pedir')
 
   const puedeCobrar = hasRole('Cajero', 'Administrador')
   const esAdmin = hasRole('Administrador')
@@ -74,8 +79,8 @@ export function CuentaMesaView({ cuentaId, embebido = false, onCambio, onTermina
   }, [cobrando, metodos.length, toast])
 
   const volver = embebido ? null : (
-    <Link to="/mesas" className={base.back}>
-      ← Volver a las mesas
+    <Link to="/mesas" className={styles.volverMesas}>
+      <ArrowLeft size={16} aria-hidden="true" /> Mesas
     </Link>
   )
   const Encabezado = embebido ? 'h2' : 'h1'
@@ -241,182 +246,295 @@ export function CuentaMesaView({ cuentaId, embebido = false, onCambio, onTermina
     )
   }
 
-  return (
-    <section className={base.page}>
-      {volver}
+  const turnoDeOtroDia = cuenta.turno_cerrado
+  const contenedor = enPagina ? `${base.page} ${base.pageAncha}` : base.page
+  const itemsBorrador = miBorrador ? miBorrador.detalles.reduce((s, d) => s + d.cantidad, 0) : 0
 
+  const nuevaRondaRapida = !miBorrador ? (
+    <button className={styles.tomarPedido} type="button" disabled={ocupado} onClick={() => void nuevaRonda()}>
+      <Plus size={22} aria-hidden="true" /> Tomar pedido
+    </button>
+  ) : (
+    <>
+      {catalogo ? (
+        <MenuCaja pedidoId={miBorrador.id} catalogo={catalogo} onAgregado={recargar} />
+      ) : (
+        <p className={base.muted}>Cargando el menú…</p>
+      )}
       <section className={base.card}>
-        <div className={styles.resumen}>
-          <div>
-            <Encabezado style={{ margin: 0 }}>Mesa {cuenta.mesa_numero}</Encabezado>
-            <p className={base.muted}>
-              Abierta {formatearFecha(cuenta.abierta_en)} por {cuenta.abierta_por ?? '—'}
-              {cuenta.pidio_cuenta && ' · Pidió la cuenta'}
-            </p>
-          </div>
-          <span className={styles.totalGrande}>{formatearMonto(cuenta.total)}</span>
+        <Cabeza icono={UtensilsCrossed} titulo="Tu pedido" cuenta={itemsBorrador} />
+        <DetalleItems
+          detalles={miBorrador.detalles}
+          total={miBorrador.total}
+          combos={combos}
+          editable
+          onQuitarExtra={(detalleId, extraId) =>
+            void accion(() => pedidosApi.quitarExtra(miBorrador.id, detalleId, extraId))
+          }
+          onQuitarDetalle={(detalleId) => void accion(() => pedidosApi.quitarDetalle(miBorrador.id, detalleId))}
+        />
+      </section>
+      <div className={styles.barraEnviar}>
+        <BotonIcono
+          icono={Trash2}
+          titulo="Descartar el pedido"
+          tono="peligro"
+          disabled={ocupado}
+          onClick={() => void descartar(miBorrador)}
+        />
+        <button
+          className={styles.enviarGrande}
+          type="button"
+          disabled={ocupado || miBorrador.detalles.length === 0}
+          onClick={() => void enviar(miBorrador)}
+        >
+          <Send size={18} aria-hidden="true" /> Enviar a cocina
+          <span>
+            {itemsBorrador} {itemsBorrador === 1 ? 'ítem' : 'ítems'} · {formatearMonto(miBorrador.total)}
+          </span>
+        </button>
+      </div>
+    </>
+  )
+
+  const encabezadoPagina = (
+    <div className={styles.cuentaBarra}>
+      {volver}
+      <h1 className={styles.cuentaTitulo}>Mesa {cuenta.mesa_numero}</h1>
+      <span className={styles.pildora}>Cuenta abierta</span>
+      {cuenta.pidio_cuenta && <span className={`${styles.pildora} ${styles.pildoraAviso}`}>Pidió la cuenta</span>}
+    </div>
+  )
+
+  const panelCuenta = (
+    <aside className={styles.cuentaRiel} aria-label="Cuenta de la mesa">
+      {enPagina ? <h2>Cuenta</h2> : <Encabezado style={{ margin: 0 }}>Mesa {cuenta.mesa_numero}</Encabezado>}
+      <div className={styles.cuentaTotal}>
+        <small>Total acumulado</small>
+        <span className={styles.totalGrande}>{formatearMonto(cuenta.total)}</span>
+        <div className={styles.cuentaMeta}>
+          <span>
+            <User size={13} aria-hidden="true" /> Abierta por {cuenta.abierta_por ?? '—'}
+          </span>
+          <span>
+            <Clock size={13} aria-hidden="true" /> {formatearFecha(cuenta.abierta_en)} · {cuenta.rondas}{' '}
+            {cuenta.rondas === 1 ? 'ronda' : 'rondas'}
+          </span>
+          {!enPagina && cuenta.pidio_cuenta && <span>Pidió la cuenta</span>}
         </div>
-        <div className={base.formRow}>
-          <button className={base.secondary} type="button" disabled={ocupado} onClick={() => void pedirCuenta()}>
-            {cuenta.pidio_cuenta ? 'Quitar aviso de cuenta' : 'Pidió la cuenta'}
+      </div>
+      <button className={`${ui.btn} ${ui.secundario} ${styles.cuentaBoton}`} type="button" disabled={ocupado} onClick={() => void pedirCuenta()}>
+        <BellRing size={16} aria-hidden="true" /> {cuenta.pidio_cuenta ? 'Quitar aviso de cuenta' : 'Pidió la cuenta'}
+      </button>
+      {cuenta.rondas === 0 && (
+        <button
+          className={`${ui.btn} ${ui.secundario} ${styles.cuentaBoton} ${styles.cuentaPeligro}`}
+          type="button"
+          disabled={ocupado}
+          onClick={() => void anular()}
+        >
+          <X size={16} aria-hidden="true" /> Cerrar sin consumo
+        </button>
+      )}
+    </aside>
+  )
+
+  const avisoTurno =
+  turnoDeOtroDia && (
+    <p className={base.aviso} role="status">
+      Esta mesa quedó abierta de un turno anterior. Al cobrarla (o al pedir algo más) pasa a tu turno de hoy,
+      así que necesitas tener un turno abierto.
+    </p>
+  )
+
+  const avisoAjenos =
+  ajenos.length > 0 && (
+    <p className={base.aviso} role="status">
+      Hay {ajenos.length} ronda(s) armadas por otra persona que todavía no se envían a cocina.
+    </p>
+  )
+
+  const rondasEnviadas =
+  enviadas.length > 0 && (
+    <section className={base.card}>
+      <Cabeza icono={UtensilsCrossed} titulo="Pedidos de la mesa" cuenta={enviadas.length} />
+      {enviadas.map((ronda, i) => {
+        const estado = estadoDe(ronda)
+        const sePuedeCancelar =
+          puedeCobrar && (estado === 'confirmado' || estado === 'en_preparacion' || (estado === 'listo' && esAdmin))
+        return (
+          <article key={ronda.id} className={estado === 'listo' ? `${styles.ronda} ${styles.rondaLista}` : styles.ronda}>
+            <div className={styles.rondaCabecera}>
+              <strong>
+                Ronda {i + 1} · Ficha N° {ronda.numero_turno ?? '—'}
+              </strong>
+              <EstadoBadge estado={estado} />
+              <span className={base.muted}>{formatearFecha(ronda.fecha)}</span>
+              <span className={styles.rondaEspacio} />
+              <Acciones>
+                {estado === 'listo' && (
+                  <BotonIcono icono={Send} titulo="Entregada en la mesa" tono="ok" disabled={ocupado} onClick={() => void entregar(ronda)} />
+                )}
+                {sePuedeCancelar && (
+                  <BotonIcono icono={Ban} titulo="Cancelar ronda" tono="peligro" disabled={ocupado} onClick={() => void cancelar(ronda)} />
+                )}
+              </Acciones>
+            </div>
+            <DetalleItems
+              detalles={ronda.detalles}
+              total={ronda.total}
+              combos={combos}
+              editable={false}
+              onQuitarExtra={() => {}}
+            />
+          </article>
+        )
+      })}
+    </section>
+  )
+
+  const panelCobro =
+  puedeCobrar && cuenta.rondas > 0 && (
+    <aside className={styles.cuentaTicket} aria-label="Cobrar la cuenta">
+      <div className={styles.cuentaTicketCabeza}>
+        <h2>Cobrar</h2>
+        <span className={styles.cuentaCantidad}>{formatearMonto(cuenta.total)}</span>
+      </div>
+      <form className={styles.cuentaTicketCuerpo} onSubmit={iniciarCobro}>
+        <div className={base.field}>
+          <span>Descuento (opcional)</span>
+          <div className={base.chips}>
+            {(['porcentaje', 'monto'] as const).map((tipo) => (
+              <button
+                key={tipo}
+                type="button"
+                className={form.tipo === tipo ? base.chipActive : base.chip}
+                aria-pressed={form.tipo === tipo}
+                onClick={() => setForm({ ...form, tipo })}
+              >
+                {tipo === 'porcentaje' ? 'Porcentaje %' : 'Monto Bs'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className={base.field}>
+          <span>Valor</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            placeholder={form.tipo === 'porcentaje' ? 'Ej. 10' : 'Ej. 15'}
+            value={form.valor}
+            onChange={(e) => setForm({ ...form, valor: e.target.value })}
+          />
+        </label>
+        <label className={base.field}>
+          <span>Motivo</span>
+          <input
+            maxLength={200}
+            placeholder="Motivo del descuento"
+            value={form.motivo}
+            onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+          />
+        </label>
+        {!esAdmin && (
+          <small className={base.muted}>El cajero da hasta {cuenta.tope_descuento_cajero} % de descuento.</small>
+        )}
+        <button className={styles.cuentaCobrar} type="submit" disabled={ocupado}>
+          <HandCoins size={18} aria-hidden="true" /> Cobrar {formatearMonto(totalACobrar)}
+        </button>
+      </form>
+    </aside>
+  )
+
+  const seccionNuevaRonda = (
+    <section className={base.card}>
+      <Cabeza icono={Plus} titulo="Nueva ronda" />
+      {!miBorrador ? (
+        <div>
+          <button className={`${ui.btn} ${ui.primario}`} type="button" disabled={ocupado} onClick={() => void nuevaRonda()}>
+            <Plus size={16} aria-hidden="true" /> Tomar pedido
           </button>
-          {cuenta.rondas === 0 && (
-            <button className={base.danger} type="button" disabled={ocupado} onClick={() => void anular()}>
-              Cerrar sin consumo
+        </div>
+      ) : (
+        <>
+          <DetalleItems
+            detalles={miBorrador.detalles}
+            total={miBorrador.total}
+            combos={combos}
+            editable
+            onQuitarExtra={(detalleId, extraId) =>
+              void accion(() => pedidosApi.quitarExtra(miBorrador.id, detalleId, extraId))
+            }
+            onQuitarDetalle={(detalleId) => void accion(() => pedidosApi.quitarDetalle(miBorrador.id, detalleId))}
+          />
+          <div className={base.formRow}>
+            <button
+              className={`${ui.btn} ${ui.primario}`}
+              type="button"
+              disabled={ocupado || miBorrador.detalles.length === 0}
+              onClick={() => void enviar(miBorrador)}
+            >
+              <Send size={16} aria-hidden="true" /> Enviar a cocina
             </button>
+            <button className={`${ui.btn} ${ui.secundario}`} type="button" disabled={ocupado} onClick={() => void descartar(miBorrador)}>
+              <Trash2 size={16} aria-hidden="true" /> Descartar
+            </button>
+          </div>
+          {catalogo ? (
+            <MenuCaja pedidoId={miBorrador.id} catalogo={catalogo} onAgregado={recargar} />
+          ) : (
+            <p className={base.muted}>Cargando el menú…</p>
+          )}
+        </>
+      )}
+    </section>
+  )
+
+  return (
+    <section className={contenedor}>
+      {enPagina ? encabezadoPagina : volver}
+
+      {enPagina ? (
+        <div className={styles.cuentaPagina}>
+          {panelCuenta}
+          <div className={styles.cuentaCentro}>
+            {avisoTurno}
+            {rondasEnviadas}
+            {avisoAjenos}
+            {seccionNuevaRonda}
+          </div>
+          {panelCobro}
+        </div>
+      ) : (
+        <div className={styles.cuentaApilada}>
+          <div className={styles.pestanasMesa} role="tablist" aria-label="Qué quieres hacer en la mesa">
+            <button type="button" role="tab" aria-selected={vista === 'pedir'} onClick={() => setVista('pedir')}>
+              <Plus size={16} aria-hidden="true" /> Pedir
+              {itemsBorrador > 0 && <span className={styles.contador}>{itemsBorrador}</span>}
+            </button>
+            <button type="button" role="tab" aria-selected={vista === 'cuenta'} onClick={() => setVista('cuenta')}>
+              <HandCoins size={16} aria-hidden="true" /> Cuenta
+              {cuenta.rondas_listas > 0 && (
+                <span className={`${styles.contador} ${styles.contadorListo}`}>{cuenta.rondas_listas} lista</span>
+              )}
+            </button>
+          </div>
+          {vista === 'pedir' ? (
+            <>
+              {avisoTurno}
+              {avisoAjenos}
+              {nuevaRondaRapida}
+            </>
+          ) : (
+            <>
+              {panelCuenta}
+              {rondasEnviadas}
+              {panelCobro}
+            </>
           )}
         </div>
-      </section>
-
-      {cuenta.turno_cerrado && (
-        <p className={base.aviso} role="status">
-          Esta mesa quedó abierta de un turno anterior. Al cobrarla (o al pedir algo más) pasa a tu turno de hoy,
-          así que necesitas tener un turno abierto.
-        </p>
-      )}
-
-      {enviadas.length > 0 && (
-        <section className={base.card}>
-          <h2>Pedidos de la mesa</h2>
-          {enviadas.map((ronda, i) => {
-            const estado = estadoDe(ronda)
-            const sePuedeCancelar =
-              puedeCobrar && (estado === 'confirmado' || estado === 'en_preparacion' || (estado === 'listo' && esAdmin))
-            return (
-              <article key={ronda.id} className={styles.ronda}>
-                <div className={styles.rondaCabecera}>
-                  <strong>
-                    Ronda {i + 1} · Ficha N° {ronda.numero_turno ?? '—'}
-                  </strong>
-                  <span>
-                    <EstadoBadge estado={estado} /> <span className={base.muted}>{formatearFecha(ronda.fecha)}</span>
-                  </span>
-                </div>
-                <DetalleItems
-                  detalles={ronda.detalles}
-                  total={ronda.total}
-                  combos={combos}
-                  editable={false}
-                  onQuitarExtra={() => {}}
-                />
-                <div className={base.formRow}>
-                  {estado === 'listo' && (
-                    <button className={base.primary} type="button" disabled={ocupado} onClick={() => void entregar(ronda)}>
-                      Entregada en la mesa
-                    </button>
-                  )}
-                  {sePuedeCancelar && (
-                    <button className={base.danger} type="button" disabled={ocupado} onClick={() => void cancelar(ronda)}>
-                      Cancelar ronda
-                    </button>
-                  )}
-                </div>
-              </article>
-            )
-          })}
-        </section>
-      )}
-
-      {ajenos.length > 0 && (
-        <p className={base.aviso} role="status">
-          Hay {ajenos.length} ronda(s) armadas por otra persona que todavía no se envían a cocina.
-        </p>
-      )}
-
-      <section className={base.card}>
-        <h2>Nueva ronda</h2>
-        {!miBorrador ? (
-          <div>
-            <button className={base.primary} type="button" disabled={ocupado} onClick={() => void nuevaRonda()}>
-              Tomar pedido
-            </button>
-          </div>
-        ) : (
-          <>
-            <DetalleItems
-              detalles={miBorrador.detalles}
-              total={miBorrador.total}
-              combos={combos}
-              editable
-              onQuitarExtra={(detalleId, extraId) =>
-                void accion(() => pedidosApi.quitarExtra(miBorrador.id, detalleId, extraId))
-              }
-              onQuitarDetalle={(detalleId) => void accion(() => pedidosApi.quitarDetalle(miBorrador.id, detalleId))}
-            />
-            <div className={base.formRow}>
-              <button
-                className={base.primary}
-                type="button"
-                disabled={ocupado || miBorrador.detalles.length === 0}
-                onClick={() => void enviar(miBorrador)}
-              >
-                Enviar a cocina
-              </button>
-              <button className={base.secondary} type="button" disabled={ocupado} onClick={() => void descartar(miBorrador)}>
-                Descartar
-              </button>
-            </div>
-            {catalogo ? (
-              <MenuCaja pedidoId={miBorrador.id} catalogo={catalogo} onAgregado={recargar} />
-            ) : (
-              <p className={base.muted}>Cargando el menú…</p>
-            )}
-          </>
-        )}
-      </section>
-
-      {puedeCobrar && cuenta.rondas > 0 && (
-        <section className={base.card}>
-          <h2>Cobrar</h2>
-          <form className={base.formStack} onSubmit={iniciarCobro}>
-            <div className={base.field}>
-              <span>Descuento (opcional)</span>
-              <div className={base.chips}>
-                {(['porcentaje', 'monto'] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className={form.tipo === t ? base.chipActive : base.chip}
-                    aria-pressed={form.tipo === t}
-                    onClick={() => setForm({ ...form, tipo: t })}
-                  >
-                    {t === 'porcentaje' ? 'Porcentaje %' : 'Monto Bs'}
-                  </button>
-                ))}
-              </div>
-              <div className={base.formRow}>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder={form.tipo === 'porcentaje' ? 'Ej. 10' : 'Ej. 15'}
-                  aria-label="Valor del descuento"
-                  value={form.valor}
-                  onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                />
-                <input
-                  className={base.grow}
-                  maxLength={200}
-                  placeholder="Motivo del descuento"
-                  aria-label="Motivo del descuento"
-                  value={form.motivo}
-                  onChange={(e) => setForm({ ...form, motivo: e.target.value })}
-                />
-              </div>
-              {!esAdmin && (
-                <small className={base.muted}>
-                  El cajero da hasta {cuenta.tope_descuento_cajero} % de descuento.
-                </small>
-              )}
-            </div>
-            <div className={base.formRow}>
-              <button className={`${base.primary} ${cajaStyles.confirmar}`} type="submit" disabled={ocupado}>
-                Cobrar {formatearMonto(totalACobrar)}
-              </button>
-            </div>
-          </form>
-        </section>
       )}
     </section>
   )

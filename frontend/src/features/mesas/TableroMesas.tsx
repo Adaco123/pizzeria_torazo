@@ -70,6 +70,8 @@ export function TableroMesas() {
     setAbriendo(true)
     try {
       const cuenta = await mesasApi.abrir(mesaElegida.id)
+      // Casi siempre se abre para pedir: la ronda queda lista y el mesero va directo al menú.
+      await mesasApi.nuevaRonda(cuenta.id).catch(() => undefined)
       setElegida({ mesaId: mesaElegida.id, cuentaId: cuenta.id })
       toast.exito(`Mesa ${mesaElegida.numero} abierta`)
     } catch (e) {
@@ -167,7 +169,7 @@ export function TableroMesas() {
               })}
             </div>
             <div className={styles.leyenda} aria-hidden="true">
-              <span style={{ '--c': '#d9c9cb' } as CSSProperties}>
+              <span style={{ '--c': 'var(--color-disabled)' } as CSSProperties}>
                 <i />
                 Libre
               </span>
@@ -179,7 +181,7 @@ export function TableroMesas() {
                 <i />
                 Lista para llevar
               </span>
-              <span style={{ '--c': '#c2410c' } as CSSProperties}>
+              <span style={{ '--c': 'var(--color-warning)' } as CSSProperties}>
                 <i />
                 Pidió la cuenta
               </span>

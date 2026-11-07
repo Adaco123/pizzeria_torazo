@@ -1,8 +1,10 @@
+import { Ban } from 'lucide-react'
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { gastosApi } from '../../apis/gastos.ts'
 import type { GastosDelTurno } from '../../apis/gastos.ts'
 import { useToast } from '../../toast/toast-context.ts'
 import { esAbort, formatearFecha, formatearMonto, mensajeDeError, parseMonto } from '../../utils/formato.ts'
+import { Acciones, BotonIcono } from '../admin/ui.tsx'
 import styles from '../catalogo/Catalogo.module.css'
 
 interface Props {
@@ -146,9 +148,9 @@ export function PanelGastos({ turnoId, esAdmin }: Props) {
                   <td className={styles.num}>{formatearMonto(g.monto)}</td>
                   <td>
                     {!g.anulado && (
-                      <button className={styles.link} type="button" onClick={() => anular(g.id)}>
-                        anular
-                      </button>
+                      <Acciones>
+                        <BotonIcono icono={Ban} titulo={`Anular el gasto: ${g.descripcion}`} tono="peligro" onClick={() => anular(g.id)} />
+                      </Acciones>
                     )}
                   </td>
                 </tr>
